@@ -1,48 +1,48 @@
 import pickle
-from dataclasses import dataclass, field
+from dataclasses import Field
 from typing import Dict, List
 
 from pydantic import BaseModel
 from src.models.content_message_models import ContentMessage
 
-@dataclass
-class ChatThread:
+
+class ChatThread(BaseModel):
     """
     A conversation between a human and an AI. In Discord, this is a `Thread`
     """
     name: str
     id: int
-    # couplets: List[Couplet] = field(default_factory=list)
-    messages: List[ContentMessage] = field(default_factory=list)
+    # couplets: List[Couplet] = Field(default_factory=list)
+    messages: List[ContentMessage] = Field(default_factory=list)
 
-@dataclass
-class ChannelData:
+
+class ChannelData(BaseModel):
     """
     The Data from a Text Channel in a discord server
     """
     name: str
     id: int
     channel_description_prompt: str = ''
-    pinned_messages: List[ContentMessage] = field(default_factory=list)
-    chat_threads: Dict[str, ChatThread] = field(default_factory=dict)
-    messages: List[ContentMessage] = field(default_factory=list)
+    pinned_messages: List[ContentMessage] = Field(default_factory=list)
+    chat_threads: Dict[str, ChatThread] = Field(default_factory=dict)
+    messages: List[ContentMessage] = Field(default_factory=list)
 
-@dataclass
-class CategoryData:
+
+class CategoryData(BaseModel):
     """
     A Category (group of Text Channels
     """
     name: str
     id: int
-    channels: Dict[str, ChannelData] = field(default_factory=dict)
-    bot_prompt_messages: List[ContentMessage] = field(default_factory=list)
+    channels: Dict[str, ChannelData] = Field(default_factory=dict)
+    bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
 
-@dataclass
-class ServerData:
+
+class ServerData(BaseModel):
     name: str
     id: int
-    bot_prompt_messages: List[ContentMessage] = field(default_factory=list)
-    categories: Dict[str, CategoryData] = field(default_factory=dict)
+    bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
+    categories: Dict[str, CategoryData] = Field(default_factory=dict)
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def save_as_json(server_data:ServerData, output_directory: str) -> str:
     directory_path = Path(output_directory)
     directory_path.mkdir(parents=True, exist_ok=True)
-    server_data_json = server_data.json()
+    server_data_json = server_data.model_dump_json()
     date_string = datetime.now().isoformat()
 
     base_filename = sanitize_name(f"{server_data.name}_{date_string}")
