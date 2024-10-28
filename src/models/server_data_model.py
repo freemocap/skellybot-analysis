@@ -1,8 +1,7 @@
 import pickle
-from dataclasses import Field
 from typing import Dict, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from src.models.content_message_models import ContentMessage
 
 

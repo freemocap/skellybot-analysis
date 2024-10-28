@@ -89,7 +89,7 @@ if __name__ == "__main__":
     with open(classbot_prompt_file_path, 'r', encoding='utf-8') as f:
         classbot_prompt = f.read()
 
-    checkpoint_name = "2024-10-22T06-39"
+    checkpoint_name = "2024-10-28T12-14"
     outer_base_directory = Path(OUTPUT_DIRECTORY) / checkpoint_name
     if not outer_base_directory.exists():
         raise FileNotFoundError(f"Directory not found: {outer_base_directory}")
