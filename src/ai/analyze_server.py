@@ -14,7 +14,7 @@ def process_server_data(server_data: ServerData) -> ServerData:
     return server_data
 
 if __name__ == "__main__":
-    server_json_path = Path(r"C:\Users\jonma\Sync\skellybot-data\HMN_Fall2024_server_data\2024-10-22T06-39\HMN_Fall24_2024-10-22T06-45-19.602861.json")
+    server_json_path = Path(r"C:\Users\jonma\Sync\skellybot-data\HMN_Fall2024_server_data\2024-10-28T12-26\HMN_Fall24_2024-10-28T12-34-00.339545.json")
     server_data = load_server_json(server_json_path)
 
     processed_server_data = process_server_data(server_data)

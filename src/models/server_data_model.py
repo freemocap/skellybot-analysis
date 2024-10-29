@@ -1,9 +1,20 @@
 import pickle
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 from src.models.content_message_models import ContentMessage
 
+EmbeddingVectors = Dict[str, List[float]]
+
+class AIAnalysis(BaseModel):
+    original_text: str
+    summary_prompt: str
+    summary_response: str
+    context_text: str
+    context_response: str
+    tags:str
+    fluff_text: bool
+    embeddings: EmbeddingVectors
 
 class ChatThread(BaseModel):
     """
@@ -13,7 +24,7 @@ class ChatThread(BaseModel):
     id: int
     # couplets: List[Couplet] = Field(default_factory=list)
     messages: List[ContentMessage] = Field(default_factory=list)
-
+    ai_analysis: AIAnalysis | None = None
 
 class ChannelData(BaseModel):
     """
@@ -21,7 +32,7 @@ class ChannelData(BaseModel):
     """
     name: str
     id: int
-    channel_description_prompt: str = ''
+    channel_description_prompt: Optional[str] = ''
     pinned_messages: List[ContentMessage] = Field(default_factory=list)
     chat_threads: Dict[str, ChatThread] = Field(default_factory=dict)
     messages: List[ContentMessage] = Field(default_factory=list)
@@ -42,6 +53,36 @@ class ServerData(BaseModel):
     id: int
     bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
+
+    def get_messages(self):
+        messages = []
+        for category_key, category_data in self.categories.items():
+            for channel_key, channel_data in category_data.channels.items():
+                for thread_key, thread_data in channel_data.chat_threads.items():
+                    for message in thread_data.messages:
+                        messages.append(message)
+        return messages
+
+    def get_chat_threads(self):
+        chat_threads = []
+        for category_key, category_data in self.categories.items():
+            for channel_key, channel_data in category_data.channels.items():
+                for thread_key, thread_data in channel_data.chat_threads.items():
+                    chat_threads.append(thread_data)
+        return chat_threads
+
+    def get_channels(self):
+        channels = []
+        for category_key, category_data in self.categories.items():
+            for channel_key, channel_data in category_data.channels.items():
+                channels.append(channel_data)
+        return channels
+
+    def get_categories(self):
+        categories = []
+        for category_key, category_data in self.categories.items():
+            categories.append(category_data)
+        return categories
 
 
 if __name__ == '__main__':

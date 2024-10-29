@@ -22,6 +22,7 @@ class ContentMessage(BaseModel):
     reactions: List[str] = Field(default_factory=list,
                                  description='A list of reactions to the message')
 
+
     @classmethod
     def from_discord_message(cls, discord_message: discord.Message):
         return cls(

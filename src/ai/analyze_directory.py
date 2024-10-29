@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from pprint import pprint, pformat
 from typing import Type
 
 from pydantic import BaseModel
@@ -13,12 +14,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 async def analyze_directory(base_directory: str,
                             output_directory: str,
                             json_schema_model: Type[BaseModel],
-                            base_prompt_text: str,
-                            llm_model: str = "gpt-3.5-turbo"):
+                            base_prompt_text: str):
     input_directory_path = Path(base_directory)
     output_directory_path = Path(output_directory)
     output_directory_path.mkdir(parents=True, exist_ok=True)
@@ -29,19 +28,25 @@ async def analyze_directory(base_directory: str,
     tasks = []
 
     for file_number, file in enumerate(input_directory_path.rglob('*.md')):
-        tasks.append(analyze_markdown_file(base_prompt_text, file, input_directory_path, json_schema_model, llm_model,
-                                           output_directory_path))
+        tasks.append(analyze_markdown_file(base_prompt_text=base_prompt_text,
+                                           file_path=file,
+                                           input_directory_path=input_directory_path,
+                                           json_schema_model=json_schema_model,
+                                           output_directory_path=output_directory_path,
+                                           ))
 
     logger.info(f"Starting analysis of {len(tasks)} files in directory: {input_directory_path}")
     await asyncio.gather(*tasks)
     logger.info(f"Analysis complete for directory: {input_directory_path}")
 
 
+
+
+
 async def analyze_markdown_file(base_prompt_text: str,
                                 file_path: Path,
                                 input_directory_path: Path,
                                 json_schema_model: ExtractedTextData,
-                                llm_model: str,
                                 output_directory_path: Path):
     logger.debug(f"Analyzing file: {file_path}")
     try:
@@ -53,10 +58,9 @@ async def analyze_markdown_file(base_prompt_text: str,
             return
         output_parent_path.mkdir(parents=True, exist_ok=True)
         try:
-            constructed_pydantic_model = await analyze_text(input_text=input_file_text,
+            constructed_pydantic_model, embedding_response = await analyze_text(input_text=input_file_text,
                                                             json_schema_model=json_schema_model,
-                                                            base_prompt_text=base_prompt_text,
-                                                            llm_model=llm_model)
+                                                            base_prompt_text=base_prompt_text)
         except Exception as e:
             logger.error(f"Error analyzing file: {file_path}")
             logger.error(e)
@@ -67,7 +71,7 @@ async def analyze_markdown_file(base_prompt_text: str,
         logger.info(f"Constructed Pydantic model:\n\n{constructed_pydantic_model}")
 
         output_markdown_string = str(constructed_pydantic_model)
-        full_output_string = output_markdown_string + "\n\n___\n\n___\n\nOriginal text:\n\n" + input_file_text
+        full_output_string = output_markdown_string + "\n\n___\n\n___\n\nOriginal text:\n\n" + input_file_text + "\n\n___\n\n___\n\nEmbedding response:\n\n" + pformat(embedding_response, indent=4)
         output_file_name = constructed_pydantic_model.filename
         save_path = output_parent_path / output_file_name
 
@@ -76,7 +80,7 @@ async def analyze_markdown_file(base_prompt_text: str,
     except Exception as e:
         logger.error(f"Error analyzing file: {file_path}")
         logger.error(e)
-        raise e
+        raise
 
 
 if __name__ == "__main__":
@@ -89,7 +93,7 @@ if __name__ == "__main__":
     with open(classbot_prompt_file_path, 'r', encoding='utf-8') as f:
         classbot_prompt = f.read()
 
-    checkpoint_name = "2024-10-28T12-14"
+    checkpoint_name = "2024-10-28T12-26"
     outer_base_directory = Path(OUTPUT_DIRECTORY) / checkpoint_name
     if not outer_base_directory.exists():
         raise FileNotFoundError(f"Directory not found: {outer_base_directory}")
