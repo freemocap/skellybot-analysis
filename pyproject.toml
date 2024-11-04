@@ -3,7 +3,6 @@ name = "skellybot-analysis"
 version = "0.1.0"
 description = "A repo for the (python) code used to analyze data gathered from skellybot servers (mostly looking at student data from courses) "
 readme = "README.md"
-requires-python = ">=3.11"
 dependencies = [
     "discord>=2.3.2",
     "openai>=1.52.2",

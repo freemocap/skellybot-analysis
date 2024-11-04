@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from src.ai.analyze_text import analyze_text
 from src.configure_logging import configure_logging
-from src.models.extract_text_data import ExtractedTextData
+from src.models.extract_text_data_prompt_model import ExtractedTextData
 
 configure_logging()
 import logging

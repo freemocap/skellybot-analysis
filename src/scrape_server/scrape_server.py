@@ -2,9 +2,8 @@ import asyncio
 import logging
 
 import discord
-
-from src.models.content_message_models import ContentMessage
-from src.models.server_data_model import ChannelData, CategoryData, ServerData, ChatThread
+from src.scrape_server.models.discord_message_models import ContentMessage
+from src.scrape_server.models.server_data_model import ChatThread, ChannelData, CategoryData, ServerData
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoj
     return prompt_messages
 
 
-async def process_chat_thread(thread: discord.Thread) -> ChatThread:
+async def scrape_chat_thread(thread: discord.Thread) -> ChatThread:
     chat_thread = ChatThread(name=thread.name, id=thread.id)
 
     async for message in thread.history(limit=None, oldest_first=True):
@@ -42,7 +41,7 @@ async def process_chat_thread(thread: discord.Thread) -> ChatThread:
     return chat_thread
 
 
-async def process_channel(channel: discord.TextChannel) -> ChannelData:
+async def scrape_channel(channel: discord.TextChannel) -> ChannelData:
     channel_data = ChannelData(name=channel.name, id=channel.id)
     channel_data.channel_description_prompt = channel.topic
 
@@ -60,7 +59,7 @@ async def process_channel(channel: discord.TextChannel) -> ChannelData:
         archived_threads.append(thread)
     all_threads = threads + archived_threads
     for thread in all_threads:
-        chat_data = await process_chat_thread(thread)
+        chat_data = await scrape_chat_thread(thread)
         channel_data.chat_threads[f"name:{chat_data.name},id:{chat_data.id}"] = chat_data
         await asyncio.sleep(1)
     if len(channel_data.chat_threads) == 0:
@@ -70,7 +69,7 @@ async def process_channel(channel: discord.TextChannel) -> ChannelData:
     return channel_data
 
 
-async def process_category(category: discord.CategoryChannel) -> CategoryData:
+async def scrape_category(category: discord.CategoryChannel) -> CategoryData:
     logger.info(f"\n\n---------------------------\n\n"
                 f"Processing category: {category.name}\n\n"
                 f"-------------------------\n\n")
@@ -78,13 +77,13 @@ async def process_category(category: discord.CategoryChannel) -> CategoryData:
     for channel in category.text_channels:
         if 'bot' in channel.name or 'prompt' in channel.name:
             category_data.bot_prompt_messages.extend(await get_reaction_tagged_messages(channel, '🤖'))
-        category_data.channels[f"name:{channel.name},id:{channel.id}"] = await process_channel(channel)
+        category_data.channels[f"name:{channel.name},id:{channel.id}"] = await scrape_channel(channel)
 
     logger.info(f"Processed {len(category_data.channels.items())} channels in category: {category.name}")
     return category_data
 
 
-async def process_server(target_server: discord.Guild) -> ServerData:
+async def scrape_server(target_server: discord.Guild) -> ServerData:
     logger.info(f'Successfully connected to the guild: {target_server.name} (ID: {target_server.id})')
 
     server_data = ServerData(name=target_server.name, id=target_server.id)
@@ -98,7 +97,7 @@ async def process_server(target_server: discord.Guild) -> ServerData:
 
     for category in category_channels:
         try:
-            server_data.categories[f"name:{category.name},id:{category.id}"] = await process_category(category)
+            server_data.categories[f"name:{category.name},id:{category.id}"] = await scrape_category(category)
         except discord.Forbidden as e:
             logger.error(f"Skipping category: {category.name} due to missing permissions")
         except Exception as e:

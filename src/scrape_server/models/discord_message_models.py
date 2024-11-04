@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 class ContentMessage(BaseModel):
     user_id: int
     is_bot: bool
+    message_id:int
     content: str = Field(default_factory=str,
                          description='The content of the message, as from `discord.message.clean_content`')
     jump_url: str = Field(default_factory=str,
@@ -21,18 +22,26 @@ class ContentMessage(BaseModel):
                                 description='The timestamp of the message in ISO 8601 format')
     reactions: List[str] = Field(default_factory=list,
                                  description='A list of reactions to the message')
+    parent_message_id: int|None = Field(default=None,
+                                      description='The ID of the parent message, if this message is a reply')
+
+    @property
+    def is_reply(self) -> bool:
+        return self.parent_reference is not None
 
 
     @classmethod
     def from_discord_message(cls, discord_message: discord.Message):
         return cls(
+            message_id =discord_message.id,
             user_id=discord_message.author.id,
             is_bot=discord_message.author.bot,
             content=discord_message.clean_content,
             jump_url=discord_message.jump_url,
             attachments=[attachment.url for attachment in discord_message.attachments],
             timestamp=discord_message.created_at,
-            reactions=[reaction.emoji for reaction in discord_message.reactions]
+            reactions=[reaction.emoji for reaction in discord_message.reactions],
+            parent_message_id = discord_message.reference.message_id if discord_message.reference else None
         )
 
     @staticmethod
@@ -47,6 +56,12 @@ class ContentMessage(BaseModel):
                     attachment_string += await resp.text()
         attachment_string += f" END [{attachment.filename}]({attachment.url})"
         return attachment_string
+    def as_text(self):
+        if self.is_bot:
+            return f"BOT: {self.content}\n"
+        else:
+            return f"HUMAN: {self.content}\n"
+
 
     def __str__(self):
         # Assuming 'attachments' is a list of strings after processing with 'extract_attachment_text'.

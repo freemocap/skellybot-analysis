@@ -3,16 +3,13 @@ import logging
 import os
 import pprint
 import re
-from typing import Type, Tuple
+from typing import Tuple
 
 import tiktoken
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from pydantic import BaseModel
-
-from src.ai.construct_prompt import construct_analyzer_prompt
 from src.configure_logging import configure_logging
-from src.models.extract_text_data import ExtractedTextData
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -25,10 +22,15 @@ if not OPENAI_API_KEY:
 
 LLM_MODEL = "gpt-4o-mini"
 
+
+class AnalyzeTextConfig:
+    llm_model: str = LLM_MODEL
+
+
 async def analyze_text(input_text: str,
-                       json_schema_model: Type[ExtractedTextData],
+                       system_prompt: str,
+                       json_schema: str,
                        llm_model: str = LLM_MODEL,
-                       base_prompt_text: str = "",
                        max_input_tokens: int = 120_000,
                        ) -> Tuple[BaseModel, dict]:
     openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
@@ -36,14 +38,14 @@ async def analyze_text(input_text: str,
     encoding = tiktoken.encoding_for_model(llm_model)
     text_length_check = False
     clean_input_text = input_text.replace('{', '-').replace('}', '-')
-    clean_input_text = re.sub(r'> [^\n]*\n', '', clean_input_text) # Remove any lines starting with > to remove urls and user id's and stuff
+    clean_input_text = re.sub(r'> [^\n]*\n', '',
+                              clean_input_text)  # Remove any lines starting with > to remove urls and user id's and stuff
     clean_input_text.replace("Starting new chat with initial message:", "")
 
     constructed_pydantic_model = None
 
     while not text_length_check:
-        analyzer_prompt = construct_analyzer_prompt(json_schema_model=json_schema_model,
-                                                    input_text=clean_input_text,
+        analyzer_prompt = construct_analyzer_prompt(input_text=clean_input_text,
                                                     base_prompt_text=base_prompt_text)
         num_tokens = len(encoding.encode(analyzer_prompt))
         if num_tokens > max_input_tokens:
@@ -84,11 +86,12 @@ async def analyze_text(input_text: str,
     if constructed_pydantic_model:
         try:
             emebedding_text = str(constructed_pydantic_model) + "\n\n" + input_text
-            embedding_responses  = []
+            embedding_responses = []
             embedding_max_tokens = 8000
-            for i in range(0, len(emebedding_text), embedding_max_tokens): # really should be splitting by token hgere, but characters are smaller than tokens, so it's fine
+            for i in range(0, len(emebedding_text),
+                           embedding_max_tokens):  # really should be splitting by token hgere, but characters are smaller than tokens, so it's fine
                 embedding_response = await openai_client.embeddings.create(
-                    input=emebedding_text[i:i+embedding_max_tokens],
+                    input=emebedding_text[i:i + embedding_max_tokens],
                     model="text-embedding-3-small"
                 )
                 embedding_responses.append(embedding_response)
@@ -97,6 +100,7 @@ async def analyze_text(input_text: str,
             logger.error(f"Error getting embeddings: {e}")
             raise
         return constructed_pydantic_model, embedding_responses
+
 
 async def fix_json_parsing_error(error_string, openai_client, llm_model, json_schema_model):
     second_response = await  openai_client.chat.completions.create(
