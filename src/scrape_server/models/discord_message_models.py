@@ -24,7 +24,8 @@ class ContentMessage(BaseModel):
                                  description='A list of reactions to the message')
     parent_message_id: int|None = Field(default=None,
                                       description='The ID of the parent message, if this message is a reply')
-
+    embedding: List[float]|None = Field(default=None,
+                                      description='The embedding vector of the message')
     @property
     def is_reply(self) -> bool:
         return self.parent_reference is not None

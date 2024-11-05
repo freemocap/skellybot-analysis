@@ -31,6 +31,18 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
         logger.info(f"Saving server data as markdown to {save_path}")
         server_directory = save_path / sanitize_name(server_data.name)
         server_directory.mkdir(exist_ok=True, parents=True)
+
+        # by user
+        users_directory = server_directory / "by_user"
+        users_directory.mkdir(exist_ok=True, parents=True)
+        for user_key, user_data in server_data.users.items():
+            logger.info(f"Saving user {user_data.name}")
+            user_filename = f"userid_{user_key}.md"
+            user_file_path = users_directory / user_filename
+            with open(str(user_file_path), 'w', encoding='utf-8') as f:
+                f.write(user_data.as_full_text())
+
+        # by category/channel/thread
         for category_key, category_data in server_data.categories.items():
             logger.info(f"Saving category {category_data.name}")
             clean_category_name = sanitize_name(category_data.name)
@@ -86,6 +98,7 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
                                 for attachment in message.attachments:
                                     f.write(f"{attachment}\n\n")
                             f.write("\n\n")
+
     except Exception as e:
         raise ValueError(f"Error saving server data as markdown: {e}")
     logger.info(f"Saved server data as markdown to {server_directory}!")

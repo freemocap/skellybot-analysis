@@ -18,12 +18,41 @@ DEFAULT_LLM = "gpt-4o-mini"
 MAX_TOKEN_LENGTH = 128_000
 
 logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class OpenaiJSONModeConfig:
     llm_model: str = DEFAULT_LLM
+
+
+async def add_ai_analysis(thing,
+                          system_prompt: str):
+    print(f"Adding AI analysis to {thing.__class__.__name__}: {thing.name}")
+    text_to_analyze = truncate_string_to_max_tokens(thing.as_text(),
+                                                    max_tokens=int(MAX_TOKEN_LENGTH * .8),
+                                                    llm_model=DEFAULT_LLM)
+
+    try:
+        thing.ai_analysis = await make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
+                                                                   system_prompt=system_prompt,
+                                                                   user_input=text_to_analyze,
+                                                                   prompt_model=TextAnalysisPromptModel,
+                                                                   llm_model=DEFAULT_LLM)
+        await add_embedding_vector(thing=thing, text_to_analyze=text_to_analyze)
+    except Exception as e:
+        logger.error(f"Error adding AI analysis to {thing.__class__.__name__}: {thing.name}")
+        logger.exception(e)
+        logger.error(e)
+        return
+
+    print(f"Added AI analysis to {thing.__class__.__name__}: {thing.name}!")
+
+
+async def add_embedding_vector(thing, text_to_analyze:str ):
+    embedding_result = await get_embedding_for_text(client=OPENAI_CLIENT,
+                                                    text_to_embed=text_to_analyze)
+    thing.embedding = embedding_result
 
 
 async def process_server_data():
@@ -35,41 +64,34 @@ async def process_server_data():
     chat_threads = server_data.get_chat_threads()
 
     ai_analysis_tasks = []
-    results = []
     logger.info(f"Fetched {len(chat_threads)} chat threads from the server data.")
 
-    async def add_ai_analysis(thing):
-        print(f"Adding AI analysis to {thing.__class__.__name__}: {thing.name}")
-        text_to_analyze = truncate_string_to_max_tokens(thing.as_text(),
-                                                        max_tokens=int(MAX_TOKEN_LENGTH*.8),
-                                                        llm_model=DEFAULT_LLM)
+    ai_analysis_tasks.append(add_ai_analysis(thing=server_data,
+                                             system_prompt=system_prompt))
+    for user_data in server_data.get_chats_by_user().values():
+        ai_analysis_tasks.append(add_ai_analysis(thing=user_data,
+                                                 system_prompt=system_prompt))
+    for category in server_data.get_categories():
+        ai_analysis_tasks.append(add_ai_analysis(thing=category,
+                                                 system_prompt=system_prompt))
 
-        try:
-            thing.ai_analysis = await make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
-                                                                             system_prompt=system_prompt,
-                                                                             user_input=text_to_analyze,
-                                                                             prompt_model=TextAnalysisPromptModel,
-                                                                             llm_model=DEFAULT_LLM,
-                                                                             results_list=results)
-            embedding_result = await get_embedding_for_text(client=OPENAI_CLIENT,
-                                                            text_to_embed=text_to_analyze)
-            thing.embeddings = {embedding_result[0].model: embedding_result[0].data[0].embedding}
-        except Exception as e:
-            logger.error(f"Error adding AI analysis to {thing.__class__.__name__}: {thing.name}")
-            logger.exception(e)
-            logger.error(e)
-            return
-
-        print(f"Added AI analysis to {thing.__class__.__name__}: {thing.name}!")
-
-    for chat_thread in chat_threads:
-        ai_analysis_tasks.append(add_ai_analysis(chat_thread))
 
     for channel in server_data.get_channels():
-        ai_analysis_tasks.append(add_ai_analysis(channel))
+        ai_analysis_tasks.append(add_ai_analysis(thing=channel,
+                                                 system_prompt=system_prompt))
 
-    for category in server_data.get_categories():
-        ai_analysis_tasks.append(add_ai_analysis(category))
+    for chat_thread in chat_threads:
+        if len(chat_thread.messages) < 3:
+            continue
+
+        ai_analysis_tasks.append(add_ai_analysis(thing=chat_thread,
+                                                 system_prompt=system_prompt))
+        for message in chat_thread.messages:
+            if len(message.content) > 20:
+                ai_analysis_tasks.append(add_embedding_vector(thing=message,
+                                                              text_to_analyze=message.content))
+
+
 
     logger.info(f"Starting AI analysis tasks on {len(ai_analysis_tasks)} chat threads...")
     await asyncio.gather(*ai_analysis_tasks)
@@ -94,7 +116,6 @@ async def process_server_data():
     save_as_markdown_directory(server_data=server_data, output_directory=str(Path(server_data_json_path).parent))
 
     logger.info(f"AI analysis tasks completed!")
-
 
 
 if __name__ == "__main__":

@@ -1,13 +1,14 @@
-import pickle
-from pathlib import Path
 from pprint import pprint
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 from src.ai.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.scrape_server.models.discord_message_models import ContentMessage
+from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
+
+EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID]
 
 
 class AIAnalysis(BaseModel):
@@ -27,14 +28,23 @@ class ChatThread(BaseModel):
     """
     name: str
     id: int
-    # couplets: List[Couplet] = Field(default_factory=list)
+    server_name: str
+    server_id: int
+    category_name: str | None = None
+    category_id: int | None = None
+    channel_name: str
+    channel_id: int
     messages: List[ContentMessage] = Field(default_factory=list)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
-                                       description="Key: embeddings sourve, Value: embedding vector")
+    embedding: List[float] = Field(default_factory=list,
+                                   description="The embedding vector for the entire text")
 
     def as_text(self) -> str:
         return f"Thread: {self.name}\n" + "\n".join([message.as_text() for message in self.messages])
+
+    def as_full_text(self) -> str:
+        return f"Thread: {self.name}\n" + self.ai_analysis.to_string() + "\n______________\n" + "\n".join(
+            [message.as_text() for message in self.messages])
 
 
 class ChannelData(BaseModel):
@@ -43,13 +53,17 @@ class ChannelData(BaseModel):
     """
     name: str
     id: int
+    server_name: str
+    server_id: int
+    category_name: str | None = None
+    category_id: int | None = None
     channel_description_prompt: Optional[str] = ''
     pinned_messages: List[ContentMessage] = Field(default_factory=list)
     chat_threads: Dict[str, ChatThread] = Field(default_factory=dict)
     messages: List[ContentMessage] = Field(default_factory=list)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
-                                       description="Key: embeddings sourve, Value: embedding vector")
+    embedding: List[float] = Field(default_factory=list,
+                                   description="The embedding vector for the entire text")
 
     @property
     def channel_system_prompt(self) -> str:
@@ -65,11 +79,13 @@ class CategoryData(BaseModel):
     """
     name: str
     id: int
+    server_name: str
+    server_id: int
     channels: Dict[str, ChannelData] = Field(default_factory=dict)
     bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
-                                       description="Key: embeddings sourve, Value: embedding vector")
+    embedding: List[float] = Field(default_factory=list,
+                                   description="The embedding vector for the entire text")
 
     @property
     def category_system_prompt(self) -> str:
@@ -79,14 +95,47 @@ class CategoryData(BaseModel):
         return f"Category: {self.name}\n" + "\n".join([channel.as_text() for channel in self.channels.values()])
 
 
+class UserData(BaseModel):
+    user_id: int
+    name: str | None = None
+    threads: List[ChatThread] = Field(default_factory=list)
+    ai_analysis: Optional[TextAnalysisPromptModel] = None
+    embedding: List[float] = Field(default_factory=list,
+                                   description="The embedding vector for the entire text")
+
+    def as_text(self) -> str:
+        return f"User: {self.user_id}\n" + "\n".join([thread.as_text() for thread in self.threads])
+
+    def as_full_text(self) -> str:
+        return f"User: {self.user_id}\n" + self.ai_analysis.to_string() + "\n______________\n" + "\n".join(
+            [thread.as_text() for thread in self.threads])
+
+    def stats(self) -> Dict[str, str]:
+        stats = {}
+        stats['user_id'] = str(self.user_id)
+        stats['threads'] = len(self.threads)
+        stats['messages'] = sum([len(thread.messages) for thread in self.threads])
+        stats['words'] = {}
+        stats['words']['total'] = sum(
+            [len(message.content.split()) for thread in self.threads for message in thread.messages])
+        stats['words']['human'] = sum(
+            [len(message.content.split()) for thread in self.threads for message in thread.messages if
+             message.is_bot == False])
+        stats['words']['bot'] = sum(
+            [len(message.content.split()) for thread in self.threads for message in thread.messages if
+             message.is_bot == True])
+        return stats
+
+
 class ServerData(BaseModel):
     name: str
     id: int
     bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
+    users: Dict[int, UserData] = Field(default_factory=dict)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
-                                       description="Key: embeddings sourve, Value: embedding vector")
+    embedding: List[float] = Field(default_factory=list,
+                                   description="The embedding vector for the entire text")
 
     @property
     def server_system_prompt(self) -> str:
@@ -125,6 +174,22 @@ class ServerData(BaseModel):
             categories.append(category_data)
         return categories
 
+    def get_chats_by_user(self) -> Dict[int, UserData]:
+        user_chats = {}
+        for category_key, category_data in self.categories.items():
+            for channel_key, channel_data in category_data.channels.items():
+                for thread_key, thread_data in channel_data.chat_threads.items():
+                    for message in thread_data.messages:
+                        if message.user_id not in user_chats and not message.is_bot:
+                            user_chats[message.user_id] = []
+                            user_chats[message.user_id].append(thread_data)
+
+        for user_id, chats in user_chats.items():
+            self.users[user_id] = UserData(user_id=user_id,
+                                           threads=chats)
+
+        return self.users
+
     def stats(self) -> Dict[str, str]:
         stats = {}
         stats['name'] = self.name
@@ -142,12 +207,13 @@ class ServerData(BaseModel):
             [len(message.content.split()) for message in self.get_messages() if message.is_bot == False])
         stats['words']['bot'] = sum(
             [len(message.content.split()) for message in self.get_messages() if message.is_bot == True])
+        stats['users']['total'] = len(self.users)
+        stats['users']['data'] = {user_id: user.stats() for user_id, user in self.users.items()}
         return stats
 
 
 if __name__ == '__main__':
-    from src.utilities.get_most_recent_server_data import get_most_recent_scrape_location
+    from src.utilities.get_most_recent_server_data import get_most_recent_server_data
 
-    paths = get_most_recent_scrape_location()
-    server_data = pickle.load(open(str(Path(paths['pickle'])), 'rb'))
+    server_data, _ = get_most_recent_server_data()
     pprint(server_data.stats())
