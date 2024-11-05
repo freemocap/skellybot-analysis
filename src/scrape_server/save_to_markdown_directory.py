@@ -4,7 +4,7 @@ from pathlib import Path
 from src.configure_logging import configure_logging
 configure_logging()
 from src.scrape_server.models.server_data_model import ServerData
-from src.utilities.get_most_recent_server_data import get_most_recent_server_data
+from src.utilities.get_most_recent_server_data import get_server_data
 from src.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)
@@ -68,10 +68,9 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
                         f.write(f"{channel_data.ai_analysis.to_string()}\n\n")
                     logger.debug(f"Summary for channel {channel_data.name}:\n {channel_data.ai_analysis.to_string()}"
                                  f"\n\n--------------------------------------------------------------------------------\n\n")
-                    if channel_data.name == 'bot-playground':
-                        continue
+
                 for thread_key, thread_data in channel_data.chat_threads.items():
-                    if not thread_data.ai_analysis or not thread_data.ai_analysis.is_relevant:
+                    if not thread_data.ai_analysis or not thread_data.ai_analysis.relevant:
                         logger.warning(f"Skipping irrelevant thread in channel {channel_data.name}: {thread_data.name} \n {thread_data.ai_analysis}")
                         continue
                     thread_file_name = f"{thread_data.ai_analysis.title}-{thread_data.id}.md"
@@ -108,5 +107,5 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
 if __name__ == "__main__":
 
     logger.info("Saving server data as markdown directory")
-    server_data, output_directory = get_most_recent_server_data()
+    server_data, output_directory = get_server_data()
     save_as_markdown_directory(server_data, str(Path(output_directory).parent))

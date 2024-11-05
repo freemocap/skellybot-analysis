@@ -35,8 +35,13 @@ def get_most_recent_scrape_location() -> str:
         raise FileNotFoundError(f"File not found: {server_json_path}")
     return server_json_path
 
-def get_most_recent_server_data() -> Tuple[ServerData, str]:
-    json_path = get_most_recent_scrape_location()
+def get_server_data(server_data_json_path:str|None=None) -> Tuple[ServerData, str]:
+    if server_data_json_path is None:
+        json_path = get_most_recent_scrape_location()
+    else:
+        if not Path(server_data_json_path).exists():
+            raise FileNotFoundError(f"File not found: {server_data_json_path}")
+        json_path = server_data_json_path
     try:
         with open(json_path, "r", encoding='utf-8') as file:
             return ServerData(**json.load(file)), json_path
@@ -47,5 +52,5 @@ def get_most_recent_server_data() -> Tuple[ServerData, str]:
 if __name__ == "__main__":
     pprint(get_most_recent_scrape_location())
     print('\n\n')
-    sd = get_most_recent_server_data()
+    sd = get_server_data()
     pprint(sd.stats())

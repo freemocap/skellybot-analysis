@@ -13,7 +13,7 @@ from plotly.io import write_html
 from sklearn.manifold import TSNE
 from src.configure_logging import configure_logging
 from src.scrape_server.models.server_data_model import ServerData
-from src.utilities.get_most_recent_server_data import get_most_recent_server_data
+from src.utilities.get_most_recent_server_data import get_server_data
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -51,12 +51,11 @@ def open_file_path(path: str) -> None:
 def create_dataframe(server_data: ServerData) -> pd.DataFrame:
     chat_threads = server_data.get_chat_threads()
     embeddings = []
-    for thread in chat_threads:
-        if thread.ai_analysis is not None:
-            embeddings.append(thread.ai_analysis.embeddings)
+    for chat_thread in chat_threads:
+        if chat_thread.embedding:
+            embeddings.append(chat_thread.embedding)
         else:
-            embeddings.append(np.zeros(1532))
-
+            logger.warning(f"Chat thread {chat_thread.as_text()} has no embedding data.")
     embeddings_npy = np.array(embeddings)
 
     logger.info("Running t-SNE on embeddings")
@@ -156,7 +155,7 @@ def create_dash_app(df: pd.DataFrame, save_html_path: str) -> Dash:
 
 
 if __name__ == "__main__":
-    server_data, json_path = get_most_recent_server_data()
+    server_data, json_path = get_server_data(server_data_json_path=str(Path(r"C:\Users\jonma\Sync\skellybot-data\HMN_Fall2024_server_data\2024-11-05T08-41\HMN_Fall24_2024-11-05T08-48-27.173680_w_bot_playground.json")))
     outer_output_path = Path(json_path).parent
     csv_file_name = Path(json_path).stem + '_3d_cluster_data.csv'
     csv_full_path = outer_output_path / csv_file_name

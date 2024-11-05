@@ -43,8 +43,13 @@ class ChatThread(BaseModel):
         return f"Thread: {self.name}\n" + "\n".join([message.as_text() for message in self.messages])
 
     def as_full_text(self) -> str:
-        return f"Thread: {self.name}\n" + self.ai_analysis.to_string() + "\n______________\n" + "\n".join(
-            [message.as_text() for message in self.messages])
+        out_string = f"Thread: {self.name}\n"
+        if self.ai_analysis is not None:
+            out_string += self.ai_analysis.to_string() + "\n______________\n"
+
+        out_string += "\n".join([message.as_text() for message in self.messages])
+
+        return out_string
 
 
 class ChannelData(BaseModel):
@@ -213,7 +218,7 @@ class ServerData(BaseModel):
 
 
 if __name__ == '__main__':
-    from src.utilities.get_most_recent_server_data import get_most_recent_server_data
+    from src.utilities.get_most_recent_server_data import get_server_data
 
-    server_data, _ = get_most_recent_server_data()
+    server_data, _ = get_server_data()
     pprint(server_data.stats())

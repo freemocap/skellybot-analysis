@@ -10,7 +10,7 @@ from src.ai.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.ai.truncate_text_to_max_token_length import truncate_string_to_max_tokens
 from src.scrape_server.save_to_disk import save_server_data_to_json
 from src.scrape_server.save_to_markdown_directory import save_as_markdown_directory
-from src.utilities.get_most_recent_server_data import get_most_recent_server_data
+from src.utilities.get_most_recent_server_data import get_server_data
 
 OPENAI_CLIENT = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
@@ -59,7 +59,7 @@ async def add_embedding_vector(thing, text_to_analyze:str ):
 
 
 async def process_server_data():
-    server_data, server_data_json_path = get_most_recent_server_data()
+    server_data, server_data_json_path = get_server_data(str(Path(r"C:\Users\jonma\Sync\skellybot-data\HMN_Fall2024_server_data\2024-11-05T08-41\HMN_Fall24_2024-11-05T08-48-27.173680_w_bot_playground.json")))
     system_prompt = server_data.server_system_prompt
     system_prompt += ("\n You are currently reviewing the chat data from the server extracting the content "
                       "of the conversations to provide a landscape of the topics that the students are discussing. "
