@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
+from plotly.io import write_html
 from sklearn.manifold import TSNE
 from src.configure_logging import configure_logging
 from src.scrape_server.models.server_data_model import ServerData
@@ -49,7 +50,13 @@ def open_file_path(path: str) -> None:
 
 def create_dataframe(server_data: ServerData) -> pd.DataFrame:
     chat_threads = server_data.get_chat_threads()
-    embeddings = [thread.embedding for thread in chat_threads]
+    embeddings = []
+    for thread in chat_threads:
+        if thread.ai_analysis is not None:
+            embeddings.append(thread.ai_analysis.embeddings)
+        else:
+            embeddings.append(np.zeros(1532))
+
     embeddings_npy = np.array(embeddings)
 
     logger.info("Running t-SNE on embeddings")
@@ -67,7 +74,7 @@ def create_dataframe(server_data: ServerData) -> pd.DataFrame:
     return df
 
 
-def create_dash_app(df: pd.DataFrame):
+def create_dash_app(df: pd.DataFrame, save_html_path: str) -> Dash:
     app = Dash(__name__)
 
     fig = px.scatter_3d(
@@ -87,7 +94,7 @@ def create_dash_app(df: pd.DataFrame):
 
     x = np.outer(np.cos(u), np.sin(v))
     y = np.outer(np.sin(u), np.sin(v))
-    z = np.outer(np.ones(np.size(u))*.95, np.cos(v))
+    z = np.outer(np.ones(np.size(u)) * .95, np.cos(v))
 
     # Add sphere to the figure
     fig.add_trace(go.Mesh3d(
@@ -106,10 +113,14 @@ def create_dash_app(df: pd.DataFrame):
         )
     ))
 
+    if save_html_path:
+        write_html(fig, save_html_path)
+        logger.info(f"Plot saved as HTML to {save_html_path}")
+
     app.layout = html.Div([
         dcc.Graph(id='3d-scatter-plot',
                   figure=fig,
-                 style={'width': '70vw',
+                  style={'width': '70vw',
                          'height': '100vh',
                          'border': '2px solid black'
                          }),
@@ -149,10 +160,13 @@ if __name__ == "__main__":
     outer_output_path = Path(json_path).parent
     csv_file_name = Path(json_path).stem + '_3d_cluster_data.csv'
     csv_full_path = outer_output_path / csv_file_name
+    html_file_name = Path(json_path).stem + '_3d_cluster_data_viz.html'
+    html_file_path = outer_output_path / html_file_name
     if csv_full_path.exists():
         df = pd.read_csv(csv_full_path)
     else:
         df = create_dataframe(server_data)
         df.to_csv(str(csv_full_path))
-    app = create_dash_app(df)
+
+    app = create_dash_app(df, save_html_path=str(html_file_path))
     app.run_server(debug=True, port=8050)

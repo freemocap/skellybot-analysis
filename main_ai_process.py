@@ -17,9 +17,9 @@ OPENAI_CLIENT = AsyncOpenAI(api_key=OPENAI_API_KEY)
 DEFAULT_LLM = "gpt-4o-mini"
 MAX_TOKEN_LENGTH = 128_000
 
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.INFO)
 logging.getLogger("openai").setLevel(logging.INFO)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.INFO)
 
 
 class OpenaiJSONModeConfig:
@@ -40,13 +40,16 @@ async def add_ai_analysis(thing,
                                                                    prompt_model=TextAnalysisPromptModel,
                                                                    llm_model=DEFAULT_LLM)
         await add_embedding_vector(thing=thing, text_to_analyze=text_to_analyze)
+
+
+
     except Exception as e:
         logger.error(f"Error adding AI analysis to {thing.__class__.__name__}: {thing.name}")
         logger.exception(e)
         logger.error(e)
         return
 
-    print(f"Added AI analysis to {thing.__class__.__name__}: {thing.name}!")
+    print(f"Completed AI analysis to {thing.__class__.__name__}: {thing.name}!")
 
 
 async def add_embedding_vector(thing, text_to_analyze:str ):
@@ -77,6 +80,7 @@ async def process_server_data():
 
 
     for channel in server_data.get_channels():
+
         ai_analysis_tasks.append(add_ai_analysis(thing=channel,
                                                  system_prompt=system_prompt))
 
@@ -86,10 +90,10 @@ async def process_server_data():
 
         ai_analysis_tasks.append(add_ai_analysis(thing=chat_thread,
                                                  system_prompt=system_prompt))
-        for message in chat_thread.messages:
-            if len(message.content) > 20:
-                ai_analysis_tasks.append(add_embedding_vector(thing=message,
-                                                              text_to_analyze=message.content))
+        # for message in chat_thread.messages:
+        #     if len(message.content) > 20:
+        #         ai_analysis_tasks.append(add_embedding_vector(thing=message,
+        #                                                       text_to_analyze=message.content))
 
 
 
