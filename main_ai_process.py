@@ -1,17 +1,21 @@
 import asyncio
 import logging
+from pathlib import Path
 
 from openai import AsyncOpenAI
 from src.ai.analyze_text import OPENAI_API_KEY, logger
 from src.ai.get_embeddings_for_text import get_embedding_for_text
 from src.ai.make_openai_json_mode_ai_request import make_openai_json_mode_ai_request
 from src.ai.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.ai.truncate_text_to_max_token_length import truncate_string_to_max_tokens
 from src.scrape_server.save_to_disk import save_server_data_to_json
+from src.scrape_server.save_to_markdown_directory import save_as_markdown_directory
 from src.utilities.get_most_recent_server_data import get_most_recent_server_data
 
 OPENAI_CLIENT = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 DEFAULT_LLM = "gpt-4o-mini"
+MAX_TOKEN_LENGTH = 128_000
 
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
@@ -36,17 +40,23 @@ async def process_server_data():
 
     async def add_ai_analysis(thing):
         print(f"Adding AI analysis to {thing.__class__.__name__}: {thing.name}")
+        text_to_analyze = truncate_string_to_max_tokens(thing.as_text(),
+                                                        max_tokens=int(MAX_TOKEN_LENGTH*.8),
+                                                        llm_model=DEFAULT_LLM)
+
         try:
             thing.ai_analysis = await make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
                                                                              system_prompt=system_prompt,
-                                                                             user_input=thing.as_text(),
+                                                                             user_input=text_to_analyze,
                                                                              prompt_model=TextAnalysisPromptModel,
                                                                              llm_model=DEFAULT_LLM,
                                                                              results_list=results)
-            embedding_result = await get_embedding_for_text(thing.ai_analysis)
-            thing.embeddings = {embedding_result.model: embedding_result[0].data[0].embedding}
+            embedding_result = await get_embedding_for_text(client=OPENAI_CLIENT,
+                                                            text_to_embed=text_to_analyze)
+            thing.embeddings = {embedding_result[0].model: embedding_result[0].data[0].embedding}
         except Exception as e:
             logger.error(f"Error adding AI analysis to {thing.__class__.__name__}: {thing.name}")
+            logger.exception(e)
             logger.error(e)
             return
 
@@ -81,6 +91,8 @@ async def process_server_data():
             logger.success("")
 
     save_server_data_to_json(server_data=server_data, output_directory=server_data_json_path)
+    save_as_markdown_directory(server_data=server_data, output_directory=str(Path(server_data_json_path).parent))
+
     logger.info(f"AI analysis tasks completed!")
 
 

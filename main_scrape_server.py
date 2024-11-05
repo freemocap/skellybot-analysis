@@ -4,16 +4,13 @@ from pathlib import Path
 
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
-
 from src.configure_logging import configure_logging
 from src.scrape_server.models.server_data_model import ServerData
-
-from src.scrape_server.save_to_disk import save_server_data_to_disk, save_server_data_to_json
+from src.scrape_server.save_to_disk import save_server_data_to_json
 from src.scrape_server.scrape_server import scrape_server
 from src.utilities.get_most_recent_server_data import persist_most_recent_scrape_location
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, OUTPUT_DIRECTORY, TARGET_SERVER_ID, \
-    STUDENT_IDENTIFIERS_CSV_PATH, DISCORD_DEV_BOT_TOKEN
+    DISCORD_DEV_BOT_TOKEN
 from src.utilities.sanitize_filename import sanitize_name
 
 configure_logging()
@@ -57,4 +54,7 @@ async def main_server_scraper():
 DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
 
 if __name__ == "__main__":
-    pass
+    import asyncio
+    from main_ai_process import process_server_data
+    asyncio.run(process_server_data())
+    print("Done!")

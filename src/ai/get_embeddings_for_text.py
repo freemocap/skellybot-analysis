@@ -1,6 +1,11 @@
 from openai import AsyncOpenAI
 
-async def get_embedding_for_text(client: AsyncOpenAI,text_to_embed: str):
+DEFAULT_EMDEDDINGS_MODEL = "text-embedding-3-small"
+
+
+async def get_embedding_for_text(client: AsyncOpenAI,
+                                 text_to_embed: str,
+                                 embedding_model: str = DEFAULT_EMDEDDINGS_MODEL):
 
     embedding_responses = []
     embedding_max_tokens = 8000
@@ -8,7 +13,7 @@ async def get_embedding_for_text(client: AsyncOpenAI,text_to_embed: str):
                    embedding_max_tokens):  # really should be splitting by token hgere, but characters are smaller than tokens, so it's fine
         embedding_response = await client.embeddings.create(
             input=text_to_embed[i:i + embedding_max_tokens],
-            model="text-embedding-3-small"
+            model=embedding_model
         )
         embedding_responses.append(embedding_response)
     return embedding_responses

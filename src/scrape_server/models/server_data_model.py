@@ -30,7 +30,7 @@ class ChatThread(BaseModel):
     # couplets: List[Couplet] = Field(default_factory=list)
     messages: List[ContentMessage] = Field(default_factory=list)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, int] = Field(default_factory=dict,
+    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
                                        description="Key: embeddings sourve, Value: embedding vector")
 
     def as_text(self) -> str:
@@ -48,7 +48,7 @@ class ChannelData(BaseModel):
     chat_threads: Dict[str, ChatThread] = Field(default_factory=dict)
     messages: List[ContentMessage] = Field(default_factory=list)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, int] = Field(default_factory=dict,
+    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
                                        description="Key: embeddings sourve, Value: embedding vector")
 
     @property
@@ -68,7 +68,7 @@ class CategoryData(BaseModel):
     channels: Dict[str, ChannelData] = Field(default_factory=dict)
     bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, int] = Field(default_factory=dict,
+    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
                                        description="Key: embeddings sourve, Value: embedding vector")
 
     @property
@@ -85,7 +85,7 @@ class ServerData(BaseModel):
     bot_prompt_messages: List[ContentMessage] = Field(default_factory=list)
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
-    embeddings: Dict[str, int] = Field(default_factory=dict,
+    embeddings: Dict[str, List[float]] = Field(default_factory=dict,
                                        description="Key: embeddings sourve, Value: embedding vector")
 
     @property

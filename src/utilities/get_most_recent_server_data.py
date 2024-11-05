@@ -22,9 +22,12 @@ def get_most_recent_scrape_location() -> str:
     """
     Load txt file that contains the path to the most recent scrape location
     """
+    if not Path(RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE).exists():
+        raise FileNotFoundError("No most recent scrape location found")
     try:
-        with open(RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE, "r", encoding='utf-8') as file:
-            server_json_path = json.load(file)
+        with open((RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE), "r", encoding='utf-8') as file:
+            server_json_path= file.read().strip()
+
     except OSError:
         raise FileNotFoundError("No most recent scrape location found")
 

@@ -16,7 +16,9 @@ class TextAnalysisPromptModel(BaseModel):
         description="An exhaustively thorough and detailed summary of the major points of this text in markdown bulleted outline format, like `* point 1\n* point 2\n* point 3` etc. Do not include conversational aspects such as 'the human greets the ai' and the 'ai responds with a greeting', only include the main contentful components of the text.")
     tags: str = Field(
         description="A list of tags that describe the content of the text, formatted as comma separated #lower-kabob-case. These should be like topic tags that can be used to categorize the text within a larger collection of texts. Ignore conversational aspects (such as '#greetings', '#farewells', '#thanks', etc.).  These should almost always be single word, unless the tag is a multi-word phrase that is commonly used as a single tag, in which case it should be hyphenated. For example, '#machine-learning, #python, #oculomotor-control,#neural-networks, #computer-vision', but NEVER things like '#computer-vision-conversation', '#computer-vision-questions', etc.")
-    relevant: bool = Field(description="A boolean flag that indicates whether the contentent of this text is relevant to the instructions, or whether it is off topic or incomplete (i.e. a conversation that doesn't progress past greetings, or a text that is just a list of questions, etc.) If this is True, set the other content to be 'N/A'")
+    relevant: bool = Field(description="A boolean flag that indicates whether the contentent of this text is relevant to the course,"
+                                       " or whether it is off topic or incomplete (i.e. a conversation that is mostly just greetings, "
+                                       "or a text that is just a list of questions, etc.)")
 
     @property
     def title(self):
@@ -77,6 +79,9 @@ class TextAnalysisPromptModel(BaseModel):
         json_prompt[-1] = json_prompt[-1][:-1]  # Remove the trailing comma
         json_prompt.append("\n}")
         return "\n".join(json_prompt)
+
+    def to_string(self):
+        return self.__str__()
 
     def __str__(self):
         tags = "\n".join(self.tags.split(","))
