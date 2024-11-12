@@ -11,6 +11,7 @@ DISCORD_BOT_ID = os.getenv('DISCORD_BOT_ID')
 TARGET_SERVER_ID = os.getenv('TARGET_SERVER_ID')
 OUTPUT_DIRECTORY = os.getenv('OUTPUT_DIRECTORY')
 STUDENT_IDENTIFIERS_CSV_PATH = os.getenv('STUDENT_IDENTIFIERS_CSV_PATH')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 OUTPUT_DIRECTORY = OUTPUT_DIRECTORY.replace("~", str(Path.home()))
 
@@ -25,4 +26,5 @@ if not OUTPUT_DIRECTORY:
     raise ValueError("Please set OUTPUT_DIRECTORY in your .env file")
 if not STUDENT_IDENTIFIERS_CSV_PATH:
     raise ValueError("Please set STUDENT_IDENTIFIERS_CSV_PATH in your .env file")
-
+if not OPENAI_API_KEY:
+    raise ValueError("Please set OPENAI_API_KEY in your .env file")

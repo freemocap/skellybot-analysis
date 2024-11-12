@@ -7,6 +7,7 @@ from src.scrape_server.models.server_data_model import ChatThread, ChannelData, 
 
 logger = logging.getLogger(__name__)
 
+MINIMUM_THREAD_MESSAGE_COUNT = 4 # Minimum number of messages in a thread to be included in the scraped data
 
 async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoji: str) -> list[ContentMessage]:
     logger.info(f"Getting bot prompt messages from channel: {channel.name}")
@@ -71,6 +72,8 @@ async def scrape_channel(channel: discord.TextChannel) -> ChannelData:
         archived_threads.append(thread)
     all_threads = threads + archived_threads
     for thread in all_threads:
+        if thread.message_count < MINIMUM_THREAD_MESSAGE_COUNT:
+            continue
         chat_data = await scrape_chat_thread(thread)
         channel_data.chat_threads[f"name:{chat_data.name},id:{chat_data.id}"] = chat_data
         await asyncio.sleep(1)

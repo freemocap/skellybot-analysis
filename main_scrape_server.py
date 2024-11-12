@@ -55,6 +55,7 @@ DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
 
 if __name__ == "__main__":
     import asyncio
-    from main_ai_process import process_server_data
+    from src.ai.analyze_server_data import process_server_data
+
     asyncio.run(process_server_data())
     print("Done!")

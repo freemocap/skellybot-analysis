@@ -2,24 +2,15 @@ from pprint import pprint
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
-from src.ai.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.ai.prompt_stuff.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.scrape_server.models.discord_message_models import ContentMessage
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
 
-EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID]
+PROF_JON_USER_ID = 362711467104927744
+EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID, PROF_JON_USER_ID]
 
-
-class AIAnalysis(BaseModel):
-    original_text: str
-    summary_prompt: str
-    summary_response: str
-    context_text: str
-    context_response: str
-    tags: str
-    fluff_text: bool
-    embeddings: EmbeddingVectors
 
 
 class ChatThread(BaseModel):

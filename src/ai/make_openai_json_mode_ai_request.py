@@ -5,7 +5,7 @@ from typing import Type
 
 from openai import AsyncOpenAI
 from pydantic import BaseModel
-from src.ai.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.ai.prompt_stuff.text_analysis_prompt_model import TextAnalysisPromptModel
 
 
 async def make_openai_json_mode_ai_request(client:AsyncOpenAI,

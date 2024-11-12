@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.configure_logging import configure_logging
 configure_logging()
-from src.scrape_server.models.server_data_model import ServerData
+from src.scrape_server.models.server_data_model import ServerData, EXCLUDED_USER_IDS
 from src.utilities.get_most_recent_server_data import get_server_data
 from src.utilities.sanitize_filename import sanitize_name
 
@@ -36,6 +36,9 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
         users_directory = server_directory / "by_user"
         users_directory.mkdir(exist_ok=True, parents=True)
         for user_key, user_data in server_data.users.items():
+            if user_data.user_id in EXCLUDED_USER_IDS:
+                logger.info(f"Skipping excluded user {user_data.name}")
+                continue
             logger.info(f"Saving user {user_data.name}")
             user_filename = f"userid_{user_key}.md"
             user_file_path = users_directory / user_filename
@@ -70,9 +73,9 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
                                  f"\n\n--------------------------------------------------------------------------------\n\n")
 
                 for thread_key, thread_data in channel_data.chat_threads.items():
-                    if not thread_data.ai_analysis or not thread_data.ai_analysis.relevant:
-                        logger.warning(f"Skipping irrelevant thread in channel {channel_data.name}: {thread_data.name} \n {thread_data.ai_analysis}")
-                        continue
+                    # if not thread_data.ai_analysis or not thread_data.ai_analysis.relevant:
+                    #     logger.warning(f"Skipping irrelevant thread in channel {channel_data.name}: {thread_data.name} \n {thread_data.ai_analysis}")
+                    #     continue
                     thread_file_name = f"{thread_data.ai_analysis.title}-{thread_data.id}.md"
                     thread_file_path = channel_directory / thread_file_name
                     logger.info(f"Saving thread {thread_data.name}")
