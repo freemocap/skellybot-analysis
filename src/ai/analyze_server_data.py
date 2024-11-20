@@ -6,12 +6,13 @@ from openai import AsyncOpenAI
 
 from src.ai.get_embeddings_for_text import get_embedding_for_text
 from src.ai.make_openai_json_mode_ai_request import make_openai_json_mode_ai_request
-from src.ai.prompt_stuff.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.ai.prompt_stuff.truncate_text_to_max_token_length import truncate_string_to_max_tokens
 from src.scrape_server.save_to_disk import save_server_data_to_json
 from src.scrape_server.save_to_markdown_directory import save_as_markdown_directory
 from src.utilities.get_most_recent_server_data import get_server_data
 from src.utilities.load_env_variables import OPENAI_API_KEY
+from src.visualize_data.generate_graph_view import generate_graph_data_from_json
 
 logging.getLogger("httpcore").setLevel(logging.INFO)
 logging.getLogger("openai").setLevel(logging.INFO)
@@ -69,7 +70,7 @@ async def process_server_data():
 
     ai_analysis_tasks.append(add_ai_analysis(thing=server_data,
                                              system_prompt=system_prompt))
-    for user_data in server_data.get_chats_by_user().values():
+    for user_data in server_data.extract_user_data().values():
         ai_analysis_tasks.append(add_ai_analysis(thing=user_data,
                                                  system_prompt=system_prompt))
     for category in server_data.get_categories():
@@ -113,6 +114,8 @@ async def process_server_data():
             logger.success(f"Category: {category.as_text()}")
             logger.success(f"AI Analysis: {category.ai_analysis}")
             logger.success("")
+
+    server_data.calculate_graph_data()
 
     save_server_data_to_json(server_data=server_data, output_directory=server_data_json_path)
     save_as_markdown_directory(server_data=server_data, output_directory=str(Path(server_data_json_path).parent))

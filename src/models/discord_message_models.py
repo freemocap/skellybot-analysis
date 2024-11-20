@@ -3,7 +3,7 @@ from typing import List
 
 import aiohttp
 import discord
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class ContentMessage(BaseModel):
@@ -26,9 +26,15 @@ class ContentMessage(BaseModel):
                                       description='The ID of the parent message, if this message is a reply')
     embedding: List[float]|None = Field(default=None,
                                       description='The embedding vector of the message')
+    @computed_field
     @property
     def is_reply(self) -> bool:
-        return self.parent_reference is not None
+        return self.parent_message_id is not None
+
+    @computed_field
+    @property
+    def id(self) -> int:
+        return self.message_id
 
 
     @classmethod
@@ -57,6 +63,12 @@ class ContentMessage(BaseModel):
                     attachment_string += await resp.text()
         attachment_string += f" END [{attachment.filename}]({attachment.url})"
         return attachment_string
+
+    @computed_field(return_type=str)
+    @property
+    def text(self):
+        return self.as_text()
+
     def as_text(self):
         if self.is_bot:
             return f"BOT: {self.content}\n"

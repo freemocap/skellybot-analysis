@@ -116,7 +116,7 @@ async def scrape_server(target_server: discord.Guild) -> ServerData:
     for category in category_channels:
         try:
             server_data.categories[f"name:{category.name},id:{category.id}"] = await scrape_category(category)
-            users = server_data.get_chats_by_user()
+            users = server_data.extract_user_data()
 
         except discord.Forbidden as e:
             logger.error(f"Skipping category: {category.name} due to missing permissions")

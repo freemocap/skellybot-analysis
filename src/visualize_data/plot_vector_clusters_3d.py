@@ -58,12 +58,12 @@ def create_dataframes(server_data: ServerData) -> Dict[str, Dict[str, pd.DataFra
         'by_chats': server_data.get_chat_threads(),
         'by_categories': server_data.get_categories(),
         'by_channels': server_data.get_channels(),
-        'by_users': server_data.get_chats_by_user()
+        'by_users': server_data.extract_user_data()
     }
 
     dfs = {}
-    tsne = TSNE(n_components=3, random_state=2, perplexity=5)
 
+    tsne = TSNE(n_components=3, random_state=2, perplexity=5)
     for key, data in data_types.items():
         logger.info(f"Processing {key} data with {len(data)} items")
         embedding_vectors = []
@@ -92,8 +92,8 @@ def create_dataframes(server_data: ServerData) -> Dict[str, Dict[str, pd.DataFra
             dfs[key][norm_type]['name'] = [item.name if hasattr(item, 'name') else 'None' for item in data]
             dfs[key][norm_type]['ai_title'] = [item.ai_analysis.title for item in data]
             dfs[key][norm_type]['ai_summary'] = [item.ai_analysis.very_short_summary for item in data]
-            dfs[key][norm_type]['tags'] = [item.tags for item in data]
-            dfs[key][norm_type]['relevant'] = [item.relevant for item in data]
+            dfs[key][norm_type]['tags'] = [item.ai_analysis.tags for item in data]
+            dfs[key][norm_type]['relevant'] = [item.ai_analysis.relevant for item in data]
 
             if key == 'by_chats':
                 dfs[key][norm_type]['category_name'] = [item.category_name if item.category_name else 'None' for item in

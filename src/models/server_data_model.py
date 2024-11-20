@@ -1,16 +1,17 @@
+from dataclasses import dataclass
 from pprint import pprint
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
-from pydantic import BaseModel, Field
-from src.ai.prompt_stuff.text_analysis_prompt_model import TextAnalysisPromptModel
-from src.scrape_server.models.discord_message_models import ContentMessage
+from pydantic import BaseModel, Field, computed_field
+from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.models.discord_message_models import ContentMessage
+
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
 
 PROF_JON_USER_ID = 362711467104927744
 EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID, PROF_JON_USER_ID]
-
 
 
 class ChatThread(BaseModel):
@@ -42,6 +43,9 @@ class ChatThread(BaseModel):
 
         return out_string
 
+    def model_dump_no_children(self) -> Dict[str, Any]:
+        return self.model_dump(exclude={'messages'})
+
 
 class ChannelData(BaseModel):
     """
@@ -68,6 +72,9 @@ class ChannelData(BaseModel):
     def as_text(self) -> str:
         return f"Channel: {self.name}\n" + "\n".join([thread.as_text() for thread in self.chat_threads.values()])
 
+    def model_dump_no_children(self) -> Dict[str, Any]:
+        return self.model_dump(exclude={'chat_threads'})
+
 
 class CategoryData(BaseModel):
     """
@@ -90,6 +97,9 @@ class CategoryData(BaseModel):
     def as_text(self) -> str:
         return f"Category: {self.name}\n" + "\n".join([channel.as_text() for channel in self.channels.values()])
 
+    def model_dump_no_children(self) -> Dict[str, Any]:
+        return self.model_dump(exclude={'channels'})
+
 
 class UserData(BaseModel):
     user_id: int
@@ -105,6 +115,9 @@ class UserData(BaseModel):
     def as_full_text(self) -> str:
         return f"User: {self.user_id}\n" + self.ai_analysis.to_string() + "\n______________\n" + "\n".join(
             [thread.as_text() for thread in self.threads])
+
+    def model_dump_no_children(self) -> Dict[str, Any]:
+        return self.model_dump(exclude={'threads'})
 
     def stats(self) -> Dict[str, str]:
         stats = {}
@@ -123,6 +136,33 @@ class UserData(BaseModel):
         return stats
 
 
+
+class GraphNode(BaseModel):
+    id: str
+    name: str
+    type: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphLink(BaseModel):
+    source: str
+    target: str
+    strength: float = 1.0
+    type: str = "default"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphData(BaseModel):
+    nodes: List[GraphNode]
+    links: List[GraphLink]
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    def to_simple_dict(self) -> Dict[str, Any]:
+        return {'nodes': [{"id": node.id, "name": node.name} for node in self.nodes],
+                'links': [{"source": link.source, "target": link.target} for link in self.links]}
+
+
+
 class ServerData(BaseModel):
     name: str
     id: int
@@ -130,6 +170,7 @@ class ServerData(BaseModel):
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
     users: Dict[int, UserData] = Field(default_factory=dict)
     ai_analysis: Optional[TextAnalysisPromptModel] = None
+    graph_data: Optional[GraphData] = None
     embedding: List[float] = Field(default_factory=list,
                                    description="The embedding vector for the entire text")
 
@@ -170,7 +211,7 @@ class ServerData(BaseModel):
             categories.append(category_data)
         return categories
 
-    def get_chats_by_user(self) -> Dict[int, UserData]:
+    def extract_user_data(self) -> Dict[int, UserData]:
         user_chats = {}
         for category_key, category_data in self.categories.items():
             for channel_key, channel_data in category_data.channels.items():
@@ -186,6 +227,12 @@ class ServerData(BaseModel):
 
         return self.users
 
+    def get_graph_data(self) -> GraphData:
+        self.calculate_graph_connections()
+        return self.graph_data
+
+
+    @property
     def stats(self) -> Dict[str, str]:
         stats = {}
         stats['name'] = self.name
@@ -203,13 +250,79 @@ class ServerData(BaseModel):
             [len(message.content.split()) for message in self.get_messages() if message.is_bot == False])
         stats['words']['bot'] = sum(
             [len(message.content.split()) for message in self.get_messages() if message.is_bot == True])
+        stats['users'] = {}
         stats['users']['total'] = len(self.users)
         stats['users']['data'] = {user_id: user.stats() for user_id, user in self.users.items()}
         return stats
 
+    def model_dump_no_children(self) -> Dict[str, Any]:
+        return self.model_dump(exclude={'categories', 'users', 'graph_data'})
+
+    def calculate_graph_connections(self):
+        nodes = []
+        links = []
+        nodes.append(GraphNode(id=f"server-{self.id}",
+                               name=self.name,
+                               type="server",
+                               metadata=self.model_dump_no_children()))
+
+        for category in self.categories.values():
+            nodes.append(GraphNode(id=f"category-{category.id}",
+                                   name=category.name,
+                                   type="category",
+                                   ))
+            links.append(GraphLink(source=f"server-{self.id}",
+                                   target=f"category-{category.id}",
+                                   type='parent',
+                                   ))
+
+            for channel in category.channels.values():
+                nodes.append(GraphNode(id=f"channel-{channel.id}",
+                                       name=channel.name,
+                                       type="channel",
+                                       ))
+                links.append(GraphLink(source=f"category-{category.id}",
+                                       target=f"channel-{channel.id}",
+                                       type='parent',
+                                       ))
+
+                for thread in channel.chat_threads.values():
+                    nodes.append(GraphNode(id=f"thread-{thread.id}",
+                                           name=thread.name,
+                                           type="thread",
+                                           ))
+                    links.append(GraphLink(source=f"channel-{channel.id}",
+                                           target=f"thread-{thread.id}",
+                                           type='parent',
+                                           ))
+
+                    # for message_number, message in enumerate(thread.messages):
+                    #     if message_number > 1:
+                    #         break
+                    #     nodes.append(GraphNode(id=f"message-{message.id}-{message_number}",
+                    #                            name=f"{message.content[:20]}...{message.content[-20:]}",
+                    #                            type="message",
+                    #                            ))
+                    #     links.append(GraphLink(source=f"thread-{thread.id}",
+                    #                            target=f"message-{message.id}",
+                    #                            type='parent',
+                    #                            ))
+                    #     if message_number > 0:
+                    #         links.append(GraphLink(source=f"message-{thread.messages[message_number - 1].id}",
+                    #                                target=f"message-{message.id}",
+                    #                                type='next',
+                    #                                ))
+                    #     if message.is_reply and message.parent_message_id is not None:
+                    #         links.append(GraphLink(source=f"message-{message.id}",
+                    #                                target=f"message-{message.parent_message_id}",
+                    #                                type='reply',
+                    #                                ))
+        self.graph_data = GraphData(nodes=nodes, links=links )
 
 if __name__ == '__main__':
     from src.utilities.get_most_recent_server_data import get_server_data
 
     server_data, _ = get_server_data()
-    pprint(server_data.stats())
+    server_data.extract_user_data()
+    pprint(server_data.stats)
+    # pprint(server_data.get_graph_data())

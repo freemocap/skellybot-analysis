@@ -3,7 +3,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Dict, Tuple
 
-from src.scrape_server.models.server_data_model import ServerData
+from src.models.server_data_model import ServerData
 
 RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE = Path(__file__).parent / "most_recent_scrape_location.txt"
 
