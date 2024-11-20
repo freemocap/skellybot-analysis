@@ -296,27 +296,24 @@ class ServerData(BaseModel):
                                            type='parent',
                                            ))
 
-                    # for message_number, message in enumerate(thread.messages):
-                    #     if message_number > 1:
-                    #         break
-                    #     nodes.append(GraphNode(id=f"message-{message.id}-{message_number}",
-                    #                            name=f"{message.content[:20]}...{message.content[-20:]}",
-                    #                            type="message",
-                    #                            ))
-                    #     links.append(GraphLink(source=f"thread-{thread.id}",
-                    #                            target=f"message-{message.id}",
-                    #                            type='parent',
-                    #                            ))
-                    #     if message_number > 0:
-                    #         links.append(GraphLink(source=f"message-{thread.messages[message_number - 1].id}",
-                    #                                target=f"message-{message.id}",
-                    #                                type='next',
-                    #                                ))
-                    #     if message.is_reply and message.parent_message_id is not None:
-                    #         links.append(GraphLink(source=f"message-{message.id}",
-                    #                                target=f"message-{message.parent_message_id}",
-                    #                                type='reply',
-                    #                                ))
+                    for message_number, message in enumerate(thread.messages):
+
+                        nodes.append(GraphNode(id=f"message-{message.id}-{message_number}",
+                                               name=f"{message.content[:20]}...{message.content[-20:]}",
+                                               type="message",
+                                               ))
+
+                        if message_number == 0:
+                            links.append(GraphLink(source=f"thread-{thread.id}",
+                                                   target=f"message-{message.id}-{message_number}",
+                                                   type='parent',
+                                                   ))
+                        else:
+                            links.append(GraphLink(source=f"message-{thread.messages[message_number - 1].id}-{message_number - 1}",
+                                                   target=f"message-{message.id}-{message_number}",
+                                                   type='next',
+                                                   ))
+
         self.graph_data = GraphData(nodes=nodes, links=links )
 
 if __name__ == '__main__':
