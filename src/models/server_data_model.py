@@ -1,11 +1,10 @@
-from dataclasses import dataclass
 from pprint import pprint
 from typing import Dict, List, Optional, Any
 
-from pydantic import BaseModel, Field, computed_field
-from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
-from src.models.discord_message_models import ContentMessage
+from pydantic import BaseModel, Field
 
+from src.models.discord_message_models import ContentMessage
+from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
@@ -136,7 +135,6 @@ class UserData(BaseModel):
         return stats
 
 
-
 class GraphNode(BaseModel):
     id: str
     name: str
@@ -160,7 +158,6 @@ class GraphData(BaseModel):
     def to_simple_dict(self) -> Dict[str, Any]:
         return {'nodes': [{"id": node.id, "name": node.name} for node in self.nodes],
                 'links': [{"source": link.source, "target": link.target} for link in self.links]}
-
 
 
 class ServerData(BaseModel):
@@ -231,7 +228,6 @@ class ServerData(BaseModel):
         self.calculate_graph_connections()
         return self.graph_data
 
-
     @property
     def stats(self) -> Dict[str, str]:
         stats = {}
@@ -264,11 +260,14 @@ class ServerData(BaseModel):
         nodes.append(GraphNode(id=f"server-{self.id}",
                                name=self.name,
                                type="server",
+                               group=0,
                                metadata=self.model_dump_no_children()))
 
-        for category in self.categories.values():
+        for category_number, category in enumerate(self.categories.values()):
+            category_number += 1
             nodes.append(GraphNode(id=f"category-{category.id}",
                                    name=category.name,
+                                   group=category_number,
                                    type="category",
                                    ))
             links.append(GraphLink(source=f"server-{self.id}",
@@ -279,6 +278,7 @@ class ServerData(BaseModel):
             for channel in category.channels.values():
                 nodes.append(GraphNode(id=f"channel-{channel.id}",
                                        name=channel.name,
+                                       group=category_number,
                                        type="channel",
                                        ))
                 links.append(GraphLink(source=f"category-{category.id}",
@@ -289,6 +289,7 @@ class ServerData(BaseModel):
                 for thread in channel.chat_threads.values():
                     nodes.append(GraphNode(id=f"thread-{thread.id}",
                                            name=thread.name,
+                                           group=category_number,
                                            type="thread",
                                            ))
                     links.append(GraphLink(source=f"channel-{channel.id}",
@@ -297,30 +298,32 @@ class ServerData(BaseModel):
                                            ))
 
                     for message_number, message in enumerate(thread.messages):
+                        if message_number > 5:
+                            continue
+                        if len(message.content) < 40:
+                            message_name = message.content
+                        else:
+                            message_name = f"{message.content[:20]}...{message.content[-20:]}"
 
-                        nodes.append(GraphNode(id=f"message-{message.id}-{message_number}",
-                                               name=f"{message.content[:20]}...{message.content[-20:]}",
+                        message_node_id = f"message-{message.id}-{message_number}"
+                        message_parent_node_id = f"message-{thread.messages[message_number - 1].id}-{message_number - 1}" if message_number > 0 else f"thread-{thread.id}"
+
+                        nodes.append(GraphNode(id=message_node_id,
+                                               name=message_name,
+                                               group=category_number,
                                                type="message",
                                                ))
-                        links.append(GraphLink(source=f"thread-{thread.id}",
-                                               target=f"message-{message.id}-{message_number}",
+                        links.append(GraphLink(source=message_parent_node_id,
+                                               target=message_node_id,
                                                type='parent',
                                                ))
                         #
-                        # if message_number > 3:
+                        # if message_number > 10:
                         #     break
-                        # if message_number == 0:
-                        #     links.append(GraphLink(source=f"thread-{thread.id}",
-                        #                            target=f"message-{message.id}-{message_number}",
-                        #                            type='parent',
-                        #                            ))
-                        # else:
-                        #     links.append(GraphLink(source=f"message-{thread.messages[message_number - 1].id}-{message_number - 1}",
-                        #                            target=f"message-{message.id}-{message_number}",
-                        #                            type='next',
-                        #                            ))
 
-        self.graph_data = GraphData(nodes=nodes, links=links )
+
+        self.graph_data = GraphData(nodes=nodes, links=links)
+
 
 if __name__ == '__main__':
     from src.utilities.get_most_recent_server_data import get_server_data
