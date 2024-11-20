@@ -302,17 +302,23 @@ class ServerData(BaseModel):
                                                name=f"{message.content[:20]}...{message.content[-20:]}",
                                                type="message",
                                                ))
-
-                        if message_number == 0:
-                            links.append(GraphLink(source=f"thread-{thread.id}",
-                                                   target=f"message-{message.id}-{message_number}",
-                                                   type='parent',
-                                                   ))
-                        else:
-                            links.append(GraphLink(source=f"message-{thread.messages[message_number - 1].id}-{message_number - 1}",
-                                                   target=f"message-{message.id}-{message_number}",
-                                                   type='next',
-                                                   ))
+                        links.append(GraphLink(source=f"thread-{thread.id}",
+                                               target=f"message-{message.id}-{message_number}",
+                                               type='parent',
+                                               ))
+                        #
+                        # if message_number > 3:
+                        #     break
+                        # if message_number == 0:
+                        #     links.append(GraphLink(source=f"thread-{thread.id}",
+                        #                            target=f"message-{message.id}-{message_number}",
+                        #                            type='parent',
+                        #                            ))
+                        # else:
+                        #     links.append(GraphLink(source=f"message-{thread.messages[message_number - 1].id}-{message_number - 1}",
+                        #                            target=f"message-{message.id}-{message_number}",
+                        #                            type='next',
+                        #                            ))
 
         self.graph_data = GraphData(nodes=nodes, links=links )
 
