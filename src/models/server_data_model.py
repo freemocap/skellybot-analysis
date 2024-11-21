@@ -1,9 +1,11 @@
+from enum import Enum
 from pprint import pprint
 from typing import Dict, List, Optional, Any
 
 from pydantic import BaseModel, Field
 
 from src.models.discord_message_models import ContentMessage
+from src.models.graph_data_models import GraphNode, GraphLink, GraphData, NodeTypes
 from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
@@ -11,6 +13,11 @@ EmbeddingVectors = Dict[str, List[float]]
 
 PROF_JON_USER_ID = 362711467104927744
 EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID, PROF_JON_USER_ID]
+
+
+
+NODE_SIZE_EXPONENT = 6
+MAX_MESSAGE_CHAIN_LENGTH = 4
 
 
 class ChatThread(BaseModel):
@@ -135,31 +142,6 @@ class UserData(BaseModel):
         return stats
 
 
-class GraphNode(BaseModel):
-    id: str
-    name: str
-    type: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class GraphLink(BaseModel):
-    source: str
-    target: str
-    strength: float = 1.0
-    type: str = "default"
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class GraphData(BaseModel):
-    nodes: List[GraphNode]
-    links: List[GraphLink]
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-    def to_simple_dict(self) -> Dict[str, Any]:
-        return {'nodes': [{"id": node.id, "name": node.name} for node in self.nodes],
-                'links': [{"source": link.source, "target": link.target} for link in self.links]}
-
-
 class ServerData(BaseModel):
     name: str
     id: int
@@ -257,71 +239,100 @@ class ServerData(BaseModel):
     def calculate_graph_connections(self):
         nodes = []
         links = []
-        nodes.append(GraphNode(id=f"server-{self.id}",
-                               name=self.name,
-                               type="server",
+        server_node_id = f"server-{self.id}"
+        server_node_name = self.name
+        nodes.append(GraphNode(id=server_node_id,
+                               name=server_node_name,
                                group=0,
-                               metadata=self.model_dump_no_children()))
+
+                               type=NodeTypes.SERVER.name.lower(),
+                               level=NodeTypes.SERVER.value,
+                               root=True,
+                               relative_size=NodeTypes.SERVER.value ** NODE_SIZE_EXPONENT,
+
+                               # met"parent",
+                               ))
 
         for category_number, category in enumerate(self.categories.values()):
-            category_number += 1
-            nodes.append(GraphNode(id=f"category-{category.id}",
-                                   name=category.name,
+            category_node_id = f"category-{category.id}"
+            category_name = category.name
+
+            nodes.append(GraphNode(id=category_node_id,
+                                   name=category_name,
                                    group=category_number,
-                                   type="category",
+
+                                   type=NodeTypes.CATEGORY.name.lower(),
+                                   level=NodeTypes.CATEGORY.value,
+                                   relative_size=NodeTypes.CATEGORY.value ** NODE_SIZE_EXPONENT,
+                                   # metadata=category.model_dump_no_children(),
                                    ))
-            links.append(GraphLink(source=f"server-{self.id}",
-                                   target=f"category-{category.id}",
+            links.append(GraphLink(source=server_node_id,
+                                   target=category_node_id,
                                    type='parent',
+                                   group=category_number,
                                    ))
 
-            for channel in category.channels.values():
-                nodes.append(GraphNode(id=f"channel-{channel.id}",
-                                       name=channel.name,
+            for channel_number, channel in enumerate(category.channels.values()):
+                channel_node_id = f"channel-{channel.id}"
+                channel_name = channel.name
+
+                nodes.append(GraphNode(id=channel_node_id,
+                                       name=channel_name,
                                        group=category_number,
-                                       type="channel",
+
+                                       type=NodeTypes.CHANNEL.name.lower(),
+                                       level=NodeTypes.CHANNEL.value,
+                                       relative_size=NodeTypes.CHANNEL.value ** NODE_SIZE_EXPONENT,
+                                       # metadata=channel.model_dump_no_children(),
                                        ))
-                links.append(GraphLink(source=f"category-{category.id}",
-                                       target=f"channel-{channel.id}",
-                                       type='parent',
+                links.append(GraphLink(source=category_node_id,
+                                       target=channel_node_id,
+                                       type="parent",
+                                       group=category_number,
                                        ))
 
-                for thread in channel.chat_threads.values():
-                    nodes.append(GraphNode(id=f"thread-{thread.id}",
-                                           name=thread.name,
-                                           group=category_number,
-                                           type="thread",
+                for thread_number, thread in enumerate(channel.chat_threads.values()):
+                    thread_node_id = f"thread-{thread.id}"
+                    thread_name = thread.name
+                    nodes.append(GraphNode(id=thread_node_id,
+                                           name=thread_name,
+                                           group=channel_number,
+
+                                           type=NodeTypes.THREAD.name.lower(),
+                                           level=NodeTypes.THREAD.value,
+                                           relative_size=NodeTypes.THREAD.value ** NODE_SIZE_EXPONENT,
+                                           # metadata=thread.model_dump_no_children(),
                                            ))
-                    links.append(GraphLink(source=f"channel-{channel.id}",
-                                           target=f"thread-{thread.id}",
+                    links.append(GraphLink(source=channel_node_id,
+                                           target=thread_node_id,
                                            type='parent',
+                                           group=channel_number,
                                            ))
 
+                    message_parent_id = thread_node_id
                     for message_number, message in enumerate(thread.messages):
-                        if message_number > 5:
-                            continue
+                        if message_number > MAX_MESSAGE_CHAIN_LENGTH:
+                            break
+                        message_node_id = f"message-{message.id}-{message_number}"
+
                         if len(message.content) < 40:
                             message_name = message.content
                         else:
                             message_name = f"{message.content[:20]}...{message.content[-20:]}"
 
-                        message_node_id = f"message-{message.id}-{message_number}"
-                        message_parent_node_id = f"message-{thread.messages[message_number - 1].id}-{message_number - 1}" if message_number > 0 else f"thread-{thread.id}"
-
                         nodes.append(GraphNode(id=message_node_id,
                                                name=message_name,
                                                group=category_number,
-                                               type="message",
+                                               type=NodeTypes.MESSAGE.name.lower(),
+                                               level=NodeTypes.MESSAGE.value,
+                                               relative_size=NodeTypes.MESSAGE.value ** NODE_SIZE_EXPONENT,
                                                ))
-                        links.append(GraphLink(source=message_parent_node_id,
+                        links.append(GraphLink(source=message_parent_id,
                                                target=message_node_id,
                                                type='parent',
+                                               group=category_number,
                                                ))
-                        #
-                        # if message_number > 10:
-                        #     break
-
-
+                        message_parent_id = message_node_id
         self.graph_data = GraphData(nodes=nodes, links=links)
 
 
