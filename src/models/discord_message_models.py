@@ -26,6 +26,9 @@ class ContentMessage(BaseModel):
                                       description='The ID of the parent message, if this message is a reply')
     embedding: List[float]|None = Field(default=None,
                                       description='The embedding vector of the message')
+    tsne_xyz_normalized: List[float] | None = None
+    tsne_norm_magnitude: float | None = None
+
     @computed_field
     @property
     def is_reply(self) -> bool:
