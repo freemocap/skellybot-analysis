@@ -38,7 +38,7 @@ class GraphLink(BaseModel):
 
     type: str = "default"
     group: int = 0
-    relative_strength: float = 1.0
+    relative_length: float = 1.0
     # color: str = "#F5F5F5" # White Smoke
     # metadata: Dict[str, Any] = Field(default_factory=dict)
 
