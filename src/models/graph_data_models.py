@@ -1,6 +1,7 @@
+from dataclasses import Field
 from enum import Enum
 from pprint import pprint
-from typing import List
+from typing import List, Dict, Any
 
 from pydantic import BaseModel
 
@@ -19,7 +20,11 @@ class GraphNode(BaseModel):
     name: str
 
     root: bool = False
-    # children: List[str] = [] # List of node IDs
+    childLinks: List[str] = [] # List of link IDs
+    collapsed: bool = False
+    x: float | None = None
+    y: float | None = None
+    z: float | None = None
     # links: List[str] = [] # List of link IDs
 
     type: str = NodeTypes.DEFAULT.name.lower()

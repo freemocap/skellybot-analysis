@@ -19,82 +19,10 @@
       "level": 2
     },
     {
-      "id": "thd-1-1-1",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-1-1-1-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-1-1-1-2",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "id": "thd-1-1-2",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-1-1-2-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-1-1-2-2",
-      "group": 1,
-      "level": 4
-    },
-    {
       "id": "chnl-1-2",
       "type": "channel",
       "group": 1,
       "level": 2
-    },
-    {
-      "id": "thd-1-2-1",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-1-2-1-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-1-2-1-2",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "id": "thd-1-2-2",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-1-2-2-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-1-2-2-2",
-      "group": 1,
-      "level": 4
     },
     {
       "id": "cat-2",
@@ -109,82 +37,10 @@
       "level": 2
     },
     {
-      "id": "thd-2-1-1",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-2-1-1-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-2-1-1-2",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "id": "thd-2-1-2",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-2-1-2-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-2-1-2-2",
-      "group": 1,
-      "level": 4
-    },
-    {
       "id": "chnl-2-2",
       "type": "channel",
       "group": 1,
       "level": 2
-    },
-    {
-      "id": "thd-2-2-1",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-2-2-1-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-2-2-1-2",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "id": "thd-2-2-2",
-      "type": "thread",
-      "group": 1,
-      "level": 3
-    },
-    {
-      "type": "message",
-      "id": "msg-2-2-2-1",
-      "group": 1,
-      "level": 4
-    },
-    {
-      "type": "message",
-      "id": "msg-2-2-2-2",
-      "group": 1,
-      "level": 4
     }
   ],
   "links": [
@@ -205,106 +61,10 @@
       "relative_length": 1.0
     },
     {
-      "source": "chnl-1-1",
-      "target": "thd-1-1-1",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-1-1-1",
-      "target": "msg-1-1-1-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-1-1-1-1",
-      "target": "msg-1-1-1-2",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "chnl-1-1",
-      "target": "thd-1-1-2",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-1-1-2",
-      "target": "msg-1-1-2-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-1-1-2-1",
-      "target": "msg-1-1-2-2",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
       "source": "cat-1",
       "target": "chnl-1-2",
       "directional": true,
       "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "chnl-1-2",
-      "target": "thd-1-2-1",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-1-2-1",
-      "target": "msg-1-2-1-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-1-2-1-1",
-      "target": "msg-1-2-1-2",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "chnl-1-2",
-      "target": "thd-1-2-2",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-1-2-2",
-      "target": "msg-1-2-2-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-1-2-2-1",
-      "target": "msg-1-2-2-2",
-      "directional": true,
-      "type": "reply",
       "group": 1,
       "relative_length": 1.0
     },
@@ -325,106 +85,10 @@
       "relative_length": 1.0
     },
     {
-      "source": "chnl-2-1",
-      "target": "thd-2-1-1",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-2-1-1",
-      "target": "msg-2-1-1-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-2-1-1-1",
-      "target": "msg-2-1-1-2",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "chnl-2-1",
-      "target": "thd-2-1-2",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-2-1-2",
-      "target": "msg-2-1-2-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-2-1-2-1",
-      "target": "msg-2-1-2-2",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
       "source": "cat-2",
       "target": "chnl-2-2",
       "directional": true,
       "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "chnl-2-2",
-      "target": "thd-2-2-1",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-2-2-1",
-      "target": "msg-2-2-1-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-2-2-1-1",
-      "target": "msg-2-2-1-2",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "chnl-2-2",
-      "target": "thd-2-2-2",
-      "directional": true,
-      "type": "parent",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "thd-2-2-2",
-      "target": "msg-2-2-2-1",
-      "directional": true,
-      "type": "reply",
-      "group": 1,
-      "relative_length": 1.0
-    },
-    {
-      "source": "msg-2-2-2-1",
-      "target": "msg-2-2-2-2",
-      "directional": true,
-      "type": "reply",
       "group": 1,
       "relative_length": 1.0
     }

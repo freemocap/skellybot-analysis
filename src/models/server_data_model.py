@@ -21,6 +21,10 @@ TSNE_DIMENSIONS = 3
 TSNE_PERPLEXITY = 25
 
 MAX_MESSAGE_CHAIN_LENGTH = None
+THREADS_AS_CHAINS = False
+
+
+
 
 
 class ChatThread(BaseModel):
@@ -364,7 +368,8 @@ class ServerData(BaseModel):
                                            type='parent',
                                            group=category_number,
                                            ))
-                    message_parent_id = message_node_id
+                    if THREADS_AS_CHAINS:
+                        message_parent_id = message_node_id
         self.graph_data = GraphData(nodes=nodes, links=links)
 
     def calculate_tsne_embedding(self):

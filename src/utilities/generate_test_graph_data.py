@@ -47,6 +47,7 @@ def generate_test_json():
                 "type": "channel",
                 "group": itergoup(group_count),
                 "level": 2
+
             })
             links.append({
                 "source": cat_name,
@@ -56,51 +57,51 @@ def generate_test_json():
                 "group": itergoup(group_count),
                 "relative_length": 1.0
             })
-            for thd_num in range(1, thd_count + 1):
-                thd_name = f"thd-{cat_num}-{chnl_num}-{thd_num}"
-                nodes.append({
-                    "id": thd_name,
-                    "type": "thread",
-                    "group": itergoup(group_count),
-                    "level": 3
-                })
-                links.append({
-                    "source": chnl_name,
-                    "target": thd_name,
-                    "directional": True,
-                    "type": "parent",
-                    "group": itergoup(group_count),
-                    "relative_length": 1.0
-                })
-                previous_msg_name = thd_name
-                for msg_num in range(1, msg_count + 1):
-                    msg_name = f"msg-{cat_num}-{chnl_num}-{thd_num}-{msg_num}"
-                    nodes.append({
-                        "type": "message",
-                        "id": msg_name,
-                        "group": itergoup(group_count),
-                        "level": 4
-                    })
-
-                    # links.append({
-                    #     "source": thd_name,
-                    #     "target": msg_name,
-                    #     "directional": True,
-                    #     "type": "parent",
-                    #     "group": itergoup(group_count),
-                    #     "relative_length": 1.0
-                    # })
-                    if previous_msg_name:
-
-                        links.append({
-                            "source": previous_msg_name,
-                            "target": msg_name,
-                            "directional": True,
-                            "type": "reply",
-                            "group": itergoup(group_count),
-                            "relative_length": 1.0
-                        })
-                    previous_msg_name = msg_name
+            # for thd_num in range(1, thd_count + 1):
+            #     thd_name = f"thd-{cat_num}-{chnl_num}-{thd_num}"
+            #     nodes.append({
+            #         "id": thd_name,
+            #         "type": "thread",
+            #         "group": itergoup(group_count),
+            #         "level": 3
+            #     })
+            #     links.append({
+            #         "source": chnl_name,
+            #         "target": thd_name,
+            #         "directional": True,
+            #         "type": "parent",
+            #         "group": itergoup(group_count),
+            #         "relative_length": 1.0
+            #     })
+            #     previous_msg_name = thd_name
+            #     for msg_num in range(1, msg_count + 1):
+            #         msg_name = f"msg-{cat_num}-{chnl_num}-{thd_num}-{msg_num}"
+            #         nodes.append({
+            #             "type": "message",
+            #             "id": msg_name,
+            #             "group": itergoup(group_count),
+            #             "level": 4
+            #         })
+            #
+            #         # links.append({
+            #         #     "source": thd_name,
+            #         #     "target": msg_name,
+            #         #     "directional": True,
+            #         #     "type": "parent",
+            #         #     "group": itergoup(group_count),
+            #         #     "relative_length": 1.0
+            #         # })
+            #         if previous_msg_name:
+            #
+            #             links.append({
+            #                 "source": previous_msg_name,
+            #                 "target": msg_name,
+            #                 "directional": True,
+            #                 "type": "reply",
+            #                 "group": itergoup(group_count),
+            #                 "relative_length": 1.0
+            #             })
+            #         previous_msg_name = msg_name
 
     return json.dumps(data, indent=2)
 
