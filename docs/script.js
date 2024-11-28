@@ -1,70 +1,161 @@
-const controls = {
-    'DAG Tree Orientation': 'td',
-    'Arrow Length': 10,
-    'Node Size': 2,
-    '# of Particles': 5,
-    'Particle Size': 2,
-    'Particle Speed': 0.01,
-    'Base Link Length': 1,
-    'Server Link Length': 5,
-    'Category Link Length': 4,
-    'Channel Link Length': 3,
-    'Chat Link Length': 2,
-    'Message Link Length': 1,
-    '[Zoom to fit]': () => graph.zoomToFit(400)
+import SpriteText from 'three-spritetext';
+
+
+const GUIFields = {
+    GRAPH_DATA: 'Graph Data',
+    CONTROL_TYPE: 'Control Type',
+    AUTO_COLOR_BY: 'Auto Color By',
+    DAG_TREE_ORIENTATION: 'DAG Tree Orientation',
+    NODE_SIZE: 'Node Size',
+    BASE_LINK_LENGTH: 'Base Link Length',
+    SERVER_LINK_LENGTH: 'Server Link Length',
+    CATEGORY_LINK_LENGTH: 'Category Link Length',
+    CHANNEL_LINK_LENGTH: 'Channel Link Length',
+    CHAT_LINK_LENGTH: 'Chat Link Length',
+    MESSAGE_LINK_LENGTH: 'Message Link Length',
+    ZOOM_TO_FIT: '[Zoom to fit]'
 };
 
-const graph = ForceGraph3D()(document.getElementById('3d-graph'));
 
-const gui = new dat.GUI({width: 400});
-gui.add(controls, 'DAG Tree Orientation', ['td', 'bu', 'lr', 'rl', 'zout', 'zin', 'radialout', 'radialin', null])
-    .onChange(orientation => graph && graph.dagMode(orientation) && graph.numDimensions(3));
-gui.add(controls, 'Node Size', 1, 4).onChange(size => graph && graph.nodeResolution(size));
-gui.add(controls, 'Arrow Length', 0, 100).onChange(length => graph && graph.linkDirectionalArrowLength(length));
-gui.add(controls, '[Zoom to fit]');
-
-const linkLengthsFolder = gui.addFolder('Link Lengths');
-linkLengthsFolder.add(controls, 'Base Link Length', 0, 100).onChange(updateLinkDistance);
-linkLengthsFolder.add(controls, 'Server Link Length', 0, 10).onChange(updateLinkDistance);
-linkLengthsFolder.add(controls, 'Category Link Length', 0, 10).onChange(updateLinkDistance);
-linkLengthsFolder.add(controls, 'Channel Link Length', 0, 10).onChange(updateLinkDistance);
-linkLengthsFolder.add(controls, 'Chat Link Length', 0, 10).onChange(updateLinkDistance);
-linkLengthsFolder.add(controls, 'Message Link Length', 0, 10).onChange(updateLinkDistance);
-
-const particleSettingsFolder = gui.addFolder('Particle Settings');
-particleSettingsFolder.add(controls, '# of Particles', 0, 20).onChange(particles => graph && graph.linkDirectionalParticles(particles));
-particleSettingsFolder.add(controls, 'Particle Size', 0, 20).onChange(size => graph && graph.linkDirectionalParticleWidth(size));
-particleSettingsFolder.add(controls, 'Particle Speed', 0.001, 0.1).onChange(speed => graph && graph.linkDirectionalParticleSpeed(speed));
-
-graph.jsonUrl('./graph_data.json')
-    .showNavInfo(true)
-    .dagMode(controls['DAG Tree Orientation'])
-    .nodeLabel('name')
-    .nodeAutoColorBy('type')
-    .nodeLabel(node => node.name)
-    .nodeRelativeSize(node => node.relative_size ** controls['Node Size'])
-    .linkDirectionalArrowLength(controls['Arrow Length'])
-    .linkDirectionalArrowRelPos(controls['Show Arrows'] ? 0.5 : 0)
-    .linkDirectionalParticles(controls['# of Particles'])
-    .linkDirectionalParticleSpeed(controls['Particle Speed'])
-    .linkDirectionalParticleWidth(controls['Particle Size'])
-    .linkResolution(4);
-
-const linkForce = graph.d3Force('link').distance(link => calculateLinkDistance(link));
-
-function calculateLinkDistance(link) {
-    const sourceNode = graph.graphData().nodes.find(node => node.id === link.source);
-    const sourceLevel = sourceNode ? sourceNode.level : 1;
-    let typeMultiplier = 1;
-    if (link.type === 'server') typeMultiplier = controls['Server Link Length'];
-    if (link.type === 'category') typeMultiplier = controls['Category Link Length'];
-    if (link.type === 'channel') typeMultiplier = controls['Channel Link Length'];
-    if (link.type === 'chat') typeMultiplier = controls['Chat Link Length'];
-    if (link.type === 'message') typeMultiplier = controls['Message Link Length'];
-    return controls['Base Link Length'] * sourceLevel * typeMultiplier;
+function calculateLinkDistance(link, controls) {
+    switch (link.type) {
+        case 'parent':
+            switch (link.source.type) {
+                case 'server':
+                    return controls[GUIFields.SERVER_LINK_LENGTH];
+                case 'category':
+                    return controls[GUIFields.CATEGORY_LINK_LENGTH];
+                case 'channel':
+                    return controls[GUIFields.CHANNEL_LINK_LENGTH];
+                case 'thread':
+                    return controls[GUIFields.MESSAGE_LINK_LENGTH];
+                default:
+                    return controls[GUIFields.MESSAGE_LINK_LENGTH];
+            }
+        case 'reply':
+            return controls[GUIFields.MESSAGE_LINK_LENGTH];
+        default:
+            return controls[GUIFields.BASE_LINK_LENGTH];
+    }
 }
 
-function updateLinkDistance() {
-    linkForce.distance(link => calculateLinkDistance(link));
-    graph.numDimensions(3);
+export class GraphControls {
+
+    constructor(graph) {
+        this.graph = graph;
+        this.controls = this.initializeControls();
+        this.initGUI();
+    }
+
+    initializeControls() {
+        return {
+            [GUIFields.GRAPH_DATA]: 'test_graph_data.json',
+            [GUIFields.CONTROL_TYPE]: 'fly',
+            [GUIFields.AUTO_COLOR_BY]: 'type',
+            [GUIFields.DAG_TREE_ORIENTATION]: 'td',
+            [GUIFields.NODE_SIZE]: 2,
+            [GUIFields.BASE_LINK_LENGTH]: 1,
+            [GUIFields.SERVER_LINK_LENGTH]: 5,
+            [GUIFields.CATEGORY_LINK_LENGTH]: 4,
+            [GUIFields.CHANNEL_LINK_LENGTH]: 3,
+            [GUIFields.CHAT_LINK_LENGTH]: 2,
+            [GUIFields.MESSAGE_LINK_LENGTH]: 1,
+            [GUIFields.ZOOM_TO_FIT]: () => this.graph.zoomToFit(400)
+        };
+    }
+
+    initGUI() {
+        const gui  = new dat.GUI({width: 400});
+        this.addGraphDataControl(gui);
+        // this.addControlTypeControl(gui);
+        this.addDAGTreeOrientationControl(gui);
+        this.addNodeSizeControl(gui);
+        this.addZoomToFitControl(gui);
+        this.addNodeSettingsFolder(gui);
+        this.addLinkSettingsFolder(gui);
+    }
+
+    addGraphDataControl(gui ) {
+        gui.add(this.controls, GUIFields.GRAPH_DATA, ['graph_data.json', 'test_graph_data.json'])
+            .onChange(url => this.graph && this.graph.jsonUrl(url));
+    }
+
+    addControlTypeControl(gui) {
+        gui.add(this.controls, GUIFields.CONTROL_TYPE, ['fly', 'trackball', 'orbit'])
+            .onChange(controlType => {
+                console.log(`Setting control type to ${controlType}`);
+                if (this.graph) {
+                    this.graph.controls().enabled = false; // Disable current controls
+                    this.graph.controls({ type: controlType }); // Set new control type
+                    this.graph.controls().enabled = true; // Enable new controls
+                }
+            });
+    }
+
+    addDAGTreeOrientationControl(gui ) {
+        gui.add(this.controls, GUIFields.DAG_TREE_ORIENTATION, ['td', 'bu', 'lr', 'rl', 'zout', 'zin', 'radialout', 'radialin', null])
+            .onChange(orientation => this.graph && this.graph.dagMode(orientation) && this.graph.numDimensions(3));
+    }
+
+    addNodeSizeControl(gui ) {
+        gui.add(this.controls, GUIFields.NODE_SIZE, 1, 4).onChange(size => this.graph && this.graph.nodeResolution(size));
+    }
+
+    addZoomToFitControl(gui ) {
+        gui.add(this.controls, GUIFields.ZOOM_TO_FIT);
+    }
+
+    addNodeSettingsFolder(gui ) {
+        const nodeSettingsFolder = gui.addFolder('Node Settings');
+        nodeSettingsFolder.add(this.controls, GUIFields.NODE_SIZE, 1, 4).onChange(size => this.graph && this.graph.nodeResolution(size));
+        nodeSettingsFolder.add(this.controls, GUIFields.AUTO_COLOR_BY, ['group', 'level', 'id'])
+            .onChange(colorBy => this.graph && this.graph.nodeAutoColorBy(colorBy));
+    }
+
+    addLinkSettingsFolder(gui ) {
+        const linkSettingsFolder = gui.addFolder('Link Settings');
+        linkSettingsFolder.add(this.controls, GUIFields.BASE_LINK_LENGTH, 0, 100).onChange(() => this.updateLinkDistance());
+        linkSettingsFolder.add(this.controls, GUIFields.SERVER_LINK_LENGTH, 0, 10).onChange(() => this.updateLinkDistance());
+        linkSettingsFolder.add(this.controls, GUIFields.CATEGORY_LINK_LENGTH, 0, 10).onChange(() => this.updateLinkDistance());
+        linkSettingsFolder.add(this.controls, GUIFields.CHANNEL_LINK_LENGTH, 0, 10).onChange(() => this.updateLinkDistance());
+        linkSettingsFolder.add(this.controls, GUIFields.CHAT_LINK_LENGTH, 0, 10).onChange(() => this.updateLinkDistance());
+        linkSettingsFolder.add(this.controls, GUIFields.MESSAGE_LINK_LENGTH, 0, 10).onChange(() => this.updateLinkDistance());
+    }
+
+
+    updateLinkDistance() {
+        this.graph.d3Force('link').distance(link => calculateLinkDistance(link, this.controls));
+        this.graph.numDimensions(3);
+    }
 }
+
+class GraphManager {
+
+    constructor() {
+        this.graph = ForceGraph3D({controlType: 'orbit'})(document.getElementById('3d-graph'));
+        this.controls = new GraphControls(this.graph);
+        this.initGraph();
+    }
+
+    initGraph() {
+        this.graph.jsonUrl(this.controls.controls[GUIFields.GRAPH_DATA])
+            .showNavInfo(true)
+            .dagMode(this.controls.controls[GUIFields.DAG_TREE_ORIENTATION])
+            .nodeLabel('name')
+            .nodeAutoColorBy('type')
+            .nodeLabel(node => node.name)
+            .nodeThreeObject(node => {
+                const sprite = new SpriteText(node.id);
+                sprite.material.depthWrite = false; // make sprite background transparent
+                sprite.color = node.color;
+                sprite.textHeight = 8;
+                return sprite;
+            });
+        this.graph.d3Force('link').distance(link => calculateLinkDistance(link, this.controls.controls));
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    new GraphManager();
+});

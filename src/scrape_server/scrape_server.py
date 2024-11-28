@@ -2,8 +2,8 @@ import asyncio
 import logging
 
 import discord
-from src.scrape_server.models.discord_message_models import ContentMessage
-from src.scrape_server.models.server_data_model import ChatThread, ChannelData, CategoryData, ServerData
+from src.models.discord_message_models import ContentMessage
+from src.models.server_data_model import ChatThread, ChannelData, CategoryData, ServerData
 
 logger = logging.getLogger(__name__)
 
