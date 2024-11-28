@@ -14,6 +14,7 @@ async def make_openai_json_mode_ai_request(client:AsyncOpenAI,
                                            prompt_model:Type[BaseModel],
                                            llm_model:str,
                                            results_list:list|None=None):
+
     response = await client.beta.chat.completions.parse(
         model=llm_model,
         messages=[
