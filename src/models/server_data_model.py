@@ -24,9 +24,6 @@ MAX_MESSAGE_CHAIN_LENGTH = None
 THREADS_AS_CHAINS = False
 
 
-
-
-
 class ChatThread(BaseModel):
     """
     A conversation between a human and an AI. In Discord, this is a `Thread`
@@ -177,6 +174,13 @@ class ServerData(BaseModel):
     def as_text(self) -> str:
         return f"Server: {self.name}\n" + "\n".join([category.as_text() for category in self.categories.values()])
 
+    def all_tags(self) -> List[str]:
+        all_tags = []
+        for thing in self.get_all_things():
+            if hasattr(thing, "ai_analysis") and hasattr(thing.ai_analysis, "tags_list"):
+                all_tags.extend(thing.ai_analysis.tags_list)
+        return all_tags
+
     def get_all_things(self):
         things = [self]
         for category_key, category_data in self.categories.items():
@@ -269,6 +273,19 @@ class ServerData(BaseModel):
     def calculate_graph_connections(self):
         nodes = []
         links = []
+
+        # for tag in self.all_tags():
+        #     tag_node_id = f"tag-{tag}"
+        #     tag_name = tag
+        #
+        #     nodes.append(GraphNode(id=tag_node_id,
+        #                            name=tag_name,
+        #                            group=NodeTypes.TAG.value,
+        #                            type=NodeTypes.TAG.name.lower(),
+        #                            level=NodeTypes.TAG.value,
+        #                            relative_size=NodeTypes.TAG.value ** NODE_SIZE_EXPONENT,
+        #                            ))
+
         server_node_id = f"server-{self.id}"
         server_node_name = self.name
         nodes.append(GraphNode(id=server_node_id,
@@ -305,9 +322,12 @@ class ServerData(BaseModel):
                                    ))
 
             for channel_number, channel in enumerate(category.channels.values()):
+                if channel.name == "bot-playground":
+                    continue
                 channel_node_id = f"channel-{channel.id}"
                 channel_name = channel.name
-
+                # if channel.tsne_xyz_normalized is None:
+                #     continue
                 nodes.append(GraphNode(id=channel_node_id,
                                        name=channel_name,
                                        group=category_number,
@@ -317,6 +337,9 @@ class ServerData(BaseModel):
                                        relative_size=NodeTypes.CHANNEL.value ** NODE_SIZE_EXPONENT,
                                        tsne_xyz=self.tsne_xyz_normalized,
                                        tsne_norm_magnitude=self.tsne_norm_magnitude,
+                                       # x=channel.tsne_xyz_normalized[0] * channel.tsne_norm_magnitude,
+                                       # y=channel.tsne_xyz_normalized[1] * channel.tsne_norm_magnitude,
+                                       # z=channel.tsne_xyz_normalized[2] * channel.tsne_norm_magnitude,
                                        # metadata=channel.model_dump_no_children(),
                                        ))
                 links.append(GraphLink(source=category_node_id,
@@ -326,8 +349,10 @@ class ServerData(BaseModel):
                                        ))
 
             for thread_number, thread in enumerate(channel.chat_threads.values()):
+                # if thread.tsne_xyz_normalized is None:
+                #     continue
                 thread_node_id = f"thread-{thread.id}"
-                thread_name = thread.name
+                thread_name = thread.ai_analysis.title
                 nodes.append(GraphNode(id=thread_node_id,
                                        name=thread_name,
                                        group=channel_number,
@@ -335,6 +360,9 @@ class ServerData(BaseModel):
                                        type=NodeTypes.THREAD.name.lower(),
                                        level=NodeTypes.THREAD.value,
                                        relative_size=NodeTypes.THREAD.value ** NODE_SIZE_EXPONENT,
+                                       # x=thread.tsne_xyz_normalized[0] * thread.tsne_norm_magnitude,
+                                       # y=thread.tsne_xyz_normalized[1] * thread.tsne_norm_magnitude,
+                                       # z=thread.tsne_xyz_normalized[2] * thread.tsne_norm_magnitude,
                                        # metadata=thread.model_dump_no_children(),
                                        ))
                 links.append(GraphLink(source=channel_node_id,
@@ -343,33 +371,41 @@ class ServerData(BaseModel):
                                        group=channel_number,
                                        ))
 
-                message_parent_id = thread_node_id
-                for message_number, message in enumerate(thread.messages):
-                    if MAX_MESSAGE_CHAIN_LENGTH and message_number > MAX_MESSAGE_CHAIN_LENGTH:
-                        break
-                    message_node_id = f"message-{message.id}-{message_number}"
-
-                    if len(message.content) < 40:
-                        message_name = message.content
-                    else:
-                        message_name = f"{message.content[:20]}...{message.content[-20:]}"
-
-                    nodes.append(GraphNode(id=message_node_id,
-                                           name=message_name,
-                                           group=category_number,
-                                           type=NodeTypes.MESSAGE.name.lower(),
-                                           level=NodeTypes.MESSAGE.value,
-                                           relative_size=NodeTypes.MESSAGE.value ** NODE_SIZE_EXPONENT,
-                                           tsne_xyz=message.tsne_xyz_normalized,
-                                           tsne_norm_magnitude=message.tsne_norm_magnitude,
-                                           ))
-                    links.append(GraphLink(source=message_parent_id,
-                                           target=message_node_id,
-                                           type='parent',
-                                           group=category_number,
-                                           ))
-                    if THREADS_AS_CHAINS:
-                        message_parent_id = message_node_id
+                # for tag in thread.ai_analysis.tags_list:
+                #     tag_node_id = f"tag-{tag}"
+                #     links.append(GraphLink(source=thread_node_id,
+                #                            target=tag_node_id,
+                #                            type='tag',
+                #                            group=NodeTypes.TAG.value,
+                #                            ))
+                #
+                # message_parent_id = thread_node_id
+                # for message_number, message in enumerate(thread.messages):
+                #     if MAX_MESSAGE_CHAIN_LENGTH and message_number > MAX_MESSAGE_CHAIN_LENGTH:
+                #         break
+                #     message_node_id = f"message-{message.id}-{message_number}"
+                #
+                #     if len(message.content) < 40:
+                #         message_name = message.content
+                #     else:
+                #         message_name = f"{message.content[:20]}...{message.content[-20:]}"
+                #
+                #     nodes.append(GraphNode(id=message_node_id,
+                #                            name=message_name,
+                #                            group=category_number,
+                #                            type=NodeTypes.MESSAGE.name.lower(),
+                #                            level=NodeTypes.MESSAGE.value,
+                #                            relative_size=NodeTypes.MESSAGE.value ** NODE_SIZE_EXPONENT,
+                #                            tsne_xyz=message.tsne_xyz_normalized,
+                #                            tsne_norm_magnitude=message.tsne_norm_magnitude,
+                #                            ))
+                #     links.append(GraphLink(source=message_parent_id,
+                #                            target=message_node_id,
+                #                            type='parent',
+                #                            group=category_number,
+                #                            ))
+                #     if THREADS_AS_CHAINS:
+                #         message_parent_id = message_node_id
         self.graph_data = GraphData(nodes=nodes, links=links)
 
     def calculate_tsne_embedding(self):
@@ -392,8 +428,8 @@ class ServerData(BaseModel):
         tsne_results = tsne.fit_transform(embeddings_array)
 
         # Normalize the TSNE results
-
-        for tsne_xyz, thing in zip(tsne_results, self.get_all_things()):
+        data_thing_tsne_results = tsne_results[:len(self.get_all_things())]
+        for tsne_xyz, thing in zip(data_thing_tsne_results, self.get_all_things()):
             thing.tsne_norm_magnitude = np.linalg.norm(tsne_xyz)
             thing.tsne_xyz_normalized = tsne_xyz / thing.tsne_norm_magnitude
 

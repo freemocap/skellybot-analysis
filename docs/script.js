@@ -84,7 +84,7 @@ class GraphControls {
 
     initializeControls() {
         return {
-            [GUIFields.GRAPH_DATA]: 'graph_data_short_threads.json',
+            [GUIFields.GRAPH_DATA]: 'datasets/graph_data.json',
             [GUIFields.CONTROL_TYPE]: 'fly',
             [GUIFields.AUTO_COLOR_BY]: 'type',
             [GUIFields.DAG_TREE_ORIENTATION]: 'radialout',
@@ -111,7 +111,7 @@ class GraphControls {
     }
 
     addGraphDataControl(gui) {
-        gui.add(this.controls, GUIFields.GRAPH_DATA, ['graph_data_chat_clusters.json', 'graph_data_full.json', 'graph_data_short_threads.json', 'test_graph_data.json'])
+        gui.add(this.controls, GUIFields.GRAPH_DATA, ['datasets/graph_data.json', 'graph_data_full.json', 'graph_data_short_threads.json', 'test_graph_data.json'])
             .onChange(url => this.graph && this.graph.jsonUrl(url));
     }
 
@@ -181,13 +181,24 @@ class GraphManager {
             .nodeLabel(node => node.name)
             .nodeThreeObject(node => {
                 const sprite = new SpriteText(node.name);
-                sprite.material.depthWrite = false; // make sprite background transparent
+                // sprite.material.depthWrite = false; // make sprite background transparent
                 sprite.color = node.color;
-                console.log("Node three object: ", node);
-                sprite.textHeight = 8;
+                if (node.type === 'thread') {
+                    sprite.textHeight = 4;
+                } else {
+                    sprite.textHeight = 8;
+                }
+
                 return sprite;
             })
             .onNodeClick(node => {
+                    // Display node contents in the new div
+                    const nodeDetailsDiv = document.getElementById('node-details');
+                    nodeDetailsDiv.innerHTML = `<h3>Node Details</h3>
+                                            <p><strong>ID:</strong> ${node.id}</p>
+                                            <p><strong>Name:</strong> ${node.name}</p>
+                                            <p><strong>Type:</strong> ${node.type}</p>
+                                            <p><strong>Group:</strong> ${node.group}</p>`;
                     // Aim at node from outside it
                     const distance = 100;
                     const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);

@@ -1,0 +1,59 @@
+<head>
+    <style> body { margin: 0; } </style>
+
+    <script src="//unpkg.com/react/umd/react.production.min.js"></script>
+    <script src="//unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
+    <script src="//unpkg.com/@babel/standalone"></script>
+
+    <script src="//unpkg.com/react-force-graph-3d"></script>
+    <script src="//unpkg.com/dat.gui"></script>
+</head>
+
+<body>
+<div id="graph"></div>
+
+<script type="importmap">{ "imports": { "three": "https://unpkg.com/three/build/three.module.js" }}</script>
+<script type="text/jsx" data-type="module">
+    import SpriteText from "//unpkg.com/three-spritetext/dist/three-spritetext.mjs";
+    const { useState, useEffect, useRef } = React;
+
+    const useForceUpdate = () => {
+        const setToggle = useState(false)[1];
+        return () => setToggle(b => !b);
+    };
+
+    const ForceGraph3DComponent = ({ data }) => {
+        const fgRef = useRef();
+        const [controls] = useState({'DAG Orientation': 'td'});
+        const forceUpdate = useForceUpdate();
+
+        useEffect(() => {
+            // add controls GUI
+            const gui = new dat.GUI();
+            gui.add(controls, 'DAG Orientation', ['td', 'bu', 'lr', 'rl', 'radialout', 'radialin', null])
+                .onChange(forceUpdate);
+        }, []);
+
+        return <ForceGraph3D
+            ref={fgRef}
+            graphData={data}
+            dagMode={controls['DAG Orientation']}
+            dagLevelDistance={300}
+            nodeAutoColorBy="group"
+            nodeThreeObject={node => {
+                const sprite = new SpriteText(node.name);
+                sprite.color = node.color;
+                sprite.textHeight = 8;
+                return sprite;
+            }}
+        />;
+    };
+
+    fetch('../datasets/graph_data.json').then(res => res.json()).then(data => {
+        ReactDOM.render(
+            <ForceGraph3DComponent data={data}/>,
+            document.getElementById('graph')
+        );
+    });
+</script>
+</body>

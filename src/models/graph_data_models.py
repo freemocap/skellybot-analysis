@@ -13,6 +13,7 @@ class NodeTypes(Enum):
     THREAD: float = 2
     MESSAGE: float = 1
     DEFAULT: float = 0
+    TAG: float = -1
 
 class GraphNode(BaseModel):
 
