@@ -5,7 +5,7 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 from src.configure_logging import configure_logging
-from src.scrape_server.models.server_data_model import ServerData
+from src.models.data_models.server_data.server_data_model import ServerData
 from src.scrape_server.save_to_disk import save_server_data_to_json
 from src.scrape_server.scrape_server import scrape_server
 from src.utilities.get_most_recent_server_data import persist_most_recent_scrape_location
@@ -33,18 +33,19 @@ async def on_ready():
 
 async def main_server_scraper():
     target_server = discord.utils.get(DISCORD_CLIENT.guilds, id=int(TARGET_SERVER_ID))
-    dated_output_directory = str(Path(OUTPUT_DIRECTORY) / Path(f"{sanitize_name(datetime.now().isoformat(timespec='minutes'))}"))
-    if target_server:
-        server_data:ServerData = await scrape_server(target_server)
-        json_path = save_server_data_to_json(server_data=server_data,\
-                                             output_directory=dated_output_directory)
-
-        # class_roster = ClassRosterModel.from_csv(student_identifiers_path)
-        # save_student_data_to_disk(output_directory=OUTPUT_DIRECTORY)
-        persist_most_recent_scrape_location(most_recent_server_data_json_path=json_path)
-
-    else:
+    server_output_directory = Path(OUTPUT_DIRECTORY) / f"{sanitize_name(target_server.name)}_data"
+    dated_output_directory = str(server_output_directory / Path(f"{sanitize_name(datetime.now().isoformat(timespec='minutes'))}"))
+    if not target_server:
         logger.error(f"Could not find server with ID: {TARGET_SERVER_ID}")
+        raise ValueError(f"Could not find server with ID: {TARGET_SERVER_ID}")
+
+    server_data:ServerData = await scrape_server(target_server)
+    json_path = save_server_data_to_json(server_data=server_data,
+                                         output_directory=dated_output_directory)
+
+    persist_most_recent_scrape_location(most_recent_server_data_json_path=json_path)
+
+
 
     logger.info(f"Server data saved to: {dated_output_directory}")
 

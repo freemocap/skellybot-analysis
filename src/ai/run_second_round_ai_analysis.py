@@ -47,7 +47,7 @@ async def run_second_round_ai_analysis(server_data: ServerData):
     system_prompt += f"\n\n{TAG_CONDENSOR_TASK_DESCRIPTION}"
 
     original_tags = []
-    for thing in server_data.get_all_things():
+    for thing in server_data.get_all_sub_objects():
         if hasattr(thing, "ai_analysis") and hasattr(thing.ai_analysis, "tags_list"):
             original_tags.extend(thing.ai_analysis.tags_list)
 

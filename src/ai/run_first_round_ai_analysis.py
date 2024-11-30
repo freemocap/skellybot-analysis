@@ -1,20 +1,24 @@
 import asyncio
 import logging
 
-from src.ai.openai_constants import OPENAI_CLIENT, DEFAULT_LLM, MAX_TOKEN_LENGTH
 from src.ai.get_embeddings_for_text import get_embedding_for_text
 from src.ai.make_openai_json_mode_ai_request import make_openai_json_mode_ai_request
+from src.ai.openai_constants import OPENAI_CLIENT, DEFAULT_LLM, MAX_TOKEN_LENGTH
 from src.ai.prompt_stuff.truncate_text_to_max_token_length import truncate_string_to_max_tokens
-from src.models.server_data_model import ServerData
-from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.models.data_models.server_data.server_data_model import ServerData
+from src.models.data_models.data_object_model import DataObjectModel
+from src.models.text_analysis_prompt_model import TextAnalysisPromptModel, TagModel
 
 logger = logging.getLogger(__name__)
+
+
 async def add_embedding_vector(thing, text_to_analyze: str):
     embedding_result = await get_embedding_for_text(client=OPENAI_CLIENT,
                                                     text_to_embed=text_to_analyze)
     thing.embedding = embedding_result
 
-async def add_ai_analysis(thing,
+
+async def add_ai_analysis(thing: DataObjectModel,
                           system_prompt: str):
     print(f"Adding AI analysis to {thing.__class__.__name__}: {thing.name}")
     text_to_analyze = truncate_string_to_max_tokens(thing.as_text(),
@@ -23,22 +27,18 @@ async def add_ai_analysis(thing,
 
     try:
         thing.ai_analysis = await make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
-                                                  system_prompt=system_prompt,
-                                                  user_input=text_to_analyze,
-                                                  prompt_model=TextAnalysisPromptModel,
-                                                  llm_model=DEFAULT_LLM)
-        await add_embedding_vector(thing=thing, text_to_analyze=text_to_analyze)
-
-
+                                                                   system_prompt=system_prompt,
+                                                                   user_input=text_to_analyze,
+                                                                   prompt_model=TextAnalysisPromptModel,
+                                                                   llm_model=DEFAULT_LLM)
 
     except Exception as e:
         logger.error(f"Error adding AI analysis to {thing.__class__.__name__}: {thing.name}")
         logger.exception(e)
         logger.error(e)
-        return
+        raise
 
     print(f"Completed AI analysis to {thing.__class__.__name__}: {thing.name}!")
-
 
 
 async def run_first_round_ai_analysis(server_data: ServerData):
@@ -67,10 +67,7 @@ async def run_first_round_ai_analysis(server_data: ServerData):
 
         ai_analysis_tasks.append(add_ai_analysis(thing=chat_thread,
                                                  system_prompt=system_prompt))
-        # for message in chat_thread.messages:
-        #     if len(message.content) > 20:
-        #         ai_analysis_tasks.append(add_embedding_vector(thing=message,
-        #                                                       text_to_analyze=message.content))
+
     logger.info(f"Starting AI analysis tasks on {len(ai_analysis_tasks)} chat threads...")
     await asyncio.gather(*ai_analysis_tasks)
     for chat in server_data.get_chat_threads():

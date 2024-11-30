@@ -1,7 +1,18 @@
 from typing import List
 
 from pydantic import BaseModel, Field
+
+from src.models.data_models.xyz_data_model import XYZData
 from src.utilities.sanitize_filename import sanitize_name
+
+class TagModel(BaseModel):
+    name: str
+    id: str
+    embedding: List[float]
+    tsne_xyz: XYZData | None = None
+
+    def as_text(self) -> str:
+        return self.name.replace('#', '').replace('-', ' ')
 
 
 class TextAnalysisPromptModel(BaseModel):
@@ -82,6 +93,8 @@ class TextAnalysisPromptModel(BaseModel):
 
     def to_string(self):
         return self.__str__()
+
+
 
     def __str__(self):
         tags = "\n".join(self.tags.split(","))

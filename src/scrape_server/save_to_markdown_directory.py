@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.configure_logging import configure_logging
 configure_logging()
-from src.scrape_server.models.server_data_model import ServerData, EXCLUDED_USER_IDS
+from src.models.data_models.server_data.server_data_model import ServerData, EXCLUDED_USER_IDS
 from src.utilities.get_most_recent_server_data import get_server_data
 from src.utilities.sanitize_filename import sanitize_name
 
@@ -88,12 +88,12 @@ def save_as_markdown_directory(server_data:ServerData, output_directory: str) ->
                             f.write(f"{thread_data.ai_analysis.to_string()}\n\n")
                         for message_number, message in enumerate(thread_data.messages):
                             if message_number == 0:
-                                f.write(f"## Starting ContentMessage\n\n")
+                                f.write(f"## Starting DiscordContentMessage\n\n")
                             elif message.is_bot:
                                 f.write(f"## AI MESSAGE\n\n")
                             else:
                                 f.write(f"## HUMAN MESSAGE\n\n")
-                            f.write(f'> userid: {message.user_id}')
+                            f.write(f'> userid: {message.author_id}')
                             f.write(f"> {message.jump_url}\n\n")
                             f.write(f"{message.content}\n\n")
                             if message.attachments:
