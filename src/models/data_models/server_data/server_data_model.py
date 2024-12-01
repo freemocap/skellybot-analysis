@@ -1,3 +1,4 @@
+import asyncio
 from pprint import pprint
 from typing import Dict, List, Any
 
@@ -41,7 +42,7 @@ class ServerData(DataObjectModel):
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
     users: Dict[int, UserData] = Field(default_factory=dict)
     graph_data: GraphData | None = None
-
+    all_tags: List[TagModel] = Field(default_factory=list)
     @property
     def server_system_prompt(self) -> str:
         return "/n".join([message.content for message in self.bot_prompt_messages])
@@ -76,14 +77,22 @@ class ServerData(DataObjectModel):
     def as_text(self) -> str:
         return f"Server: {self.name}\n" + "\n".join([category.as_text() for category in self.categories.values()])
 
-    def all_tags(self) -> List[TagModel]:
-        all_tags = []
-        for thing in self.get_all_sub_objects():
-            if hasattr(thing, "ai_analysis") and hasattr(thing.ai_analysis, "tags_list"):
-                all_tags.extend(thing.tags)
-        return all_tags
+    def get_all_things(self, include_messages:bool=True) -> List[DataObjectModel]:
+        return self.get_all_sub_objects(include_messages=include_messages) + list(self.get_users().values())
 
-    def get_all_sub_objects(self) -> List[DataObjectModel]:
+    def get_all_tags(self) -> List[TagModel]:
+        if not self.all_tags:
+            self.all_tags = []
+            for thing in self.get_all_sub_objects(include_messages=False):
+                if hasattr(thing, "ai_analysis") and hasattr(thing.ai_analysis, "tags_list"):
+                    for tag in thing.ai_analysis.tags_list:
+                        if tag not in self.all_tags:
+                            self.all_tags.append(TagModel.from_tag(tag))
+                else:
+                    raise ValueError(f"No tags found for {thing.__class__.__name__}: {thing.name}")
+        return self.all_tags
+
+    def get_all_sub_objects(self, include_messages:bool=True) -> List[DataObjectModel]:
         things = [self]
         for category_key, category_data in self.categories.items():
             things.append(category_data)
@@ -91,8 +100,9 @@ class ServerData(DataObjectModel):
                 things.append(channel_data)
                 for thread_key, thread_data in channel_data.chat_threads.items():
                     things.append(thread_data)
-                    for message in thread_data.messages:
-                        things.append(message)
+                    if include_messages:
+                        for message in thread_data.messages:
+                            things.append(message)
         return things
 
     def get_messages(self) -> List[DiscordContentMessage]:
@@ -126,7 +136,8 @@ class ServerData(DataObjectModel):
         return categories
 
     def get_users(self) -> Dict[int, UserData]:
-        self.extract_user_data()
+        if not self.users:
+            self.extract_user_data()
         return self.users
 
     def extract_user_data(self) -> Dict[int, UserData]:
@@ -156,16 +167,18 @@ class ServerData(DataObjectModel):
         return self.model_dump(exclude={'categories', 'users', 'graph_data'})
 
     async def calculate_embedding_tsne(self):
-
-        all_server_things = self.get_all_sub_objects()
-        all_server_tags = self.all_tags()
+        all_server_things = self.get_all_things()
+        all_server_tags = self.get_all_tags()
         all_things = all_server_things + all_server_tags
-        for thing in all_things:
+        async def fetch_embedding(thing):
             if not hasattr(thing, 'embedding'):
                 raise ValueError(f"No embedding found for {thing.__class__.__name__}: {thing.name}")
+            thing.embedding = await get_embedding_for_text(client=OPENAI_CLIENT, text_to_embed=thing.as_text())
+            return thing.embedding
 
-        embeddings = [await get_embedding_for_text(client=OPENAI_CLIENT,
-                                                   text_to_embed=thing.as_text()) for thing in all_things]
+        embedding_tasks = [fetch_embedding(thing) for thing in all_things]
+        embeddings = await asyncio.gather(*embedding_tasks)
+
         if not embeddings:
             raise ValueError("No embeddings found for server data")
 
@@ -199,12 +212,15 @@ class ServerData(DataObjectModel):
                                  tags=self.ai_analysis.tags_list, )
         nodes.append(server_node)
 
-        tag_nodes = [TagNode(id=f"tag-{tag}",
-                             name=tag,
-                             group=group_number_incrementer(),
-                             tsne_xyz=self.tsne_xyz,
-                             ) for tag in self.all_tags()]
-        nodes.extend(tag_nodes)
+        tag_nodes = {}
+        for tag in self.get_all_tags():
+            tag_nodes[tag.name] = TagNode(id=tag.id,
+                                          name=tag.name,
+                                          group=group_number_incrementer(),
+                                          tsne_xyz=tag.tsne_xyz,
+                                          )
+        tag_nodes = list(tag_nodes.values())
+        nodes.extend(list(tag_nodes))
 
         for user in self.get_users().values():
             user_node = UserNode(id=f"user-{user.id}",
@@ -217,7 +233,7 @@ class ServerData(DataObjectModel):
             nodes.append(user_node)
 
             for tag_node in tag_nodes:
-                if tag_node.name in user.ai_analysis.tags_list:
+                if tag_node.name in user.tags:
                     links.append(TagLink(source=user_node.id,
                                          target=tag_node.id,
                                          group=group_number,
@@ -323,6 +339,6 @@ if __name__ == '__main__':
     from src.utilities.get_most_recent_server_data import get_server_data
 
     server_data, _ = get_server_data()
-    server_data.extract_user_data()
+    asyncio.run(server_data.calculate_graph_data())
     pprint(server_data.stats)
     # pprint(server_data.get_graph_data())

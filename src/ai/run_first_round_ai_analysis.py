@@ -7,15 +7,13 @@ from src.ai.openai_constants import OPENAI_CLIENT, DEFAULT_LLM, MAX_TOKEN_LENGTH
 from src.ai.prompt_stuff.truncate_text_to_max_token_length import truncate_string_to_max_tokens
 from src.models.data_models.server_data.server_data_model import ServerData
 from src.models.data_models.data_object_model import DataObjectModel
+from src.models.data_models.server_data.server_data_sub_object_models import ChatThread
 from src.models.text_analysis_prompt_model import TextAnalysisPromptModel, TagModel
+from src.scrape_server.scrape_server import MINIMUM_THREAD_MESSAGE_COUNT
 
 logger = logging.getLogger(__name__)
 
 
-async def add_embedding_vector(thing, text_to_analyze: str):
-    embedding_result = await get_embedding_for_text(client=OPENAI_CLIENT,
-                                                    text_to_embed=text_to_analyze)
-    thing.embedding = embedding_result
 
 
 async def add_ai_analysis(thing: DataObjectModel,
@@ -47,44 +45,20 @@ async def run_first_round_ai_analysis(server_data: ServerData):
                       "of the conversations to provide a landscape of the topics that the students are discussing. "
                       f"Provide your output in accordance to the provided schema.\n {TextAnalysisPromptModel.as_description_schema()}")
 
-    chat_threads = server_data.get_chat_threads()
-    ai_analysis_tasks = []
-    logger.info(f"Fetched {len(chat_threads)} chat threads from the server data.")
-    ai_analysis_tasks.append(add_ai_analysis(thing=server_data,
-                                             system_prompt=system_prompt))
-    for user_data in server_data.extract_user_data().values():
-        ai_analysis_tasks.append(add_ai_analysis(thing=user_data,
-                                                 system_prompt=system_prompt))
-    for category in server_data.get_categories():
-        ai_analysis_tasks.append(add_ai_analysis(thing=category,
-                                                 system_prompt=system_prompt))
-    for channel in server_data.get_channels():
-        ai_analysis_tasks.append(add_ai_analysis(thing=channel,
-                                                 system_prompt=system_prompt))
-    for chat_thread in chat_threads:
-        if len(chat_thread.messages) < 3:
-            continue
+    analyzable_things = server_data.get_all_things(include_messages=False)
+    to_remove = []
+    for thing in analyzable_things:
+        if isinstance(thing, ChatThread):
+            if not thing.messages or len(thing.messages) < MINIMUM_THREAD_MESSAGE_COUNT:
+                to_remove.append(thing)
+    for thing in to_remove:
+        analyzable_things.remove(thing)
+    ai_analysis_tasks = [add_ai_analysis(thing=thing,
+                                         system_prompt=system_prompt) for thing in analyzable_things]
 
-        ai_analysis_tasks.append(add_ai_analysis(thing=chat_thread,
-                                                 system_prompt=system_prompt))
-
-    logger.info(f"Starting AI analysis tasks on {len(ai_analysis_tasks)} chat threads...")
+    logger.info(f"Starting AI analysis tasks on {len(ai_analysis_tasks)} analyzable things.")
     await asyncio.gather(*ai_analysis_tasks)
-    for chat in server_data.get_chat_threads():
-        if chat.ai_analysis:
-            logger.debug(f"Chat thread: {chat.as_text()}")
-            logger.debug(f"AI Analysis: {chat.ai_analysis}")
-            logger.debug("")
-    for channel in server_data.get_channels():
-        if channel.ai_analysis:
-            logger.info(f"Channel: {channel.as_text()}")
-            logger.info(f"AI Analysis: {channel.ai_analysis}")
-            logger.info("")
-    for category in server_data.get_categories():
-        if category.ai_analysis:
-            logger.success(f"Category: {category.as_text()}")
-            logger.success(f"AI Analysis: {category.ai_analysis}")
-            logger.success("")
+    logger.info(f"First round AI analysis completed! Analyzed {len(ai_analysis_tasks)} things.")
 
 
 if __name__ == "__main__":

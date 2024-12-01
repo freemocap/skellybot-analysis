@@ -4,6 +4,8 @@ from typing import List
 
 from pydantic import BaseModel
 
+from src.models.data_models.xyz_data_model import XYZData
+
 
 class NodeTypes(Enum):
     DEFAULT: int = 0
@@ -34,12 +36,12 @@ class GraphNode(BaseModel):
 
     # links: List[str] = [] # List of link IDs
 
-    node_type: NodeTypes = NodeTypes.DEFAULT.name.lower()
+    node_type: str = NodeTypes.DEFAULT.name.lower()
     val: int = NodeTypes.DEFAULT.value
     group: int = 0
     relative_size: float = 1.0
     ai_analysis: str | None = None
-    tsne_xyz: List[float] | None = None
+    tsne_xyz: XYZData | None = None
     tags: List[str] = []
     # color: str = "#F8F8FF" # Ghost White
     # metadata: Dict[str, Any] = Field(default_factory=dict)
@@ -93,7 +95,7 @@ class GraphLink(BaseModel):
 
     directional: bool = True
 
-    link_type: LinkTypes = LinkTypes.DEFAULT.name.lower()
+    link_type: str = LinkTypes.DEFAULT.name.lower()
     group: int = 0
     relative_length: float = 1.0
     # color: str = "#F5F5F5" # White Smoke

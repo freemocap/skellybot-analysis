@@ -20,7 +20,7 @@ class UserData(DataObjectModel):
         return f"User: {self.id}\n" + "\n".join([thread.as_text() for thread in self.threads])
 
     def as_full_text(self) -> str:
-        return f"User: {self.user_id}\n" + self.ai_analysis.to_string() + "\n______________\n" + "\n".join(
+        return f"User: {self.id}\n" + self.ai_analysis.to_string() + "\n______________\n" + "\n".join(
             [thread.as_text() for thread in self.threads])
 
     def model_dump_no_children(self) -> Dict[str, Any]:
