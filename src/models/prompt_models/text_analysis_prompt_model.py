@@ -2,23 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from src.models.data_models.xyz_data_model import XYZData
 from src.utilities.sanitize_filename import sanitize_name
-
-class TagModel(BaseModel):
-    name: str
-    id: str
-    embedding: List[float] | None = None
-    tsne_xyz: XYZData | None = None
-
-    @classmethod
-    def from_tag(cls, tag_name: str):
-        if not tag_name.startswith("#"):
-            tag_name = "#" + tag_name
-        return cls(name=tag_name, id=tag_name.replace("#", "tag-"))
-
-    def as_text(self) -> str:
-        return self.name.replace('#', '').replace('-', ' ')
 
 
 class TextAnalysisPromptModel(BaseModel):

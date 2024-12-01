@@ -6,7 +6,7 @@ from src.models.data_models.data_object_model import DataObjectModel
 from src.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
 from src.models.data_models.server_data.server_data_stats import ServerDataStats
 from src.models.data_models.server_data.server_data_sub_object_models import ChatThread
-from src.models.text_analysis_prompt_model import TextAnalysisPromptModel
+from src.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 
 
 class UserData(DataObjectModel):

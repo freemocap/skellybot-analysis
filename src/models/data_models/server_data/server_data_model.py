@@ -6,9 +6,9 @@ import numpy as np
 from pydantic import Field
 from sklearn.manifold import TSNE
 
-from src.ai.get_embeddings_for_text import get_embedding_for_text
-from src.ai.openai_constants import OPENAI_CLIENT
+from src.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings, DEFAULT_OLLAMA_EMBEDDINGS_MODEL
 from src.models.data_models.data_object_model import DataObjectModel
+from src.models.data_models.embedding_vector import EmbeddingVector
 from src.models.data_models.graph_data_models import GraphData, ServerNode, \
     CategoryNode, ParentLink, ChannelNode, TagNode, TagLink, ThreadNode, UserNode
 from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
@@ -18,7 +18,7 @@ from src.models.data_models.server_data.server_data_sub_object_models import Dis
     ChannelData, CategoryData
 from src.models.data_models.server_data.user_data_model import UserData
 from src.models.data_models.xyz_data_model import XYZData
-from src.models.text_analysis_prompt_model import TagModel
+from src.models.data_models.tag_models import TagModel, TagManager
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
@@ -42,7 +42,8 @@ class ServerData(DataObjectModel):
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
     users: Dict[int, UserData] = Field(default_factory=dict)
     graph_data: GraphData | None = None
-    all_tags: List[TagModel] = Field(default_factory=list)
+    tag_manager: TagManager | None = None
+
     @property
     def server_system_prompt(self) -> str:
         return "/n".join([message.content for message in self.bot_prompt_messages])
@@ -77,32 +78,27 @@ class ServerData(DataObjectModel):
     def as_text(self) -> str:
         return f"Server: {self.name}\n" + "\n".join([category.as_text() for category in self.categories.values()])
 
-    def get_all_things(self, include_messages:bool=True) -> List[DataObjectModel]:
+    def get_all_things(self, include_messages: bool = True) -> List[DataObjectModel]:
         return self.get_all_sub_objects(include_messages=include_messages) + list(self.get_users().values())
 
-    def get_all_tags(self) -> List[TagModel]:
-        if not self.all_tags:
-            self.all_tags = []
-            for thing in self.get_all_sub_objects(include_messages=False):
-                if hasattr(thing, "ai_analysis") and hasattr(thing.ai_analysis, "tags_list"):
-                    for tag in thing.ai_analysis.tags_list:
-                        if tag not in self.all_tags:
-                            self.all_tags.append(TagModel.from_tag(tag))
-                else:
-                    raise ValueError(f"No tags found for {thing.__class__.__name__}: {thing.name}")
-        return self.all_tags
+    def get_tags(self) -> List[TagModel]:
+        if not self.tag_manager:
+            for thing in self.get_all_sub_objects(include_messages=False, include_users=False):
+                for tag in thing.ai_analysis.tags_list:
+                    self.tag_manager.add_tag(tag)
+        return self.tag_manager.tags
 
-    def get_all_sub_objects(self, include_messages:bool=True) -> List[DataObjectModel]:
+    def get_all_sub_objects(self,
+                            include_messages: bool = True,
+                            include_users:bool=True) -> List[DataObjectModel]:
         things = [self]
-        for category_key, category_data in self.categories.items():
-            things.append(category_data)
-            for channel_key, channel_data in category_data.channels.items():
-                things.append(channel_data)
-                for thread_key, thread_data in channel_data.chat_threads.items():
-                    things.append(thread_data)
-                    if include_messages:
-                        for message in thread_data.messages:
-                            things.append(message)
+        things.extend(self.get_categories())
+        things.extend(self.get_channels())
+        things.extend(self.get_chat_threads())
+        if include_messages:
+            things.extend(self.get_messages())
+        if include_users:
+            things.extend(self.get_users().values())
         return things
 
     def get_messages(self) -> List[DiscordContentMessage]:
@@ -122,10 +118,12 @@ class ServerData(DataObjectModel):
                     chat_threads.append(thread_data)
         return chat_threads
 
-    def get_channels(self) -> List[ChannelData]:
+    def get_channels(self, exclude_bot_playground:bool=True) -> List[ChannelData]:
         channels = []
         for category_key, category_data in self.categories.items():
             for channel_key, channel_data in category_data.channels.items():
+                if exclude_bot_playground and channel_data.name == "bot-playground":
+                    continue
                 channels.append(channel_data)
         return channels
 
@@ -142,15 +140,15 @@ class ServerData(DataObjectModel):
 
     def extract_user_data(self) -> Dict[int, UserData]:
         user_threads = {}
-        for category_key, category_data in self.categories.items():
-            for channel_key, channel_data in category_data.channels.items():
-                for thread_key, thread_data in channel_data.chat_threads.items():
-                    for message in thread_data.messages:
-                        if message.author_id in EXCLUDED_USER_IDS:
-                            continue
-                        if message.author_id not in user_threads:
-                            user_threads[message.author_id] = []
-                        user_threads[message.author_id].append(thread_data)
+
+        for thread in self.get_chat_threads():
+            for message in thread.messages:
+                if message.author_id in EXCLUDED_USER_IDS:
+                    continue
+                if message.author_id not in user_threads:
+                    user_threads[message.author_id] = []
+                user_threads[message.author_id].append(thread)
+
 
         for user_id, chats in user_threads.items():
             self.users[user_id] = UserData(id=user_id,
@@ -168,25 +166,22 @@ class ServerData(DataObjectModel):
 
     async def calculate_embedding_tsne(self):
         all_server_things = self.get_all_things()
-        all_server_tags = self.get_all_tags()
+        all_server_tags = self.get_tags()
         all_things = all_server_things + all_server_tags
-        async def fetch_embedding(thing):
-            if not hasattr(thing, 'embedding'):
-                raise ValueError(f"No embedding found for {thing.__class__.__name__}: {thing.name}")
-            thing.embedding = await get_embedding_for_text(client=OPENAI_CLIENT, text_to_embed=thing.as_text())
-            return thing.embedding
-
-        embedding_tasks = [fetch_embedding(thing) for thing in all_things]
-        embeddings = await asyncio.gather(*embedding_tasks)
-
+        embeddable_texts = [thing.as_text() for thing in all_things]
+        embeddings = calculate_ollama_embeddings(embeddable_texts)
         if not embeddings:
             raise ValueError("No embeddings found for server data")
 
         embeddings_array = np.array(embeddings)
         tsne = TSNE(n_components=TSNE_DIMENSIONS, perplexity=TSNE_PERPLEXITY, random_state=TSNE_SEED)
+        print(f"Calculating TSNE for {len(embeddings_array)} embeddings...")
         tsne_results = tsne.fit_transform(embeddings_array)
+        print(f"TSNE calculated for {len(tsne_results)} embeddings!")
 
-        for tsne_xyz, thing in zip(tsne_results, all_things):
+        for  thing, embedding, tsne_xyz, in zip(all_things, embeddings, tsne_results):
+            thing.embedding = EmbeddingVector(embedding=embedding,
+                                              source=f"ollama/{DEFAULT_OLLAMA_EMBEDDINGS_MODEL}",)
             thing.tsne_xyz = XYZData(x=tsne_xyz[0], y=tsne_xyz[1], z=tsne_xyz[2])
 
     async def calculate_graph_data(self):
@@ -213,7 +208,7 @@ class ServerData(DataObjectModel):
         nodes.append(server_node)
 
         tag_nodes = {}
-        for tag in self.get_all_tags():
+        for tag in self.get_tags():
             tag_nodes[tag.name] = TagNode(id=tag.id,
                                           name=tag.name,
                                           group=group_number_incrementer(),

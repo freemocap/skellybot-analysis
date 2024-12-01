@@ -1,14 +1,13 @@
 import asyncio
 import logging
 
-from src.ai.get_embeddings_for_text import get_embedding_for_text
 from src.ai.make_openai_json_mode_ai_request import make_openai_json_mode_ai_request
 from src.ai.openai_constants import OPENAI_CLIENT, DEFAULT_LLM, MAX_TOKEN_LENGTH
 from src.ai.prompt_stuff.truncate_text_to_max_token_length import truncate_string_to_max_tokens
 from src.models.data_models.server_data.server_data_model import ServerData
 from src.models.data_models.data_object_model import DataObjectModel
 from src.models.data_models.server_data.server_data_sub_object_models import ChatThread
-from src.models.text_analysis_prompt_model import TextAnalysisPromptModel, TagModel
+from src.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 from src.scrape_server.scrape_server import MINIMUM_THREAD_MESSAGE_COUNT
 
 logger = logging.getLogger(__name__)
