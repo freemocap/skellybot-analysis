@@ -4,12 +4,14 @@ from pydantic import BaseModel
 
 from src.models.data_models.embedding_vector import EmbeddingVector
 from src.models.data_models.xyz_data_model import XYZData
+from src.models.prompt_models.topic_article_writer_prompt_model import WikipediaArticleWriterModel
 
 
 class TagModel(BaseModel):
     name: str
     id: str
     embedding: EmbeddingVector | None = None
+    ai_analysis: WikipediaArticleWriterModel | None = None
     tsne_xyz: XYZData | None = None
     link_count: int = 0
 

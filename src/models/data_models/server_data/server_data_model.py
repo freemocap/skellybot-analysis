@@ -83,6 +83,7 @@ class ServerData(DataObjectModel):
 
     def get_tags(self) -> List[TagModel]:
         if not self.tag_manager:
+            self.tag_manager = TagManager()
             for thing in self.get_all_sub_objects(include_messages=False, include_users=False):
                 for tag in thing.ai_analysis.tags_list:
                     self.tag_manager.add_tag(tag)

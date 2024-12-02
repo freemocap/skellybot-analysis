@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 from src.ai.run_first_round_ai_analysis import run_first_round_ai_analysis
+from src.ai.run_second_round_ai_analysis import run_second_round_ai_analysis
 from src.scrape_server.save_to_disk import save_server_data_to_json
 from src.scrape_server.save_to_markdown_directory import save_as_markdown_directory
 from src.utilities.get_most_recent_server_data import get_server_data
@@ -27,6 +28,9 @@ async def process_server_data():
         await save_out_graph_data(server_data=server_data)
         save_server_data_to_json(server_data=server_data, output_directory=server_data_json_path)
 
+    if server_data.get_tags()[0].ai_analysis is None:
+        await run_second_round_ai_analysis(server_data)
+        save_server_data_to_json(server_data=server_data, output_directory=server_data_json_path)
 
     save_as_markdown_directory(server_data=server_data, output_directory=output_directory)
 
