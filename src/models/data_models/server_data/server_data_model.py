@@ -4,6 +4,7 @@ from typing import Dict, List, Any
 
 import numpy as np
 from pydantic import Field
+from pyexpat.errors import messages
 from sklearn.manifold import TSNE
 
 from src.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings, DEFAULT_OLLAMA_EMBEDDINGS_MODEL
@@ -17,8 +18,8 @@ from src.models.data_models.server_data.server_data_stats import ServerDataStats
 from src.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
     ChannelData, CategoryData
 from src.models.data_models.server_data.user_data_model import UserData
-from src.models.data_models.xyz_data_model import XYZData
 from src.models.data_models.tag_models import TagModel, TagManager
+from src.models.data_models.xyz_data_model import XYZData
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
@@ -78,9 +79,6 @@ class ServerData(DataObjectModel):
     def as_text(self) -> str:
         return f"Server: {self.name}\n" + "\n".join([category.as_text() for category in self.categories.values()])
 
-    def get_all_things(self, include_messages: bool = True) -> List[DataObjectModel]:
-        return self.get_all_sub_objects(include_messages=include_messages) + list(self.get_users().values())
-
     def get_tags(self) -> List[TagModel]:
         if not self.tag_manager:
             self.tag_manager = TagManager()
@@ -116,6 +114,7 @@ class ServerData(DataObjectModel):
         for category_key, category_data in self.categories.items():
             for channel_key, channel_data in category_data.channels.items():
                 for thread_key, thread_data in channel_data.chat_threads.items():
+
                     chat_threads.append(thread_data)
         return chat_threads
 
@@ -135,8 +134,7 @@ class ServerData(DataObjectModel):
         return categories
 
     def get_users(self) -> Dict[int, UserData]:
-        if not self.users:
-            self.extract_user_data()
+        self.extract_user_data()
         return self.users
 
     def extract_user_data(self) -> Dict[int, UserData]:
@@ -146,8 +144,12 @@ class ServerData(DataObjectModel):
             for message in thread.messages:
                 if message.author_id in EXCLUDED_USER_IDS:
                     continue
+                if message.is_bot:
+                    continue
                 if message.author_id not in user_threads:
                     user_threads[message.author_id] = []
+                if not thread.ai_analysis:
+                    raise RuntimeError("Run AI analysis on threads before extracting user data")
                 user_threads[message.author_id].append(thread)
 
 
@@ -166,7 +168,7 @@ class ServerData(DataObjectModel):
         return self.model_dump(exclude={'categories', 'users', 'graph_data'})
 
     async def calculate_embedding_tsne(self):
-        all_server_things = self.get_all_things()
+        all_server_things = self.get_all_sub_objects()
         all_server_tags = self.get_tags()
         all_things = all_server_things + all_server_tags
         embeddable_texts = [thing.as_text() for thing in all_things]
@@ -218,13 +220,15 @@ class ServerData(DataObjectModel):
         tag_nodes = list(tag_nodes.values())
         nodes.extend(list(tag_nodes))
 
-        for user in self.get_users().values():
+        if not self.users:
+            raise ValueError("No user data found. Run AI Analyses before calculating graph data")
+        for user in self.users.values():
             user_node = UserNode(id=f"user-{user.id}",
                                  name=f"User {user.id}",
                                  group=group_number_incrementer(),
                                  tsne_xyz=user.tsne_xyz,
-                                 ai_analysis=user.ai_analysis.to_string(),
-                                 tags=user.ai_analysis.tags_list,
+                                 # ai_analysis=user.ai_analysis.to_string(),
+                                 # tags=user.ai_analysis.tags_list,
                                  )
             nodes.append(user_node)
 

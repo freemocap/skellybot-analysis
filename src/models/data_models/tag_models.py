@@ -4,16 +4,17 @@ from pydantic import BaseModel
 
 from src.models.data_models.embedding_vector import EmbeddingVector
 from src.models.data_models.xyz_data_model import XYZData
-from src.models.prompt_models.topic_article_writer_prompt_model import WikipediaArticleWriterModel
+from src.models.prompt_models.topic_article_writer_prompt_model import WikipediaStyleArticleWriterModel
 
 
 class TagModel(BaseModel):
     name: str
     id: str
     embedding: EmbeddingVector | None = None
-    ai_analysis: WikipediaArticleWriterModel | None = None
+    ai_analysis: WikipediaStyleArticleWriterModel | None = None
     tsne_xyz: XYZData | None = None
     link_count: int = 0
+    tagged_threads: List[str] = []
 
     @classmethod
     def from_tag(cls, tag_name: str):
@@ -23,6 +24,9 @@ class TagModel(BaseModel):
 
     def as_text(self) -> str:
         return self.name.replace('#', '').replace('-', ' ')
+
+    def __eq__(self, other):
+        return self.name == other.name and self.id == other.id
 
 class TagManager(BaseModel):
     tags: List[TagModel] = []

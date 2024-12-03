@@ -17,8 +17,10 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 
+
 # Initialize the Discord client
 DISCORD_CLIENT = commands.Bot(command_prefix='!', intents=discord.Intents.all())
+
 
 
 @DISCORD_CLIENT.event
@@ -34,7 +36,7 @@ async def on_ready():
 async def main_server_scraper():
     target_server = discord.utils.get(DISCORD_CLIENT.guilds, id=int(TARGET_SERVER_ID))
     server_output_directory = Path(OUTPUT_DIRECTORY) / f"{sanitize_name(target_server.name)}_data"
-    dated_output_directory = str(server_output_directory / Path(f"{sanitize_name(datetime.now().isoformat(timespec='minutes'))}"))
+    dated_output_directory = str(server_output_directory / Path(f"{sanitize_name(target_server.name)}_{sanitize_name(datetime.now().isoformat(timespec='minutes'))}"))
     if not target_server:
         logger.error(f"Could not find server with ID: {TARGET_SERVER_ID}")
         raise ValueError(f"Could not find server with ID: {TARGET_SERVER_ID}")

@@ -88,11 +88,13 @@ class DiscordContentMessage(DataObjectModel):
         else:
             return f"HUMAN: {self.content}\n"
 
-    def __str__(self):
+    def as_full_text(self):
         # Assuming 'attachments' is a list of strings after processing with 'extract_attachment_text'.
         attachments_str = '\n'.join(self.attachments)
         return f"{self.content}\n\n{attachments_str}\n\n{self.timestamp} {self.jump_url}\n"
 
+    def __str__(self):
+        return self.as_full_text()
 
 class ChatThread(DataObjectModel):
     """
@@ -104,12 +106,18 @@ class ChatThread(DataObjectModel):
     def as_text(self) -> str:
         return f"Thread: {self.name}\n" + "\n".join([message.as_text() for message in self.messages])
 
-    def as_full_text(self) -> str:
-        out_string = f"Thread: {self.name}\n"
-        if self.ai_analysis is not None:
-            out_string += self.ai_analysis.to_string() + "\n______________\n"
+    def file_name(self) -> str:
+        return f"{self.ai_analysis.title}-{self.id}.md"
 
-        out_string += "\n".join([message.as_text() for message in self.messages])
+    def as_full_text(self) -> str:
+        out_string = ""
+        if self.ai_analysis is not None:
+            out_string += f"# {self.ai_analysis.title}\n\n> Thread: {self.name}\n"
+            out_string += "AI Analysis/Summary:\n\n"+self.ai_analysis.to_string()
+            out_string+= "\n______________\nFULL THREAD TEXT:\n\n"
+        else:
+            out_string += f"Thread: {self.name}\n"
+        out_string += "\n".join([message.as_full_text() for message in self.messages])
 
         return out_string
 

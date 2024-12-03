@@ -1,0 +1,880 @@
+{
+  "nodes": [
+    {
+      "id": "server-1240410783863672873",
+      "name": "skb-test",
+      "childLinks": [
+        "category-1240410783863672874",
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "server",
+      "val": 5,
+      "group": 0,
+      "relative_size": 25,
+      "ai_analysis": "\n# Student Discussions On Dogs Machinery Candy And Dolphins\n\n\n## Extremely Short Summary\n\n\nStudents discuss dogs, machinery, candy, and dolphins.\n\n\n## Highlights\n\nDiscussion on the care and types of dogs.\nExploration of gear math related to machinery.\nInsights into different types of candy and their history.\nInteresting facts about dolphins and their behavior.\nRecipes and uses for carrots in cooking.\n\n\n## Very Short Summary\n\nConversations cover topics like dogs and machinery.\n\n\n## Short Summary\n\nStudents engage in various discussions on topics such as dogs, machinery mathematics, candy types, and dolphin facts. They share knowledge, ask questions, and express interests in these subjects.\n\n\n## Detailed Summary\n\n* Conversation about dogs\n  * Types of dogs and care questions\n* Discussion on machinery\n  * Expressed interest in gear math\n  * Key concepts of gear math:\n    * Gear ratio and speed ratio\n    * Torque calculations\n    * Importance of pitch circle diameter and module\n* Candy discussion\n  * Varieties of candy (hard, chewy, chocolate)\n  * Ingredients used in candy making\n  * Historical perspective on candy\n  * Cultural variations and significance\n* Dolphin facts\n  * Intelligence and social behavior of dolphins\n  * Communication methods and echolocation\n  * Conservation issues regarding dolphins\n  * Cultural significance of dolphins\n* Carrots\n  * Different ways to enjoy and prepare carrots\n  * Nutritional benefits of carrots\n\n\n## Tags\n\n#dogs\n#machinery\n#candy\n#dolphins\n#vegetables\n\n\n## Backlinks\n\n[dogs]\n[machinery]\n[candy]\n[dolphins]\n[vegetables]\n\n\n        ",
+      "tsne_xyz": {
+        "x": -20.056594848632812,
+        "y": -42.14844512939453,
+        "z": -3.2988319396972656
+      },
+      "tags": [
+        "#dogs",
+        "#machinery",
+        "#candy",
+        "#dolphins",
+        "#vegetables"
+      ]
+    },
+    {
+      "id": "tag-dogs",
+      "name": "#dogs",
+      "childLinks": [
+        "category-1240410783863672874"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 1,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -55.60868835449219,
+        "y": 84.0293197631836,
+        "z": -38.13801956176758
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-machinery",
+      "name": "#machinery",
+      "childLinks": [
+        "category-1240410783863672874"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 2,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 80.93675994873047,
+        "y": 17.509366989135742,
+        "z": -70.08344268798828
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-candy",
+      "name": "#candy",
+      "childLinks": [
+        "category-1240410783863672874"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 3,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -60.80394744873047,
+        "y": -31.643491744995117,
+        "z": 123.94304656982422
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-dolphins",
+      "name": "#dolphins",
+      "childLinks": [
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 4,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -124.43387603759766,
+        "y": 40.30671691894531,
+        "z": 1.7517285346984863
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-vegetables",
+      "name": "#vegetables",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 5,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 21.469953536987305,
+        "y": 114.69645690917969,
+        "z": 21.617124557495117
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-gear-math",
+      "name": "#gear-math",
+      "childLinks": [
+        "category-1240410783863672874"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 6,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -104.3058090209961,
+        "y": -32.203548431396484,
+        "z": -5.094000339508057
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-candy-production",
+      "name": "#candy-production",
+      "childLinks": [
+        "category-1240410783863672874"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 7,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -14.409623146057129,
+        "y": -69.23107147216797,
+        "z": -89.7851791381836
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-marine-mammals",
+      "name": "#marine-mammals",
+      "childLinks": [
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 8,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 129.2687225341797,
+        "y": 29.814943313598633,
+        "z": 84.20694732666016
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-nutrition",
+      "name": "#nutrition",
+      "childLinks": [
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 9,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 113.1873779296875,
+        "y": -54.86577224731445,
+        "z": -31.251787185668945
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-carrots",
+      "name": "#carrots",
+      "childLinks": [
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 10,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -39.65433120727539,
+        "y": 110.09742736816406,
+        "z": 46.57600021362305
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-conservation",
+      "name": "#conservation",
+      "childLinks": [
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 11,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 86.89874267578125,
+        "y": 106.96580505371094,
+        "z": -38.67966079711914
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-math",
+      "name": "#math",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 12,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -46.982582092285156,
+        "y": 16.005983352661133,
+        "z": -78.4029541015625
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-marine-life",
+      "name": "#marine-life",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 13,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 138.87660217285156,
+        "y": 23.939027786254883,
+        "z": -112.18221282958984
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-animal-care",
+      "name": "#animal-care",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 14,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -18.82050323486328,
+        "y": -19.22929573059082,
+        "z": -147.95169067382812
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-pet-training",
+      "name": "#pet-training",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 15,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 60.925655364990234,
+        "y": -76.48558044433594,
+        "z": -104.81751251220703
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-breeds",
+      "name": "#breeds",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 16,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 27.91533851623535,
+        "y": 94.62687683105469,
+        "z": 92.25479125976562
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-gears",
+      "name": "#gears",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 17,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -12.547662734985352,
+        "y": 41.2166862487793,
+        "z": -11.496123313903809
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-food",
+      "name": "#food",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 18,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 117.43213653564453,
+        "y": -42.24533462524414,
+        "z": 22.816408157348633
+      },
+      "tags": []
+    },
+    {
+      "id": "tag-engineering",
+      "name": "#engineering",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "tag",
+      "val": -1,
+      "group": 19,
+      "relative_size": 1,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": -31.015398025512695,
+        "y": 47.39039611816406,
+        "z": 119.26847839355469
+      },
+      "tags": []
+    },
+    {
+      "id": "user-362711467104927744",
+      "name": "User 362711467104927744",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "user",
+      "val": -2,
+      "group": 20,
+      "relative_size": 4,
+      "ai_analysis": null,
+      "tsne_xyz": {
+        "x": 42.807334899902344,
+        "y": -79.44377136230469,
+        "z": 8.351371765136719
+      },
+      "tags": []
+    },
+    {
+      "id": "category-1240410783863672874",
+      "name": "Text Channels",
+      "childLinks": [
+        "channel-1240410783863672876"
+      ],
+      "collapsed": false,
+      "node_type": "category",
+      "val": 4,
+      "group": 21,
+      "relative_size": 16,
+      "ai_analysis": "\n# Student Discussion Topics\n\n\n## Extremely Short Summary\n\n\nStudents discuss dogs, machinery, and candy.\n\n\n## Highlights\n\nDiscussion on dogs and their care\nIn-depth conversation about machinery\nKey concepts of gear math explained\nOverview of different candy types\nCultural variations in candy\n\n\n## Very Short Summary\n\nStudents engaging in various topics including dogs and candy.\n\n\n## Short Summary\n\nIn a recent chat session, students explored topics such as dogs, machinery, and candy. They discussed gear math related to machinery and shared interesting facts about different types of candies.\n\n\n## Detailed Summary\n\n* Students initially engaged in a discussion about dogs, highlighting their companionship and care needs.\n* A transition to machinery occurred, with students expressing a strong interest in the topic.\n* Gear math was specifically discussed, covering:\n   * Gear Ratio: Calculation and importance in mechanical advantage.\n   * Speed Ratio: Inverse relationship with gear ratio affecting rotational speeds.\n   * Torque: Relation to gear size and rotation.\n   * Pitch Circle Diameter (PCD): Its significance in gear design.\n   * Module: Ensuring proper meshing of gears.\n* Further conversation shifted to candy, exploring various types including hard, chewy, chocolate, and sour candy.\n* Discussion included ingredients used in candy making, historical background, cultural differences in candy types, and the role of candy in popular culture.\n\n\n## Tags\n\n#dogs\n#machinery\n#gear-math\n#candy\n#candy-production\n\n\n## Backlinks\n\n[dogs]\n[machinery]\n[gear-math]\n[candy]\n[candy-production]\n\n\n        ",
+      "tsne_xyz": {
+        "x": 54.66567611694336,
+        "y": 24.525177001953125,
+        "z": 36.16288375854492
+      },
+      "tags": [
+        "#dogs",
+        "#machinery",
+        "#gear-math",
+        "#candy",
+        "#candy-production"
+      ]
+    },
+    {
+      "id": "channel-1240410783863672876",
+      "name": "general",
+      "childLinks": [
+        "thread-1240483807975440485",
+        "thread-1312417743114473533"
+      ],
+      "collapsed": false,
+      "node_type": "channel",
+      "val": 3,
+      "group": 22,
+      "relative_size": 9,
+      "ai_analysis": "\n# Student Discussions On Dogs Machinery And Candy\n\n\n## Extremely Short Summary\n\n\nStudents discuss dogs, machinery, and candy topics.\n\n\n## Highlights\n\nDiscussion on dogs as companions\nGear math concepts like gear ratio and torque\nVariety of candy types such as hard and chewy\nCultural differences in candy\nCandy production processes and history\n\n\n## Very Short Summary\n\nConversations include topics on dogs, machinery, and candy.\n\n\n## Short Summary\n\nThe students engage in discussions about various interests including dogs, machinery with a focus on gear math, and different types of candy. Each topic brings unique aspects, from care tips for dogs to the mathematical principles behind machinery, and the cultural significance of candies.\n\n\n## Detailed Summary\n\n* Discussion initiated on dogs, with emphasis on interests in care and breeds.\n* Students discuss machinery, leading to a detailed explanation of gear math:\n   * Gear Ratio\n   * Speed Ratio\n   * Torque\n   * Pitch Circle Diameter (PCD)\n   * Module\n* Conversation shifts to candy, covering:\n   * Types of candy including hard, chewy, chocolate, and sour.\n   * Ingredients commonly used in candies like sugar and gelatin.\n   * Historical context and evolution of candy-making.\n   * Cultural variations and popularity in different regions.\n   * Overview of candy production techniques in modern factories.\n\n\n## Tags\n\n#dogs\n#machinery\n#gear-math\n#math\n#candy\n\n\n## Backlinks\n\n[dogs]\n[machinery]\n[gear-math]\n[math]\n[candy]\n\n\n        ",
+      "tsne_xyz": {
+        "x": 54.66567611694336,
+        "y": 24.525177001953125,
+        "z": 36.16288375854492
+      },
+      "tags": [
+        "#dogs",
+        "#machinery",
+        "#gear-math",
+        "#math",
+        "#candy"
+      ]
+    },
+    {
+      "id": "thread-1240483807975440485",
+      "name": "Dogs",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "thread",
+      "val": 2,
+      "group": 23,
+      "relative_size": 4,
+      "ai_analysis": "\n# Dogs\n\n\n## Extremely Short Summary\n\n\nDiscussion about dogs and their care\n\n\n## Highlights\n\nDiscussion initiated about dogs\nInquiry about care for dogs\nConversation about dog breeds\nRequest for training information on dogs\nGeneral interest in dogs\n\n\n## Very Short Summary\n\nStudents are asking questions about dogs.\n\n\n## Short Summary\n\nStudents are discussing various aspects of dogs including care, breeds, and training. The conversation centers around seeking general information and specific questions about dogs.\n\n\n## Detailed Summary\n\n* Conversation begins with a greeting and introduction.\n* Human mentions 'dogs', prompting a discussion.\n* AI responds by acknowledging dogs as companions.\n* AI asks if there are specific questions about dogs or general topics like care, breeds, or training.\n* The conversation indicates a general curiosity about dogs and dog-related topics.\n\n\n## Tags\n\n#dogs\n#animal-care\n#pet-training\n#breeds\n\n\n## Backlinks\n\n[dogs]\n[animal-care]\n[pet-training]\n[breeds]\n\n\n        ",
+      "tsne_xyz": {
+        "x": -165.1964874267578,
+        "y": -0.5845038890838623,
+        "z": 65.37069702148438
+      },
+      "tags": [
+        "#dogs",
+        "#animal-care",
+        "#pet-training",
+        "#breeds"
+      ]
+    },
+    {
+      "id": "thread-1312417743114473533",
+      "name": "Machinery And Candy",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "thread",
+      "val": 2,
+      "group": 24,
+      "relative_size": 4,
+      "ai_analysis": "\n# Machinery And Candy\n\n\n## Extremely Short Summary\n\n\nDiscussion on machinery and candy properties.\n\n\n## Highlights\n\nDiscussed basic principles of gear math.\nExplained gear ratio, speed ratio, and torque.\nOutlined different types of candy and their textures.\nExplored candy's historical background and cultural variations.\nMentioned modern candy production techniques.\n\n\n## Very Short Summary\n\nStudents discussed machinery mechanics and candy varieties.\n\n\n## Short Summary\n\nThe conversation shifted from machinery, focusing on gear math, to candy, exploring its types and cultural significance. Key concepts such as gear ratios and candy production processes were covered.\n\n\n## Detailed Summary\n\n* The conversation began with a focus on machinery, particularly gears and their mathematical principles.\n  * **Key Concepts in Gear Math**:\n    * **Gear Ratio**: Ratio of teeth on two meshing gears, determining mechanical advantage.\n    * **Speed Ratio**: Inverse of gear ratio, indicating change in rotational speed.\n    * **Torque**: Measure of rotational force influenced by gear ratio.\n    * **Pitch Circle Diameter (PCD)**: Imaginary circle indicating where gear teeth make contact.\n    * **Module**: Relates to tooth size, ensuring proper mesh between gears.\n* Transitioned to discussing candy, highlighting its various aspects:\n  * **Types of Candy**:\n    * Hard Candy: Solid, long-lasting forms (e.g., lollipops).\n    * Chewy Candy: Includes gummies and taffy.\n    * Chocolate Varieties: Ranging from milk to dark, including filled types.\n    * Candy Bars: Combos of chocolate with other ingredients.\n    * Sour Candy: Tangy flavor profiles.\n  * **Ingredients in Candy**:\n    * Sugar, corn syrup, gelatin, chocolate, etc.\n  * **Cultural variations in candy**: Examples from Japan and Turkey.\n  * **Popular culture and candy**: Candy in movies and holidays.\n  * **Modern candy production techniques**: Use of specialized machinery for efficiency.\n\n\n## Tags\n\n#machinery\n#candy\n#gears\n#food\n#engineering\n\n\n## Backlinks\n\n[machinery]\n[candy]\n[gears]\n[food]\n[engineering]\n\n\n        ",
+      "tsne_xyz": {
+        "x": 54.66567611694336,
+        "y": 24.525177001953125,
+        "z": 36.16288375854492
+      },
+      "tags": [
+        "#machinery",
+        "#candy",
+        "#gears",
+        "#food",
+        "#engineering"
+      ]
+    },
+    {
+      "id": "category-1312417421608615967",
+      "name": "another-category",
+      "childLinks": [
+        "channel-1312417472544247838"
+      ],
+      "collapsed": false,
+      "node_type": "category",
+      "val": 4,
+      "group": 25,
+      "relative_size": 16,
+      "ai_analysis": "\n# Dolphins And Carrots\n\n\n## Extremely Short Summary\n\n\nDiscussion on dolphins and carrots\n\n\n## Highlights\n\nDolphins are intelligent marine mammals\nThey communicate using a complex system of sound\nDolphins live in social groups called pods\nEcholocation helps dolphins navigate their environment\nCarrots are rich in beta-carotene and versatile in meals\n\n\n## Very Short Summary\n\nStudents discuss dolphins' traits and benefits of carrots.\n\n\n## Short Summary\n\nA conversation covers fascinating facts about dolphins, including their intelligence and communication, followed by a shift to discussing various ways to prepare and enjoy carrots. The focus is on their nutritional benefits and culinary versatility.\n\n\n## Detailed Summary\n\n* Dolphins are recognized for their remarkable intelligence and social structures.\n* They have a capable communication system involving clicks and whistles, with unique whistles for individual identification.\n* Living in pods allows dolphins to cooperate for hunting and protection.\n* Echolocation enables them to navigate through murky waters effectively.\n* Dolphins are playful and engage with their environment, showcasing their social nature.\n* Human activities threaten many dolphin species, prompting the need for conservation efforts.\n* Carrots are a nutritious vegetable, high in beta-carotene, beneficial for eyesight and immune health.\n* Carrots can be enjoyed raw, roasted, in soups, juiced, or in desserts like carrot cake, showcasing their culinary versatility.\n* Carrots also come in various colors, each with distinct flavors.\n\n\n## Tags\n\n#marine-mammals\n#dolphins\n#nutrition\n#carrots\n#conservation\n\n\n## Backlinks\n\n[marine-mammals]\n[dolphins]\n[nutrition]\n[carrots]\n[conservation]\n\n\n        ",
+      "tsne_xyz": {
+        "x": -20.056594848632812,
+        "y": -42.14844512939453,
+        "z": -3.2988319396972656
+      },
+      "tags": [
+        "#marine-mammals",
+        "#dolphins",
+        "#nutrition",
+        "#carrots",
+        "#conservation"
+      ]
+    },
+    {
+      "id": "channel-1312417472544247838",
+      "name": "another-channel",
+      "childLinks": [
+        "thread-1312417545722269766"
+      ],
+      "collapsed": false,
+      "node_type": "channel",
+      "val": 3,
+      "group": 26,
+      "relative_size": 9,
+      "ai_analysis": "\n# Dolphins And Carrots\n\n\n## Extremely Short Summary\n\n\nDiscussion about dolphins then carrots\n\n\n## Highlights\n\nDolphins are highly intelligent and social animals.\nThey communicate through clicks, whistles, and body language.\nEcholocation allows dolphins to navigate in murky waters.\nCarrots are rich in beta-carotene and versatile in dishes.\nDiverse cooking methods for carrots include raw, roasted, and juiced.\n\n\n## Very Short Summary\n\nChat covers fascinating facts about dolphins and carrots.\n\n\n## Short Summary\n\nThe conversation starts with dolphins, exploring their intelligence and social structures. It then shifts to carrots, detailing various ways to enjoy them as a nutritious vegetable.\n\n\n## Detailed Summary\n\n* Discussion on dolphins:\n  * Dolphins are known for their intelligence, large brain relative to body size.\n  * They have a complex social structure, living in groups called pods.\n  * Communication is through clicks, whistles, and unique signature whistles.\n  * Echolocation is a key ability for navigation and hunting.\n  * Dolphins display playful behavior, surf on waves, and interact with humans.\n  * Many dolphin species face threats from human activities, necessitating conservation efforts.\n  * Over 40 species exist, with cultural significance in history.\n* Transition to carrots:\n  * Carrots are nutritious, rich in beta-carotene for healthy vision and immunity.\n  * Various ways to consume carrots include raw sticks, roasted, in soups, and juiced.\n  * Carrots come in multiple colors and flavors, adding diversity to meals.\n\n\n## Tags\n\n#dolphins\n#nutrition\n#carrots\n#marine-life\n#vegetables\n\n\n## Backlinks\n\n[dolphins]\n[nutrition]\n[carrots]\n[marine-life]\n[vegetables]\n\n\n        ",
+      "tsne_xyz": {
+        "x": -20.056594848632812,
+        "y": -42.14844512939453,
+        "z": -3.2988319396972656
+      },
+      "tags": [
+        "#dolphins",
+        "#nutrition",
+        "#carrots",
+        "#marine-life",
+        "#vegetables"
+      ]
+    },
+    {
+      "id": "thread-1312417545722269766",
+      "name": "Dolphins And Carrots Discussion",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "thread",
+      "val": 2,
+      "group": 27,
+      "relative_size": 4,
+      "ai_analysis": "\n# Dolphins And Carrots Discussion\n\n\n## Extremely Short Summary\n\n\nDiscussion about dolphins and carrots\n\n\n## Highlights\n\nDolphins are highly intelligent marine mammals.\nThey communicate using clicks and whistles.\nDolphins exhibit complex social structures in pods.\nCarrots are rich in beta-carotene and nutritious.\nCarrots can be enjoyed raw, roasted, or as juice.\n\n\n## Very Short Summary\n\nStudents discuss dolphins' traits and ways to enjoy carrots.\n\n\n## Short Summary\n\nThe conversation explores fascinating facts about dolphins, including their intelligence, social structure, and playful behavior. It then shifts to the nutritional benefits and culinary uses of carrots, showcasing their versatility.\n\n\n## Detailed Summary\n\n* Dolphins are considered one of the most intelligent animals on Earth with large brains relative to body size.\n* They live in social groups called pods, which provide hunting and protection benefits.\n* Communication among dolphins includes a complex array of sounds and unique whistles.\n* Echolocation allows dolphins to navigate and hunt by interpreting sound wave echoes.\n* Dolphins are known for their playful nature, often engaging with their environment and other marine life.\n* Conservation is important as many dolphin species are threatened due to human impact.\n* There are over 40 dolphin species with varying characteristics and habitats.\n* Dolphins hold cultural significance in human history, often symbolizing joy and harmony with nature.\n* Carrots are a nutritious root vegetable, high in beta-carotene, important for vision and immune function.\n* They can be eaten raw, roasted, juiced, or used in baking (like carrot cake).\n\n\n## Tags\n\n#dolphins\n#carrots\n#marine-life\n#nutrition\n\n\n## Backlinks\n\n[dolphins]\n[carrots]\n[marine-life]\n[nutrition]\n\n\n        ",
+      "tsne_xyz": {
+        "x": -20.056594848632812,
+        "y": -42.14844512939453,
+        "z": -3.2988319396972656
+      },
+      "tags": [
+        "#dolphins",
+        "#carrots",
+        "#marine-life",
+        "#nutrition"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "source": "server-1240410783863672873",
+      "target": "category-1240410783863672874",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "tag-dogs",
+      "directional": false,
+      "link_type": "tag",
+      "group": 21,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "tag-machinery",
+      "directional": false,
+      "link_type": "tag",
+      "group": 21,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "tag-gear-math",
+      "directional": false,
+      "link_type": "tag",
+      "group": 21,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "tag-candy",
+      "directional": false,
+      "link_type": "tag",
+      "group": 21,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "tag-candy-production",
+      "directional": false,
+      "link_type": "tag",
+      "group": 21,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "channel-1240410783863672876",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "tag-dogs",
+      "directional": false,
+      "link_type": "tag",
+      "group": 22,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "tag-machinery",
+      "directional": false,
+      "link_type": "tag",
+      "group": 22,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "tag-gear-math",
+      "directional": false,
+      "link_type": "tag",
+      "group": 22,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "tag-math",
+      "directional": false,
+      "link_type": "tag",
+      "group": 22,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "tag-candy",
+      "directional": false,
+      "link_type": "tag",
+      "group": 22,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "thread-1240483807975440485",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1240483807975440485",
+      "target": "tag-dogs",
+      "directional": false,
+      "link_type": "tag",
+      "group": 23,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1240483807975440485",
+      "target": "tag-animal-care",
+      "directional": false,
+      "link_type": "tag",
+      "group": 23,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1240483807975440485",
+      "target": "tag-pet-training",
+      "directional": false,
+      "link_type": "tag",
+      "group": 23,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1240483807975440485",
+      "target": "tag-breeds",
+      "directional": false,
+      "link_type": "tag",
+      "group": 23,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "thread-1312417743114473533",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417743114473533",
+      "target": "tag-machinery",
+      "directional": false,
+      "link_type": "tag",
+      "group": 24,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417743114473533",
+      "target": "tag-candy",
+      "directional": false,
+      "link_type": "tag",
+      "group": 24,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417743114473533",
+      "target": "tag-gears",
+      "directional": false,
+      "link_type": "tag",
+      "group": 24,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417743114473533",
+      "target": "tag-food",
+      "directional": false,
+      "link_type": "tag",
+      "group": 24,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417743114473533",
+      "target": "tag-engineering",
+      "directional": false,
+      "link_type": "tag",
+      "group": 24,
+      "relative_length": 1.0
+    },
+    {
+      "source": "server-1240410783863672873",
+      "target": "category-1312417421608615967",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "tag-marine-mammals",
+      "directional": false,
+      "link_type": "tag",
+      "group": 25,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "tag-dolphins",
+      "directional": false,
+      "link_type": "tag",
+      "group": 25,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "tag-nutrition",
+      "directional": false,
+      "link_type": "tag",
+      "group": 25,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "tag-carrots",
+      "directional": false,
+      "link_type": "tag",
+      "group": 25,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "tag-conservation",
+      "directional": false,
+      "link_type": "tag",
+      "group": 25,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "channel-1312417472544247838",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "tag-dolphins",
+      "directional": false,
+      "link_type": "tag",
+      "group": 26,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "tag-nutrition",
+      "directional": false,
+      "link_type": "tag",
+      "group": 26,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "tag-carrots",
+      "directional": false,
+      "link_type": "tag",
+      "group": 26,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "tag-marine-life",
+      "directional": false,
+      "link_type": "tag",
+      "group": 26,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "tag-vegetables",
+      "directional": false,
+      "link_type": "tag",
+      "group": 26,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "thread-1312417545722269766",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417545722269766",
+      "target": "tag-dolphins",
+      "directional": false,
+      "link_type": "tag",
+      "group": 27,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417545722269766",
+      "target": "tag-carrots",
+      "directional": false,
+      "link_type": "tag",
+      "group": 27,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417545722269766",
+      "target": "tag-marine-life",
+      "directional": false,
+      "link_type": "tag",
+      "group": 27,
+      "relative_length": 1.0
+    },
+    {
+      "source": "thread-1312417545722269766",
+      "target": "tag-nutrition",
+      "directional": false,
+      "link_type": "tag",
+      "group": 27,
+      "relative_length": 1.0
+    }
+  ]
+}

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict
 
 from src.models.data_models.server_data.server_data_model import ServerData
-from src.scrape_server.save_to_markdown_directory import save_as_markdown_directory
+from src.scrape_server.save_to_markdown_directory import save_server_data_as_markdown_directory
 from src.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def save_server_data_to_disk(output_directory: str, server_data: ServerData) ->D
         raise ValueError(f"Error saving server data as pickle: {e}")
 
     try:
-        markdown_save_path = save_as_markdown_directory(server_data=server_data, output_directory=output_directory)
+        markdown_save_path = save_server_data_as_markdown_directory(server_data=server_data, output_directory=output_directory)
         logger.info(f"Saved server data to disk: {markdown_save_path}")
     except Exception as e:
         raise ValueError(f"Error saving server data as markdown: {e}")
