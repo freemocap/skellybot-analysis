@@ -28,7 +28,7 @@ async def process_server_data():
     #     await save_out_graph_data(server_data=server_data)
     #     save_server_data_to_json(server_data=server_data, output_json_path=server_data_json_path)
 
-    tag_data = await run_second_round_ai_analysis_openai(server_data)
+    tag_data = await run_second_round_ai_analysis_openai(server_data, user_data)
 
     await save_ai_analyzed_jsons(output_directory, server_data, server_data_json_path, tag_data,
                                                     user_data)

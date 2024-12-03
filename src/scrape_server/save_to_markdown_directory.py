@@ -26,7 +26,10 @@ def save_tag_as_markdown(tag_model, topics_directory):
         f.write(f"{tag_model.ai_analysis.as_text()}\n\n")
         f.write(f"## Threads with this tag\n\n")
         for thread in tag_model.tagged_threads:
-            f.write(f"- [[{thread}]]\n")
+            f.write(f"- [[by_server/{thread}]]\n")
+        f.write("\n## Users with this tag\n\n")
+        for user in tag_model.tagged_users:
+            f.write(f"- [[ by_user/{user}]]\n")
 
 
 def save_user_as_markdown(user_key, user_data, users_directory):

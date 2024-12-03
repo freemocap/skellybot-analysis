@@ -1,0 +1,178 @@
+{
+  "nodes": [
+    {
+      "id": "server-1240410783863672873",
+      "name": "skb-test",
+      "childLinks": [
+        "category-1240410783863672874",
+        "category-1312417421608615967"
+      ],
+      "collapsed": false,
+      "node_type": "server",
+      "val": 5,
+      "group": 0,
+      "relative_size": 25,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "category-1240410783863672874",
+      "name": "Text Channels",
+      "childLinks": [
+        "channel-1240410783863672876"
+      ],
+      "collapsed": false,
+      "node_type": "category",
+      "val": 4,
+      "group": 1,
+      "relative_size": 16,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "channel-1240410783863672876",
+      "name": "general",
+      "childLinks": [
+        "thread-1240483807975440485",
+        "thread-1312417743114473533"
+      ],
+      "collapsed": false,
+      "node_type": "channel",
+      "val": 3,
+      "group": 2,
+      "relative_size": 9,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "thread-1240483807975440485",
+      "name": ".",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "thread",
+      "val": 2,
+      "group": 3,
+      "relative_size": 4,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "thread-1312417743114473533",
+      "name": "machinery",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "thread",
+      "val": 2,
+      "group": 4,
+      "relative_size": 4,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "category-1312417421608615967",
+      "name": "another-category",
+      "childLinks": [
+        "channel-1312417472544247838"
+      ],
+      "collapsed": false,
+      "node_type": "category",
+      "val": 4,
+      "group": 5,
+      "relative_size": 16,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "channel-1312417472544247838",
+      "name": "another-channel",
+      "childLinks": [
+        "thread-1312417545722269766"
+      ],
+      "collapsed": false,
+      "node_type": "channel",
+      "val": 3,
+      "group": 6,
+      "relative_size": 9,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    },
+    {
+      "id": "thread-1312417545722269766",
+      "name": "dolphins all day",
+      "childLinks": [],
+      "collapsed": false,
+      "node_type": "thread",
+      "val": 2,
+      "group": 7,
+      "relative_size": 4,
+      "ai_analysis": null,
+      "tsne_xyz": null,
+      "tags": []
+    }
+  ],
+  "links": [
+    {
+      "source": "server-1240410783863672873",
+      "target": "category-1240410783863672874",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1240410783863672874",
+      "target": "channel-1240410783863672876",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "thread-1240483807975440485",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1240410783863672876",
+      "target": "thread-1312417743114473533",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "server-1240410783863672873",
+      "target": "category-1312417421608615967",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "category-1312417421608615967",
+      "target": "channel-1312417472544247838",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    },
+    {
+      "source": "channel-1312417472544247838",
+      "target": "thread-1312417545722269766",
+      "directional": true,
+      "link_type": "parent",
+      "group": 0,
+      "relative_length": 1.0
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import logging
 from src.ai.openai_constants import OPENAI_CLIENT
 from src.models.data_models.server_data.server_data_model import ServerData
 from src.models.data_models.tag_models import TagManager
+from src.models.data_models.user_data_model import UserDataManager
 from src.models.prompt_models.topic_article_writer_prompt_model import WikipediaStyleArticleWriterModel, \
     WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT
 
@@ -12,16 +13,18 @@ logger = logging.getLogger(__name__)
 
 MIN_TAG_RANK = 3 # Minimum number of threads a tag must be present in to be considered for analysis
 
-async def run_second_round_ai_analysis_openai(server_data: ServerData) -> TagManager:
+async def run_second_round_ai_analysis_openai(server_data: ServerData, user_data:UserDataManager) -> TagManager:
     system_prompt_og = server_data.server_system_prompt
     system_prompt = system_prompt_og.split("CLASS BOT SERVER INSTRUCTIONS")[0]
 
     system_prompt += f"\n\n{WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT}"
 
     all_threads = server_data.get_chat_threads()
+    all_users = user_data.users.values()
     tasks = []
     analyzed_tags = []
     threads_by_tag = {}
+    users_by_tag = {}
     tag_manager = server_data.extract_tag_data()
     for tag in tag_manager.tags:
         if tag.link_count < MIN_TAG_RANK:
@@ -32,7 +35,12 @@ async def run_second_round_ai_analysis_openai(server_data: ServerData) -> TagMan
         for thread in all_threads:
             if tag.name in thread.ai_analysis.tags_list:
                 threads_with_tag.append(thread)
+        users_with_tag = []
+        for user in all_users:
+            if tag.name in user.ai_analysis.tags_list:
+                users_with_tag.append(user)
         threads_by_tag[tag.name] = threads_with_tag
+        users_by_tag[tag.name] = users_with_tag
         all_tagged_threads_str = "\n_____________________\n".join([thread.ai_analysis.to_string() for thread in threads_with_tag])
         task_description = WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT
         user_input_prompt = (
@@ -64,7 +72,9 @@ async def run_second_round_ai_analysis_openai(server_data: ServerData) -> TagMan
     for tag, output in zip(analyzed_tags, outputs):
         tag.ai_analysis = WikipediaStyleArticleWriterModel(**json.loads(output.choices[0].message.content))
         for thread in threads_by_tag[tag.name]:
-            tag.tagged_threads.append(thread.file_name())
+            tag.tagged_threads.append(thread.as_path(title=thread.ai_analysis.title))
+        for user in users_by_tag[tag.name]:
+            tag.tagged_users.append(f"userid_{user.id}")
         print(tag.ai_analysis.as_text())
     return tag_manager
 

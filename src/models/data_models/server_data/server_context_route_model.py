@@ -18,3 +18,15 @@ class ServerContextRoute(BaseModel):
     thread_name: str | None = None
 
     message_id: int | None = None
+
+
+    def as_path(self, title:str):
+
+        path = f"{self.server_name}"
+        if self.category_name:
+            path += f"/{self.category_name}"
+        if self.channel_name:
+            path += f"/{self.channel_name}"
+        if self.thread_name:
+            path += f"/{title}-{self.thread_id}"
+        return path

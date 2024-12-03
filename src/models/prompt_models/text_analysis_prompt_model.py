@@ -48,8 +48,7 @@ class TextAnalysisPromptModel(BaseModel):
     def backlinks(self):
         bl = []
         for thing in self.tags_list:
-            thing = thing.replace("#", "").strip().replace(" ", "-")
-            thing = f"[{thing}]"
+            thing = f"[[{thing}]]"
             bl.append(thing)
         return "\n".join(bl)
 

@@ -103,6 +103,9 @@ class ChatThread(DataObjectModel):
     type: ServerDataObjectTypes = ServerDataObjectTypes.THREAD
     messages: List[DiscordContentMessage] = Field(default_factory=list)
 
+    def as_path(self, title: str) -> str:
+        return self.context_route.as_path(title)
+
     def as_text(self) -> str:
         return f"Thread: {self.name}\n" + "\n".join([message.as_text() for message in self.messages])
 

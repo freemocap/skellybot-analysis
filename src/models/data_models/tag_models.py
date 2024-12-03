@@ -15,6 +15,7 @@ class TagModel(BaseModel):
     tsne_xyz: XYZData | None = None
     link_count: int = 0
     tagged_threads: List[str] = []
+    tagged_users: List[str] = []
 
     @classmethod
     def from_tag(cls, tag_name: str):
