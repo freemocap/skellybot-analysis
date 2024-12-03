@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class ServerDataStats(BaseModel):
+class TextDataStats(BaseModel):
     id: int
     name: str
     type: str

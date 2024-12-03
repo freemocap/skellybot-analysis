@@ -2,12 +2,17 @@ import logging
 from pathlib import Path
 
 from src.configure_logging import configure_logging
+from src.models.data_models.server_data.server_data_sub_object_models import ChatThread
+from src.models.data_models.tag_models import TagManager
+from src.models.data_models.user_data_model import UserDataManager
+
 configure_logging()
 from src.models.data_models.server_data.server_data_model import ServerData, EXCLUDED_USER_IDS
 from src.utilities.get_most_recent_server_data import get_server_data
 from src.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)
+
 
 def save_tag_as_markdown(tag_model, topics_directory):
     if tag_model.ai_analysis is None:
@@ -23,6 +28,7 @@ def save_tag_as_markdown(tag_model, topics_directory):
         for thread in tag_model.tagged_threads:
             f.write(f"- [[{thread}]]\n")
 
+
 def save_user_as_markdown(user_key, user_data, users_directory):
     if user_data.id in EXCLUDED_USER_IDS:
         logger.info(f"Skipping excluded user {user_data.name}")
@@ -32,17 +38,18 @@ def save_user_as_markdown(user_key, user_data, users_directory):
     user_file_path = users_directory / user_filename
     with open(str(user_file_path), 'w', encoding='utf-8') as f:
         f.write(f"# Summary for User: {user_data.name}\n\n")
-        f.write(user_data.as_full_text())
+        f.write(user_data.as_text())
 
-def save_thread(thread_data, channel_directory):
-    thread_file_name = f"{thread_data.ai_analysis.title}-{thread_data.id}.md"
-    thread_file_path = channel_directory / thread_file_name
+
+def save_thread_as_markdown(thread_data:ChatThread, channel_directory):
+
+    thread_file_path = channel_directory / thread_data.file_name()
     logger.info(f"Saving thread {thread_data.name}")
     with open(thread_file_path, 'w', encoding='utf-8') as f:
-        clean_thread_name = thread_data.name.replace('name:', '').split(',id:')[0]
         f.write(thread_data.as_full_text())
 
-def save_channel(channel_data, category_directory):
+
+def save_channel_as_markdown(channel_data, category_directory):
     logger.info(f"Saving channel {channel_data.name}")
     clean_channel_name = sanitize_name(channel_data.name)
     channel_directory = category_directory / clean_channel_name
@@ -55,7 +62,8 @@ def save_channel(channel_data, category_directory):
         logger.debug(f"Summary for channel {channel_data.name}:\n {channel_data.ai_analysis.to_string()}"
                      f"\n\n--------------------------------------------------------------------------------\n\n")
     for thread_key, thread_data in channel_data.chat_threads.items():
-        save_thread(thread_data, channel_directory)
+        save_thread_as_markdown(thread_data, channel_directory)
+
 
 def save_category_as_markdown(category_data, by_server_directory):
     logger.info(f"Saving category {category_data.name}")
@@ -70,35 +78,39 @@ def save_category_as_markdown(category_data, by_server_directory):
         logger.debug(f"Summary for category {category_data.name}:\n {category_data.ai_analysis.to_string()}"
                      f"\n\n--------------------------------------------------------------------------------\n\n")
     for channel_key, channel_data in category_data.channels.items():
-        save_channel(channel_data, category_directory)
+        save_channel_as_markdown(channel_data, category_directory)
 
-def save_server_data_as_markdown_directory(server_data: ServerData, output_directory: str) -> str:
+
+def save_server_data_as_markdown_directory(server_data: ServerData,
+                                           user_data: UserDataManager,
+                                           tag_data: TagManager,
+                                           output_directory: str):
     directory_path = Path(output_directory)
     save_path = directory_path / "markdown"
     save_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving server data as markdown to {save_path}")
-    server_directory = save_path / sanitize_name(server_data.name)
-    server_directory.mkdir(exist_ok=True, parents=True)
+
 
     # by topic
-    topics_directory = server_directory / "by_topic"
+    topics_directory = save_path / "by_topic"
     topics_directory.mkdir(exist_ok=True, parents=True)
-    for tag_model in server_data.get_tags():
-        save_tag_as_markdown(tag_model, topics_directory)
+    for tag_model in tag_data.tags:
+        if tag_model.ai_analysis:
+            save_tag_as_markdown(tag_model, topics_directory)
 
     # by user
-    users_directory = server_directory / "by_user"
+    users_directory = save_path / "by_user"
     users_directory.mkdir(exist_ok=True, parents=True)
-    for user_key, user_data in server_data.users.items():
+    for user_key, user_data in user_data.users.items():
         save_user_as_markdown(user_key, user_data, users_directory)
 
     # by category/channel/thread
-    by_server_directory = server_directory / "by_server"
+    by_server_directory = save_path / "by_server"
     for category_key, category_data in server_data.categories.items():
         save_category_as_markdown(category_data, by_server_directory)
 
-    logger.info(f"Saved server data as markdown to {server_directory}!")
-    return str(server_directory)
+    logger.info(f"Saved server data as markdown to {save_path}!")
+
 
 if __name__ == "__main__":
     logger.info("Saving server data as markdown directory")
