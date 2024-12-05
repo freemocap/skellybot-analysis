@@ -23,7 +23,8 @@ def save_tag_as_markdown(tag_model, topics_directory):
     tag_file_path = topics_directory / tag_filename
     with open(str(tag_file_path), 'w', encoding='utf-8') as f:
         f.write(f"# {tag_model.name}\n\n")
-        f.write(f"{tag_model.ai_analysis.as_text()}\n\n")
+        f.write(f"> Tag Link Count: {tag_model.link_count}\n\n")
+        f.write(f"{tag_model.ai_analysis.to_string()}\n\n")
         f.write(f"## Threads with this tag\n\n")
         for thread in tag_model.tagged_threads:
             f.write(f"- [[by_server/{thread}]]\n")
@@ -41,7 +42,7 @@ def save_user_as_markdown(user_key, user_data, users_directory):
     user_file_path = users_directory / user_filename
     with open(str(user_file_path), 'w', encoding='utf-8') as f:
         f.write(f"# Summary for User: {user_data.name}\n\n")
-        f.write(user_data.as_text())
+        f.write(user_data.to_string())
 
 
 def save_thread_as_markdown(thread_data:ChatThread, channel_directory):

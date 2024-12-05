@@ -1,0 +1,39 @@
+import logging
+
+import discord
+from discord.ext import commands
+
+from src.scrape_server.run_server_scraper import run_server_scraper
+from src.configure_logging import configure_logging
+from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_DEV_BOT_TOKEN, OUTPUT_DIRECTORY, \
+    TARGET_SERVER_ID
+
+configure_logging()
+logger = logging.getLogger(__name__)
+
+# Initialize the Discord client
+DISCORD_CLIENT = commands.Bot(command_prefix='!', intents=discord.Intents.all())
+
+
+@DISCORD_CLIENT.event
+async def on_ready():
+    logger.info(f'Logged in as {DISCORD_CLIENT.user.name} (ID: {DISCORD_CLIENT.user.id})')
+    if not int(DISCORD_DEV_BOT_ID) == DISCORD_CLIENT.user.id:
+        raise ValueError("Discord bot ID does not match expected ID")
+    await run_server_scraper(discord_client=DISCORD_CLIENT,
+                             target_server_id=TARGET_SERVER_ID,
+                             output_directory=OUTPUT_DIRECTORY)
+    logger.info('------Done!------')
+    await DISCORD_CLIENT.close()
+
+
+DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
+
+print("Server Scraper Done!")
+if __name__ == "__main__":
+    import asyncio
+    from src.ai.analyze_server_data import process_server_data
+
+    asyncio.run(process_server_data())
+    print("Server Data Analysis Done!")
+

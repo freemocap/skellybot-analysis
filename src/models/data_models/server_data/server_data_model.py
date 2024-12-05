@@ -17,8 +17,9 @@ from src.models.data_models.server_data.server_data_object_types_enum import Ser
 from src.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
     ChannelData, CategoryData
 from src.models.data_models.tag_models import TagModel, TagManager
-from src.models.data_models.text_data_stats import TextDataStats
-from src.models.data_models.user_data_model import UserData, UserDataManager
+from src.models.data_models.server_data_stats import ServerDataStats
+from src.models.data_models.taggable_data_object_model import TaggableDataObjectModel
+from src.models.data_models.user_data_model import UserData, UserDataManager, ServerUserStats
 from src.models.data_models.xyz_data_model import XYZData
 from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
@@ -33,7 +34,7 @@ TSNE_DIMENSIONS = 3
 TSNE_PERPLEXITY = 25
 
 
-class ServerData(DataObjectModel):
+class ServerData(TaggableDataObjectModel):
     type: ServerDataObjectTypes = ServerDataObjectTypes.SERVER
     bot_prompt_messages: List[DiscordContentMessage] = Field(default_factory=list)
 
@@ -50,31 +51,33 @@ class ServerData(DataObjectModel):
         return max(message_timestamps).isoformat()
 
     @property
-    def stats(self) -> TextDataStats:
-        return TextDataStats(id=self.id,
-                             name=self.name,
-                             type=self.type,
-                             categories=len(self.categories),
-                             channels=sum([len(category.channels) for category in self.categories.values()]),
-                             threads=sum(
+    def stats(self) -> ServerDataStats:
+        return ServerDataStats(id=self.id,
+                               name=self.name,
+                               type=self.type,
+                               categories=len(self.categories),
+                               channels=sum([len(category.channels) for category in self.categories.values()]),
+                               threads=sum(
                                  [len(channel.chat_threads) for category in self.categories.values() for channel in
                                   category.channels.values()]),
-                             messages=sum(
+                               messages=sum(
                                  [len(thread.messages) for category in self.categories.values() for channel in
                                   category.channels.values() for thread in channel.chat_threads.values()]),
-                             total_words=sum(
+                               total_words=sum(
                                  [len(message.content.split()) for category in self.categories.values() for channel in
                                   category.channels.values() for thread in channel.chat_threads.values() for message
                                   in thread.messages]),
-                             human_words=sum(
+                               human_words=sum(
                                  [len(message.content.split()) for category in self.categories.values() for channel in
                                   category.channels.values() for thread in channel.chat_threads.values() for message
                                   in thread.messages if message.is_bot == False]),
-                             bot_words=sum(
+                               bot_words=sum(
                                  [len(message.content.split()) for category in self.categories.values() for channel in
                                   category.channels.values() for thread in channel.chat_threads.values() for message
-                                  in thread.messages if message.is_bot == True])
-                             )
+                                  in thread.messages if message.is_bot == True]),
+                               users = self.extract_user_data().stats,
+                               # tags = self.extract_tag_data().stats,
+                               )
 
     def as_text(self) -> str:
         return f"Server: {self.name}\n" + "\n".join([category.as_text() for category in self.categories.values()])
@@ -153,7 +156,7 @@ class ServerData(DataObjectModel):
         tag_manager = TagManager()
         for thing in self.get_all_sub_objects(include_messages=False):
             for tag in thing.ai_analysis.tags_list:
-                tag_manager.add_tag(tag)
+                tag_manager.extract_tags(tag)
         return tag_manager
 
     def calculate_graph_data(self):

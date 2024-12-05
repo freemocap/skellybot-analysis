@@ -5,12 +5,12 @@ import aiohttp
 import discord
 from pydantic import Field, computed_field
 
-from src.models.data_models.data_object_model import DataObjectModel
 from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
 from src.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
+from src.models.data_models.taggable_data_object_model import TaggableDataObjectModel
 
 
-class DiscordContentMessage(DataObjectModel):
+class DiscordContentMessage(TaggableDataObjectModel):
     type: ServerDataObjectTypes = ServerDataObjectTypes.MESSAGE
     author_id: int
     is_bot: bool
@@ -96,7 +96,7 @@ class DiscordContentMessage(DataObjectModel):
     def __str__(self):
         return self.as_full_text()
 
-class ChatThread(DataObjectModel):
+class ChatThread(TaggableDataObjectModel):
     """
     A conversation between a human and an AI. In Discord, this is a `Thread`
     """
@@ -128,7 +128,7 @@ class ChatThread(DataObjectModel):
         return self.model_dump(exclude={'messages'})
 
 
-class ChannelData(DataObjectModel):
+class ChannelData(TaggableDataObjectModel):
     type: ServerDataObjectTypes = ServerDataObjectTypes.CHANNEL
     channel_description_prompt: Optional[str] = ''
     pinned_messages: List[DiscordContentMessage] = Field(default_factory=list)
@@ -146,7 +146,7 @@ class ChannelData(DataObjectModel):
         return self.model_dump(exclude={'chat_threads'})
 
 
-class CategoryData(DataObjectModel):
+class CategoryData(TaggableDataObjectModel):
     """
     A Category (group of Text Channels
     """
@@ -163,3 +163,5 @@ class CategoryData(DataObjectModel):
 
     def model_dump_no_children(self) -> Dict[str, Any]:
         return self.model_dump(exclude={'channels'})
+
+
