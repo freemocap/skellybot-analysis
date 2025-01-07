@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from src.models.data_models.tag_models import ServerTagStats
-from src.models.data_models.user_data_model import ServerUserStats
+from skellybot_analysis.models.data_models.tag_models import ServerTagStats
+from skellybot_analysis.models.data_models.user_data_model import ServerUserStats
 
 
 class ServerDataStats(BaseModel):

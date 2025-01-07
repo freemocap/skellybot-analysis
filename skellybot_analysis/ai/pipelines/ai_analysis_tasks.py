@@ -1,13 +1,13 @@
 import asyncio
 
-from src.ai.pipelines.add_ai_analysis import add_ai_analysis
-from src.models.data_models.server_data.server_data_model import ServerData
-from src.models.data_models.tag_models import TagManager
-from src.models.data_models.user_data_model import UserDataManager
-from src.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
-from src.models.prompt_models.topic_article_writer_prompt_model import WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT, \
+from skellybot_analysis.ai.pipelines.add_ai_analysis import add_ai_analysis
+from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.tag_models import TagManager
+from skellybot_analysis.models.data_models.user_data_model import UserDataManager
+from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
+from skellybot_analysis.models.prompt_models.topic_article_writer_prompt_model import WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT, \
     WikipediaStyleArticleWriterModel
-from src.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
+from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
 
 import logging
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ async def ai_analyze_user_data(user_data: UserDataManager,
 
 async def ai_analyze_topic_tags(tag_manager: TagManager,
                                 system_prompt_og: str,
-                                min_tag_rank: int = 5
+                                min_tag_rank: int = 1
                                 ) -> TagManager:
     system_prompt = system_prompt_og + f"\n\n{WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT}"
     tasks = []

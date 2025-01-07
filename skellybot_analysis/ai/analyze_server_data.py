@@ -3,13 +3,13 @@ import json
 import logging
 from pathlib import Path
 
-from src.ai.pipelines.run_ai_analysis import run_ai_analysis
-from src.models.data_models.server_data.server_data_model import ServerData
-from src.models.data_models.tag_models import TagManager
-from src.models.data_models.user_data_model import UserDataManager
-from src.scrape_server.save_to_markdown_directory import save_server_data_as_markdown_directory
-from src.utilities.get_most_recent_server_data import get_server_data
-from src.utilities.json_datatime_encoder import JSONDateTimeEncoder
+from skellybot_analysis.ai.pipelines.run_ai_analysis import run_ai_analysis
+from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.tag_models import TagManager
+from skellybot_analysis.models.data_models.user_data_model import UserDataManager
+from skellybot_analysis.scrape_server.save_to_markdown_directory import save_server_data_as_markdown_directory
+from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
+from skellybot_analysis.utilities.json_datatime_encoder import JSONDateTimeEncoder
 
 logging.getLogger("httpcore").setLevel(logging.INFO)
 logging.getLogger("openai").setLevel(logging.WARNING)

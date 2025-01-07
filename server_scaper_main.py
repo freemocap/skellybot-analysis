@@ -3,9 +3,9 @@ import logging
 import discord
 from discord.ext import commands
 
-from src.scrape_server.run_server_scraper import run_server_scraper
-from src.configure_logging import configure_logging
-from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_DEV_BOT_TOKEN, OUTPUT_DIRECTORY, \
+from skellybot_analysis.scrape_server.run_server_scraper import run_server_scraper
+from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
+from skellybot_analysis.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_DEV_BOT_TOKEN, OUTPUT_DIRECTORY, \
     TARGET_SERVER_ID
 
 configure_logging()
@@ -32,7 +32,7 @@ DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
 print("Server Scraper Done!")
 if __name__ == "__main__":
     import asyncio
-    from src.ai.analyze_server_data import process_server_data
+    from skellybot_analysis.ai.analyze_server_data import process_server_data
 
     asyncio.run(process_server_data())
     print("Server Data Analysis Done!")

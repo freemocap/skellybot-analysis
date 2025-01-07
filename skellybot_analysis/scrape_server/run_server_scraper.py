@@ -4,10 +4,10 @@ from pathlib import Path
 
 import discord
 
-from src.models.data_models.server_data.server_data_model import ServerData
-from src.scrape_server.scrape_server import scrape_server
-from src.utilities.get_most_recent_server_data import persist_most_recent_scrape_location
-from src.utilities.sanitize_filename import sanitize_name
+from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.scrape_server.scrape_server import scrape_server
+from skellybot_analysis.utilities.get_most_recent_server_data import persist_most_recent_scrape_location
+from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)
 

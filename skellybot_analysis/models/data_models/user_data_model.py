@@ -2,10 +2,10 @@ from typing import List, Optional, Dict, Any
 
 from pydantic import Field, BaseModel, computed_field
 
-from src.models.data_models.data_object_model import DataObjectModel
-from src.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
-from src.models.data_models.tag_models import TagModel
-from src.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
+from skellybot_analysis.models.data_models.data_object_model import DataObjectModel
+from skellybot_analysis.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
+from skellybot_analysis.models.data_models.tag_models import TagModel
+from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
 
 
 class DescriptiveStatistics(BaseModel):

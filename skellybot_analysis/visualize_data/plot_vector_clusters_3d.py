@@ -13,9 +13,9 @@ from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
 from sklearn.manifold import TSNE
 
-from src.configure_logging import configure_logging
-from src.models.data_models.server_data.server_data_model import ServerData
-from src.utilities.get_most_recent_server_data import get_server_data
+from skellybot_analysis.configure_logging import configure_logging
+from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 
 configure_logging()
 logger = logging.getLogger(__name__)

@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from src.utilities.sanitize_filename import sanitize_name
+from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
 class TextAnalysisPromptModel(BaseModel):

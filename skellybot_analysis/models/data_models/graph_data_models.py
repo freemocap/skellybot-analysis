@@ -4,7 +4,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from src.models.data_models.xyz_data_model import XYZData
+from skellybot_analysis.models.data_models.xyz_data_model import XYZData
 
 
 class NodeTypes(Enum):

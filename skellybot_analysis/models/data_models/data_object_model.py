@@ -3,10 +3,10 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from src.models.data_models.embedding_vector import EmbeddingVector
-from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
-from src.models.data_models.xyz_data_model import XYZData
-from src.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
+from skellybot_analysis.models.data_models.embedding_vector import EmbeddingVector
+from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
+from skellybot_analysis.models.data_models.xyz_data_model import XYZData
+from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 
 
 class DataObjectModel(BaseModel, ABC):
@@ -20,7 +20,7 @@ class DataObjectModel(BaseModel, ABC):
 
     @property
     def tags(self):
-        from src.models.data_models.tag_models import TagModel
+        from skellybot_analysis.models.data_models.tag_models import TagModel
         if self.ai_analysis is None:
             raise ValueError("Cannot get tags from a DataObjectModel until after the AI analysis has been run")
         return [TagModel.from_tag(tag_name=tag_name, context_route=self.context_route ) for tag_name in  self.ai_analysis.tags_list]

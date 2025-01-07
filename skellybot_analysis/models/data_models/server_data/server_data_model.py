@@ -5,16 +5,16 @@ from typing import Dict, List
 
 from pydantic import Field
 
-from src.models.data_models.data_object_model import DataObjectModel
-from src.models.data_models.graph_data_models import GraphData, ServerNode, \
+from skellybot_analysis.models.data_models.data_object_model import DataObjectModel
+from skellybot_analysis.models.data_models.graph_data_models import GraphData, ServerNode, \
     CategoryNode, ParentLink, ChannelNode, ThreadNode
-from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
-from src.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
-from src.models.data_models.server_data.server_data_stats import ServerDataStats
-from src.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
+from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
+from skellybot_analysis.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
+from skellybot_analysis.models.data_models.server_data.server_data_stats import ServerDataStats
+from skellybot_analysis.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
     ChannelData, CategoryData
-from src.models.data_models.user_data_model import UserData, UserDataManager
-from src.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
+from skellybot_analysis.models.data_models.user_data_model import UserData, UserDataManager
+from skellybot_analysis.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
 EmbeddingVectors = Dict[str, List[float]]
 
@@ -249,7 +249,7 @@ class ServerData(DataObjectModel):
 
 
 if __name__ == '__main__':
-    from src.utilities.get_most_recent_server_data import get_server_data
+    from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 
     server_data, _ = get_server_data()
     asyncio.run(server_data.calculate_graph_data())

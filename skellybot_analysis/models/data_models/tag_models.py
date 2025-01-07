@@ -2,12 +2,12 @@ from typing import List, TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from src.models.data_models.data_object_model import DataObjectModel
-from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
+from skellybot_analysis.models.data_models.data_object_model import DataObjectModel
+from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
 
 if TYPE_CHECKING:
-    from src.models.data_models.server_data.server_data_model import ServerData
-    from src.models.data_models.user_data_model import UserDataManager
+    from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+    from skellybot_analysis.models.data_models.user_data_model import UserDataManager
 
 class TagModel(DataObjectModel):
     tagged_threads: List[DataObjectModel] = Field(default_factory=list)
