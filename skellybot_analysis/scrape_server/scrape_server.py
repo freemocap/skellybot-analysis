@@ -3,10 +3,10 @@ import logging
 
 import discord
 
-from src.models.data_models.server_data.server_data_model import ServerData
-from src.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
+from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
     ChannelData, CategoryData
-from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
+from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
 
 logger = logging.getLogger(__name__)
 

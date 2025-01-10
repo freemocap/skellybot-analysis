@@ -1,6 +1,6 @@
 from openai import AsyncOpenAI
 
-from src.utilities.load_env_variables import OPENAI_API_KEY
+from skellybot_analysis.utilities.load_env_variables import OPENAI_API_KEY
 
 OPENAI_CLIENT = AsyncOpenAI(api_key=OPENAI_API_KEY)
 DEFAULT_LLM = "gpt-4o-mini"

@@ -5,9 +5,9 @@ import aiohttp
 import discord
 from pydantic import Field, computed_field
 
-from src.models.data_models.data_object_model import DataObjectModel
-from src.models.data_models.server_data.server_context_route_model import ServerContextRoute
-from src.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
+from skellybot_analysis.models.data_models.data_object_model import DataObjectModel
+from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
+from skellybot_analysis.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
 
 
 class DiscordContentMessage(DataObjectModel):

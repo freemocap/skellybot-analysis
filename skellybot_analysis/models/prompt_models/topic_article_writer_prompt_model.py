@@ -46,7 +46,7 @@ class WikipediaStyleArticleWriterModel(BaseModel):
         description="A concluding paragraph summarizing the key points of the article."
     )
 
-    def as_text(self) -> str:
+    def to_string(self) -> str:
         """
         Format contents into a markdown formatted text document
         """
