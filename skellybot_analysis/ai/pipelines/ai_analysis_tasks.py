@@ -45,7 +45,7 @@ async def ai_analyze_user_data(user_data: UserDataManager,
 
 async def ai_analyze_topic_tags(tag_manager: TagManager,
                                 system_prompt_og: str,
-                                min_tag_rank: int = 1
+                                min_tag_rank: int = 4
                                 ) -> TagManager:
     system_prompt = system_prompt_og + f"\n\n{WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT}"
     tasks = []
