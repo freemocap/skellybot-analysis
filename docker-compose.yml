@@ -1,7 +1,7 @@
    version: '3.8'
 
    services:
-     skellybot:
+     skellybot-analysis:
        build:
          context: .
          dockerfile: Dockerfile
