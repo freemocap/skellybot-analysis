@@ -1,8 +1,8 @@
 import logging
 from typing import Type
 
-from skellybot_analysis.ai.make_openai_json_mode_ai_request import make_openai_json_mode_ai_request
-from skellybot_analysis.ai.openai_constants import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
+from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import make_openai_json_mode_ai_request
+from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.ai.pipelines.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.models.data_models.data_object_model import DataObjectModel
 from pydantic import BaseModel

@@ -161,3 +161,14 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 /skellybot_analysis/utilities/example_output.json
+
+*.ogg
+*.mp3
+*.wav
+*.flac
+*.aiff
+*.au
+*.m4a
+*.mp4
+*.mov
+*.avi
