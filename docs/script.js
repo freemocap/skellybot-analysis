@@ -113,11 +113,11 @@ class GraphControls {
     addGraphDataControl(gui) {
         gui.add(this.controls, GUIFields.GRAPH_DATA, [
             'datasets/test_graph_data.json',
-            'datasets/forcegraph-dependencies.json',
             'datasets/HMN-Fall24_graph_data.json',
             'datasets/HMN_Fall24_2024-12-03T06-19-40_graph_data.json',
-            'datasets/miserables.json',
             'datasets/skb-test_graph_data.json',
+            'datasets/forcegraph-dependencies.json',
+            'datasets/miserables.json',
             ])
             .onChange(url => this.graph && this.graph.jsonUrl(url));
     }
