@@ -84,7 +84,7 @@ class GraphControls {
 
     initializeControls() {
         return {
-            [GUIFields.GRAPH_DATA]: 'datasets/graph_data.json',
+            [GUIFields.GRAPH_DATA]: 'datasets/test_graph_data.json',
             [GUIFields.CONTROL_TYPE]: 'fly',
             [GUIFields.AUTO_COLOR_BY]: 'type',
             [GUIFields.DAG_TREE_ORIENTATION]: 'radialout',
