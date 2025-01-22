@@ -3,12 +3,7 @@ import logging
 from skellybot_analysis.ai.audio_transcription.translate_whisper_transcription import translate_transcription_result
 from skellybot_analysis.ai.audio_transcription.whisper_transcription import transcribe_audio
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("openai").setLevel(logging.WARNING)
-logging.getLogger("numba").setLevel(logging.WARNING)
 
 TARGET_LANGUAGES_W_ROMANIZATION = frozenset([("SPANISH", None),
                                              ("ARABIC-SCRIPT", "ALA-LC"),
@@ -17,8 +12,8 @@ TARGET_LANGUAGES_W_ROMANIZATION = frozenset([("SPANISH", None),
 
 async def run_transcribe_and_translate_pipeline(audio_path: str,
                                                 target_languages: set[tuple[str,str]] = TARGET_LANGUAGES_W_ROMANIZATION) -> None:
-    print("pytorch.cuda.is_available():", torch.cuda.is_available())
     transcription_results = {}
+
     # Transcribe the audio file (into english)
     original_transcribed_result = transcribe_audio(audio_path)
     transcription_results[("ENGLISH", None)] = original_transcribed_result.text
