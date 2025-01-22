@@ -1,16 +1,19 @@
-import json
 from pathlib import Path
 
 from moviepy.video.VideoClip import TextClip
 from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
-from skellybot_analysis.ai.audio_transcription.whisper_transcription import transcribe_audio
-from skellybot_analysis.models.data_models.whisper_transcript_result_full_model import WhisperTranscriptionResult
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translate_video import translate_video
+from skellybot_analysis.models.data_models.translated_transcript_model import LanguagePair, TranslatedTranscription
 
+original_language = "ENGLISH"
+target_languages = [LanguagePair(language="SPANISH", romanization_method=None),
+                    LanguagePair(language="CHINESE-MANDARIN-SIMPLIFIED", romanization_method="PINYIN"),
+                    LanguagePair(language="ARABIC-LEVANTINE", romanization_method="ALA-LC")]
 
 def annotate_video_with_highlighted_words(video_path: str,
-                                          transcription_result: WhisperTranscriptionResult,
+                                          transcription_result: TranslatedTranscription,
                                           output_path: str):
     # Load the video
     video = VideoFileClip(video_path)
@@ -44,13 +47,10 @@ def annotate_video_with_highlighted_words(video_path: str,
     final_video.write_videofile(output_path, codec='libx264', audio_codec='aac')
 
 
-if __name__ == '__main__':
-    # Example usage
-    video_path = r'C:\Users\jonma\github_repos\freemocap_organization\skellybot-analysis\auto_subtitler_test_video.mp4'
-    output_path = r'C:\Users\jonma\github_repos\freemocap_organization\skellybot-analysis\auto_subtitler_test_output.mp4'
+async def run_video_subtitle_pipeline():
+    video_path = r'/skellybot_analysis/ai/pipelines/add_subtitles_to_video_pipeline/auto_subtitler_test_video.mp4'
+    output_path = r'/skellybot_analysis/ai/pipelines/add_subtitles_to_video_pipeline/auto_subtitler_test_output.mp4'
 
-    audio_path = r'C:\Users\jonma\github_repos\freemocap_organization\skellybot-analysis\auto_subtitler_test_audio.wav'
-    transcript_path = r'C:\Users\jonma\github_repos\freemocap_organization\skellybot-analysis\auto_subtitler_test_transcript.json'
 
     if not Path(video_path).exists():
         raise FileNotFoundError(f"File not found: {video_path}")
@@ -58,15 +58,15 @@ if __name__ == '__main__':
         raise ValueError(f"Path is not a file: {video_path}")
 
 
-    # pull audio from video
-    if not Path(transcript_path).exists():
-        video = VideoFileClip(video_path)
-        audio = video.audio
-        audio.write_audiofile(audio_path)
-        transcription_result = transcribe_audio(audio_path)
-        Path(transcript_path).write_text(transcription_result.model_dump_json(indent=2))
-    else:
-        json_text = Path(transcript_path).read_text()
-        transcription_result = WhisperTranscriptionResult(**json.loads(json_text))
+    translation_result = await translate_video(video_path=video_path,
+                                               target_languages=target_languages)
 
-    annotate_video_with_highlighted_words(video_path, transcription_result, output_path)
+
+    annotate_video_with_highlighted_words(video_path,
+                                          translation_result,
+                                          output_path)
+
+
+if __name__ == '__main__':
+    import asyncio
+    asyncio.run(run_video_subtitle_pipeline())

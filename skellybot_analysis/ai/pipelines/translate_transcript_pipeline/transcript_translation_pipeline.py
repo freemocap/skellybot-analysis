@@ -2,12 +2,11 @@ import logging
 
 from skellybot_analysis.ai.audio_transcription.translate_whisper_transcription import translate_transcription_result
 from skellybot_analysis.ai.audio_transcription.whisper_transcription import transcribe_audio
+from skellybot_analysis.models.data_models.translated_transcript_model import LanguagePair
 
 logger = logging.getLogger(__name__)
 
-TARGET_LANGUAGES_W_ROMANIZATION = frozenset([("SPANISH", None),
-                                             ("ARABIC-SCRIPT", "ALA-LC"),
-                                             ("CHINESE-MANDARIN-SIMPLIFIED", "CHINESE-PINYIN")])
+
 
 
 async def run_transcribe_and_translate_pipeline(audio_path: str,
