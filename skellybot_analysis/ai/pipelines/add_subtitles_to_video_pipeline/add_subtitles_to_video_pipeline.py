@@ -48,8 +48,8 @@ def annotate_video_with_highlighted_words(video_path: str,
 
 
 async def run_video_subtitle_pipeline():
-    video_path = r'/skellybot_analysis/ai/pipelines/add_subtitles_to_video_pipeline/auto_subtitler_test_video.mp4'
-    output_path = r'/skellybot_analysis/ai/pipelines/add_subtitles_to_video_pipeline/auto_subtitler_test_output.mp4'
+    video_path = r'auto_subtitler_test_video.mp4'
+    output_path = r'auto_subtitler_test_output.mp4'
 
 
     if not Path(video_path).exists():
