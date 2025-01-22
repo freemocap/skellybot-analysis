@@ -1,12 +1,7 @@
 # https://platform.openai.com/docs/guides/text-generation?text-generation-quickstart-example=json
 import asyncio
-import json
-from typing import Type
 
 from openai import AsyncOpenAI
-from pydantic import BaseModel
-
-from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 
 
 async def make_openai_text_generation_ai_request(client: AsyncOpenAI,

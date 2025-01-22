@@ -4,7 +4,7 @@ from pathlib import Path
 import cv2
 import whisper
 
-from skellybot_analysis.models.data_models.whisper_transcript_result_full_model import \
+from skellybot_analysis.ai.audio_transcription.whisper_transcript_result_full_model import \
     WhisperTranscriptionResult
 
 logging.basicConfig(level=logging.DEBUG)

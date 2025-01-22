@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from pprint import pprint
-from typing import Dict, Tuple
+from typing import Tuple
 
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 

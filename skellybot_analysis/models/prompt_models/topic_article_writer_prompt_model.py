@@ -1,4 +1,5 @@
 from typing import List
+
 from pydantic import BaseModel, Field
 
 WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT = (

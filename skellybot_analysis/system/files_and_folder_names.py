@@ -1,7 +1,6 @@
-from time import time
 from datetime import datetime
-
 from pathlib import Path
+from time import time
 
 
 def get_skellybot_analysis_data_folder_path() -> str:

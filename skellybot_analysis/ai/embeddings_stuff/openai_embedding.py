@@ -1,7 +1,6 @@
 from typing import List
 
 import numpy as np
-
 from openai import AsyncOpenAI
 
 DEFAULT_OPENAI_EMDEDDINGS_MODEL = "text-embedding-3-small"

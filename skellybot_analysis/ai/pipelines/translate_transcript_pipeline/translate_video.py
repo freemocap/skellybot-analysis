@@ -5,8 +5,8 @@ from moviepy import VideoFileClip
 
 from skellybot_analysis.ai.audio_transcription.translate_whisper_transcription import translate_transcription_result
 from skellybot_analysis.ai.audio_transcription.whisper_transcription import transcribe_audio
-from skellybot_analysis.models.data_models.translated_transcript_model import LanguagePair, TranslatedTranscription
-from skellybot_analysis.models.data_models.whisper_transcript_result_full_model import WhisperTranscriptionResult
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import LanguagePair, TranslatedTranscription
+from skellybot_analysis.ai.audio_transcription.whisper_transcript_result_full_model import WhisperTranscriptionResult
 
 
 async def translate_video(video_path: str, target_languages: list[LanguagePair], re_transcribe:bool=False) -> TranslatedTranscription:

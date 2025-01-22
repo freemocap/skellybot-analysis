@@ -3,10 +3,12 @@ import logging
 import multiprocessing
 from typing import Optional
 
+from pydantic import BaseModel
 from starlette.websockets import WebSocket, WebSocketState, WebSocketDisconnect
 
-from skellybot_analysis.skellybot_analysis_app.skellybot_analysis_app_state import get_skellybot_analysis_app_state, SkellybotAnalysisAppState
-from pydantic import BaseModel
+from skellybot_analysis.skellybot_analysis_app.skellybot_analysis_app_state import get_skellybot_analysis_app_state, \
+    SkellybotAnalysisAppState
+
 logger = logging.getLogger(__name__)
 
 

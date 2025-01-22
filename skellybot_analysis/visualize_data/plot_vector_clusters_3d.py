@@ -11,9 +11,9 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
+from skellybot_analysis.configure_logging import configure_logging
 from sklearn.manifold import TSNE
 
-from skellybot_analysis.configure_logging import configure_logging
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 

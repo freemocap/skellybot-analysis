@@ -1,5 +1,7 @@
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 class InterestModel(BaseModel):
     category: str = Field(description="The general category or field of interest (e.g., 'science', 'technology', 'arts', 'sports', 'medicine', etc).")

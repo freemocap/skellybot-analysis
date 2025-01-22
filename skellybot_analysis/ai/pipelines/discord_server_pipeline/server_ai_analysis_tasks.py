@@ -1,15 +1,16 @@
 import asyncio
+import logging
 
 from skellybot_analysis.ai.pipelines.discord_server_pipeline.add_server_analysis_task import add_ai_analysis
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 from skellybot_analysis.models.data_models.tag_models import TagManager
 from skellybot_analysis.models.data_models.user_data_model import UserDataManager
 from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
-from skellybot_analysis.models.prompt_models.topic_article_writer_prompt_model import WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT, \
+from skellybot_analysis.models.prompt_models.topic_article_writer_prompt_model import \
+    WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT, \
     WikipediaStyleArticleWriterModel
 from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
 
-import logging
 logger = logging.getLogger(__name__)
 
 async def ai_analyze_server_data(system_prompt_og: str, server_data: ServerData):

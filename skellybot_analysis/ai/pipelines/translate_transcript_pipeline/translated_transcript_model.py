@@ -1,9 +1,7 @@
-from typing import Self
 
-from httpcore import Origin
 from pydantic import BaseModel, Field
 
-from skellybot_analysis.models.data_models.whisper_transcript_result_full_model import \
+from skellybot_analysis.ai.audio_transcription.whisper_transcript_result_full_model import \
     WhisperTranscriptionResult
 
 LanguageNameString = str
@@ -27,10 +25,10 @@ class TranslatedText(BaseModel):
 
     @classmethod
     def initialize(cls, language: LanguagePair):
-        return cls(translated_text="Not yet translated",
+        return cls(translated_text="NOT YET TRANSLATED",
                    translated_language=language.language,
                    romanization_method=language.romanization_method,
-                   romanized_text="Not yet translated")
+                   romanized_text="NOT YET TRANSLATED")
 
 TranslationsDict = dict[LanguageNameString, TranslatedText]
 
@@ -99,6 +97,10 @@ class TranslatedTranscription(BaseModel):
     def translated_language_pairs(self) -> list[LanguagePair]:
         return [LanguagePair(language=language, romanization_method=translation.romanization_method) for language, translation in self.translations.items()]
 
+    @property
+    def target_languages_as_string(self) -> str:
+        return ", ".join([f"{language} (Romanization: {translation.romanization_method})" if translation.romanization_method else language for language, translation in self.translations.items()])
+
     @classmethod
     def initialize(cls, og_transcription: WhisperTranscriptionResult, target_languages: list[LanguagePair]):
         translations = {}
@@ -120,7 +122,7 @@ class TranslatedTranscription(BaseModel):
                      translations=translations,
                      segments=segments)
 
-    def without_words(self) -> Self:
+    def without_words(self) -> 'TranslatedTranscription':
         return TranslatedTranscription(original_text=self.original_text,
                                        translations=self.translations,
                                         segments=[TranslatedTranscriptSegment(original_text=segment.original_text,

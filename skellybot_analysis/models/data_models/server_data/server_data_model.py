@@ -11,7 +11,8 @@ from skellybot_analysis.models.data_models.graph_data_models import GraphData, S
 from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
 from skellybot_analysis.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
 from skellybot_analysis.models.data_models.server_data.server_data_stats import ServerDataStats
-from skellybot_analysis.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, ChatThread, \
+from skellybot_analysis.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, \
+    ChatThread, \
     ChannelData, CategoryData
 from skellybot_analysis.models.data_models.user_data_model import UserData, UserDataManager
 from skellybot_analysis.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID

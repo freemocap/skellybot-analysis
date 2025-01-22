@@ -5,7 +5,7 @@ from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translate_video import translate_video
-from skellybot_analysis.models.data_models.translated_transcript_model import LanguagePair, TranslatedTranscription
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import LanguagePair, TranslatedTranscription
 
 original_language = "ENGLISH"
 target_languages = [LanguagePair(language="SPANISH", romanization_method=None),
@@ -56,7 +56,6 @@ async def run_video_subtitle_pipeline():
         raise FileNotFoundError(f"File not found: {video_path}")
     if not Path(video_path).is_file():
         raise ValueError(f"Path is not a file: {video_path}")
-
 
     translation_result = await translate_video(video_path=video_path,
                                                target_languages=target_languages)

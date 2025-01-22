@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import time
+
 import skellybot_analysis
 from skellybot_analysis.api.server.server_singleton import create_server_manager
 from skellybot_analysis.skellybot_analysis_app.skellybot_analysis_app_state import create_skellybot_analysis_app_state

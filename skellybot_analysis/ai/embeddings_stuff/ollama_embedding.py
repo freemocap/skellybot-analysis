@@ -1,7 +1,7 @@
-import asyncio
 from typing import List
-from tqdm import tqdm
+
 import ollama
+from tqdm import tqdm
 
 DEFAULT_OLLAMA_EMBEDDINGS_MODEL = "mxbai-embed-large"
 def calculate_ollama_embeddings(texts_to_embed: List[str]) -> List[List[float]]:
