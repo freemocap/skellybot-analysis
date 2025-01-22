@@ -1,6 +1,6 @@
 import asyncio
 
-from skellybot_analysis.ai.pipelines.add_ai_analysis import add_ai_analysis
+from skellybot_analysis.ai.pipelines.discord_server_pipeline.add_server_analysis_task import add_ai_analysis
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 from skellybot_analysis.models.data_models.tag_models import TagManager
 from skellybot_analysis.models.data_models.user_data_model import UserDataManager

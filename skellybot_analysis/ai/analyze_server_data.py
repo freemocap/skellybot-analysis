@@ -3,7 +3,7 @@ import json
 import logging
 from pathlib import Path
 
-from skellybot_analysis.ai.pipelines.run_ai_analysis import run_ai_analysis
+from skellybot_analysis.ai.pipelines.discord_server_pipeline.run_discord_server_analysis_pipeline import run_ai_analysis
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 from skellybot_analysis.models.data_models.tag_models import TagManager
 from skellybot_analysis.models.data_models.user_data_model import UserDataManager
