@@ -39,7 +39,7 @@ def annotate_video_with_highlighted_words(video_path: str,
                                   )
 
     # Combine the video with the highlighted subtitles
-    final_video = CompositeVideoClip([video] + subtitle_clips)
+    final_video = CompositeVideoClip([video] + subtitle_clips).resized((1080,1920))
     # Write the result to a file
     final_video.write_videofile(output_path, codec='libx264', audio_codec='aac')
 
