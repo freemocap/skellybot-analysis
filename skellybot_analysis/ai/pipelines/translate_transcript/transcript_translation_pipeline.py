@@ -19,9 +19,11 @@ async def run_transcribe_and_translate_pipeline(audio_path: str,
                                                 target_languages: set[tuple[str,str]] = TARGET_LANGUAGES_W_ROMANIZATION) -> None:
     print("pytorch.cuda.is_available():", torch.cuda.is_available())
     transcription_results = {}
-    # Transcribe the MP3 file
+    # Transcribe the audio file (into english)
     original_transcribed_result = transcribe_audio(audio_path)
     transcription_results[("ENGLISH", None)] = original_transcribed_result.text
+
+    # Translate the transcription into the target languages (and their associated romanizations)
     for target_language in target_languages:
         transcription_results[target_language] = await translate_transcription_result(
             original_transcription_text=original_transcribed_result.text,
@@ -30,9 +32,11 @@ async def run_transcribe_and_translate_pipeline(audio_path: str,
             romanization=target_language[1],
             verbose=False
             )
-    # print(f"Original audio transcription: \n\t{original_transcribed_result.text}, "
-    #       f"\n\n Translated text: \n\t{translation_result.translated_text}")
 
+    await print_and_save_results(transcription_results)
+
+
+async def print_and_save_results(transcription_results):
     out_str = ""
     for key, value in transcription_results.items():
         out_str += f"Target language: {key[0]}, Romanization:{key[1]}: \n\t{value}\n\n"
