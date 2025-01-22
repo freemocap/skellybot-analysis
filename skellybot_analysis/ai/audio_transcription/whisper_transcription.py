@@ -1,16 +1,11 @@
-import asyncio
 import logging
 from pathlib import Path
 
 import cv2
 import whisper
 
-from skellybot_analysis.ai.audio_transcription.models.simple_transcript_results_model import \
-    SimpleWhisperTranscriptionResult
-from skellybot_analysis.ai.audio_transcription.models.whisper_transcript_result_full_model import \
+from skellybot_analysis.models.data_models.whisper_transcript_result_full_model import \
     WhisperTranscriptionResult
-from skellybot_analysis.ai.pipelines.translate_transcript.transcript_translation_pipeline import \
-    translate_transcription_result
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -68,21 +63,3 @@ def save_spectrogram_image(audio_path, mel):
     cv2.imwrite(str(Path(audio_path).with_suffix(".log_mel_spectrogram.png")), mel_image_heatmapped)
 
 
-async def run_transcribe_and_translate_pipeline(audio_path: str):
-
-    print("pytorch.cuda.is_available():", torch.cuda.is_available())
-    # Transcribe the MP3 file
-    transcribed_result = transcribe_audio(audio_path)
-    simple_transcription_result = SimpleWhisperTranscriptionResult.from_whisper_transcription_result(transcribed_result)
-    await translate_transcription_result(original_transcription_result=simple_transcription_result,
-                                         original_language="ENGLISH",
-                                         target_language="SPANISH",
-                                         )
-    # transcribed_result = transcribe_audio_detailed(audio_path)
-    print(transcribed_result.text)
-
-
-if __name__ == "__main__":
-    import torch
-    outer_audio_path = "voice-test.ogg"
-    asyncio.run(run_transcribe_and_translate_pipeline(audio_path=outer_audio_path))
