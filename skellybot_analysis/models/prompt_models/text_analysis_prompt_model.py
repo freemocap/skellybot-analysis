@@ -108,3 +108,8 @@ class TextAnalysisPromptModel(BaseModel):
 
 if __name__ == "__main__":
     print(TextAnalysisPromptModel.as_description_schema())
+
+
+
+
+

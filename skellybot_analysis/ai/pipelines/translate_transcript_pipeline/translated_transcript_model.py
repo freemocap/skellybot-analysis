@@ -39,25 +39,22 @@ class LanguagePairs(tuple[LanguageNames, RomanizationMethods]):
 
 class LanguagePair(BaseModel):
     language: LanguageNameString = Field(description="The name of the target language")
-    romanization_method: RomanizationMethodString = Field(       description="The method used to romanize the translated text, if applicable")
+    romanization_method: RomanizationMethodString = Field(
+        description="The method used to romanize the translated text, if applicable")
 
     @classmethod
     def from_enum(cls, language_pair: tuple[LanguageNames, RomanizationMethods]):
         return cls(language=language_pair[0], romanization_method=language_pair[1])
 
 
-def get_default_target_languages():
-    return [LanguagePair.from_enum(LanguagePairs.SPANISH),
-            LanguagePair.from_enum(LanguagePairs.CHINESE_MANDARIN_SIMPLIFIED),
-            LanguagePair.from_enum(LanguagePairs.ARABIC_LEVANTINE)]
-
-
 class TranslatedText(BaseModel):
     translated_text: TranslatedTextString = Field(
         description="The translated text in the target language, using the target language's script, characters, and/or alphabet")
     translated_language: LanguageNameString = Field(description="The name of the target language")
-    romanization_method: RomanizationMethodString = Field(description="The method used to romanize the translated text, if applicable")
-    romanized_text: RomanizedTextString = Field(description="The romanized version of the translated text, if applicable")
+    romanization_method: RomanizationMethodString = Field(
+        description="The method used to romanize the translated text, if applicable")
+    romanized_text: RomanizedTextString = Field(
+        description="The romanized version of the translated text, if applicable")
 
     @classmethod
     def initialize(cls, language: LanguagePair):
@@ -67,7 +64,21 @@ class TranslatedText(BaseModel):
                    romanized_text=NOT_TRANSLATED_YET_TEXT)
 
 
-TranslationsDict = dict[LanguageNameString, TranslatedText]
+class TranslationsCollection(BaseModel):
+    spanish: TranslatedText = Field(description="The translation of the original text into Spanish")
+    chinese: TranslatedText = Field(description="The translation of the original text into Chinese Mandarin Simplified")
+    arabic: TranslatedText = Field(description="The translation of the original text into Arabic Levantine")
+
+    @classmethod
+    def create(cls):
+        return cls(spanish=TranslatedText.initialize(LanguagePair.from_enum(LanguagePairs.SPANISH)),
+                   chinese=TranslatedText.initialize(LanguagePair.from_enum(LanguagePairs.CHINESE_MANDARIN_SIMPLIFIED)),
+                   arabic=TranslatedText.initialize(LanguagePair.from_enum(LanguagePairs.ARABIC_LEVANTINE)))
+
+    def languages_and_romanizations(self) -> dict[LanguageNameString, RomanizationMethodString]:
+        return {LanguageNames.SPANISH.value: self.spanish.romanization_method,
+                LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value: self.chinese.romanization_method,
+                LanguageNames.ARABIC_LEVANTINE.value: self.arabic.romanization_method}
 
 
 class WordType(BaseModel):
@@ -132,7 +143,7 @@ class TranslatedWhisperWordTimestamp(BaseModel):
         description="The end time of the period in the recording when the word was spoken, in seconds since the start of the recording. Should match the start time of the next word in the segment or the end time of the segment for the last word.")
     original_word: OriginalTextString = Field(
         description="The original word spoken in the segment, in its original language")
-    translations: TranslationsDict = Field(
+    translations: TranslationsCollection = Field(
         description="The translations of the original word into the target languages with their romanizations")
     word_type: WordType | None = Field(default=None,
                                        description="Linguistic features of the word, such as part of speech, tense, etc.")
@@ -140,7 +151,7 @@ class TranslatedWhisperWordTimestamp(BaseModel):
 
 class TranslatedTranscriptSegment(BaseModel):
     original_text: OriginalTextString = Field(description="The original text of the segment in its original language")
-    translations: TranslationsDict = Field(
+    translations: TranslationsCollection = Field(
         description="The translations of the original text into the target languages with their romanizations")
     start: StartingTimestamp = Field(
         description="The start time of the period in the recording when the segment was spoken in seconds since the start of the recording. Should match the end time of the previous segment or the start time of the recording for the first segment.")
@@ -157,47 +168,39 @@ class TranslatedTranscription(BaseModel):
     original_text: OriginalTextString = Field(
         description="The original text of the transcription in its original language")
     original_language: LanguageNameString = Field(description="The name of the original language of the transcription")
-    translations: TranslationsDict = Field(
+    translations: TranslationsCollection = Field(
         description="The translations of the original text into the target languages with their romanizations")
-    segments: list[TranslatedTranscriptSegment | TranslatedTranscriptSegmentWithWordTimestamps] = Field(
+    segments: list[TranslatedTranscriptSegment] = Field(  # | TranslatedTranscriptSegmentWithWordTimestamps
         description="Timestamped segments of the original text, with translations and romanizations")
 
     @property
-    def translated_language_pairs(self) -> list[LanguagePair]:
-        return [LanguagePair(language=language, romanization_method=translation.romanization_method) for
-                language, translation in self.translations.items()]
+    def translated_language_pairs(self) -> dict[LanguageNameString, RomanizationMethodString]:
+        return self.translations.languages_and_romanizations()
 
     @property
     def target_languages_as_string(self) -> str:
-        return ", ".join([
-            f"{language} (Romanization: {translation.romanization_method})" if translation.romanization_method else language
-            for language, translation in self.translations.items()])
+        return ', '.join([f"Language: {language} (Romanization method: {romanization})" for language, romanization in self.translated_language_pairs.items()])
 
     @classmethod
     def initialize(cls,
-                   og_transcription: WhisperTranscriptionResult,
-                   original_language: LanguageNameString,
-                   target_languages: list[LanguagePair]):
-        translations = {}
-        for language in target_languages:
-            translations[language.language] = TranslatedText.initialize(language)
-
+                   og_transcription: WhisperTranscriptionResult):
         segments = []
         for segment in og_transcription.segments:
-            segments.append(TranslatedTranscriptSegmentWithWordTimestamps(original_text=segment.text,
-                                                                          translations=translations,
-                                                                          start=segment.start,
-                                                                          end=segment.end,
-                                                                          words=[TranslatedWhisperWordTimestamp(
-                                                                              start=word.start,
-                                                                              end=word.end,
-                                                                              original_word=word.word,
-                                                                              translations=translations) for word in
-                                                                              segment.words])
+            segments.append(TranslatedTranscriptSegment(original_text=segment.text,
+                                                        translations=TranslationsCollection.create(),
+                                                        start=segment.start,
+                                                        end=segment.end,
+                                                        # words=[TranslatedWhisperWordTimestamp(
+                                                        #     start=word.start,
+                                                        #     end=word.end,
+                                                        #     original_word=word.word,
+                                                        #     translations=translations) for word in
+                                                        #     segment.words]
+                                                        )
                             )
         return cls(original_text=og_transcription.text,
-                   original_language=original_language,
-                   translations=translations,
+                   original_language=LanguageNames.ENGLISH.value,
+                   translations=TranslationsCollection.create(),
                    segments=segments)
 
     def without_words(self) -> 'TranslatedTranscription':
@@ -218,7 +221,6 @@ if __name__ == '__main__':
                                                         language=LanguageNames.ENGLISH.value)
 
     translated_transcription = TranslatedTranscription.initialize(og_transcription=outer_og_transcription,
-                                                                  target_languages=get_default_target_languages(),
                                                                   original_language=LanguageNames.ENGLISH.value)
 
     print(f"INITIALIZED TRANSLATED TRANSCRIPTION")
@@ -226,4 +228,3 @@ if __name__ == '__main__':
 
     print(f"TRANSLATED TRANSCRIPT JSON MODEL SCHEMA")
     pprint(translated_transcription.model_json_schema(), indent=2)
-

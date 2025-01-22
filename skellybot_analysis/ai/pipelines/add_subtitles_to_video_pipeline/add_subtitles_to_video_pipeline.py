@@ -4,8 +4,7 @@ from moviepy import VideoFileClip, TextClip, CompositeVideoClip
 
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translate_video import translate_video
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
-    TranslatedTranscription, get_default_target_languages
-
+    TranslatedTranscription
 
 
 def annotate_video_with_highlighted_words(video_path: str,
@@ -55,8 +54,7 @@ async def run_video_subtitle_pipeline():
     if not Path(video_path).is_file():
         raise ValueError(f"Path is not a file: {video_path}")
 
-    translation_result = await translate_video(video_path=video_path,
-                                               target_languages=get_default_target_languages())
+    translation_result = await translate_video(video_path=video_path)
 
 
     annotate_video_with_highlighted_words(video_path,

@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 import cv2
-import whisper
 
 from skellybot_analysis.ai.audio_transcription.whisper_transcript_result_full_model import \
     WhisperTranscriptionResult
@@ -21,6 +20,8 @@ def validate_audio_path(audio_path: str) -> None:
 
 
 def transcribe_audio(audio_path: str, model_name: str = "large") -> WhisperTranscriptionResult:
+    import whisper
+
     validate_audio_path(audio_path)
     model = whisper.load_model(model_name)
     result = model.transcribe(audio_path,
@@ -30,6 +31,13 @@ def transcribe_audio(audio_path: str, model_name: str = "large") -> WhisperTrans
 def transcribe_audio_detailed(audio_path: str,
                                 model_name: str = "turbo",
                               ):
+    import whisper
+
+    Process
+
+
+
+
 
     model = whisper.load_model(model_name)
 
