@@ -29,7 +29,7 @@ async def get_or_compute_video_transcription(video_path: str, re_transcribe:bool
     if Path(transcript_path).exists() and not re_transcribe:
         with open(transcript_path, 'r') as f:
             transcription_json = json.load(f)
-        transcription_result = WhisperTranscriptionResult(**json.loads(transcription_json))
+        transcription_result = WhisperTranscriptionResult(**transcription_json)
     else:
         video = VideoFileClip(video_path)
         audio = video.audio
