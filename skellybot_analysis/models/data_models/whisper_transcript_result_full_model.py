@@ -27,8 +27,3 @@ class WhisperTranscriptionResult(BaseModel):
     segments: list[WhisperTranscriptSegment]
     language: str
 
-
-class SimpleWhisperWordTimestamp(BaseModel):
-    start: float
-    end: float
-    word: str

@@ -1,8 +1,13 @@
 from pydantic import BaseModel
 
 from skellybot_analysis.models.data_models.whisper_transcript_result_full_model import \
-    WhisperTranscriptionResult, SimpleWhisperWordTimestamp
+    WhisperTranscriptionResult
 
+
+class SimpleWhisperWordTimestamp(BaseModel):
+    start: float
+    end: float
+    word: str
 
 class SimpleWhisperTranscriptSegment(BaseModel):
     text: str

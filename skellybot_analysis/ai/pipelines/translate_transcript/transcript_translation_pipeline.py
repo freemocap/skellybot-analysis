@@ -21,7 +21,7 @@ async def run_transcribe_and_translate_pipeline(audio_path: str,
     # Translate the transcription into the target languages (and their associated romanizations)
     for target_language in target_languages:
         transcription_results[target_language] = await translate_transcription_result(
-            original_transcription_text=original_transcribed_result.text,
+            original_text=original_transcribed_result.text,
             original_language="ENGLISH",
             target_language=target_language[0],
             romanization=target_language[1],

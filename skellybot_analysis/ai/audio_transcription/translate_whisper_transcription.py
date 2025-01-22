@@ -8,14 +8,14 @@ from skellybot_analysis.models.prompt_models.transcript_translation_prompt_model
     TranscriptTranslationPromptModel, format_transcript_translation_system_prompt
 
 
-async def translate_transcription_result(original_transcription_text: str,
+async def translate_transcription_result(original_text: str,
                                          original_language: str,
                                          target_language: str,
                                          romanization:str|None=None,
                                          verbose: bool = False
                                          ) -> TranscriptTranslationPromptModel:
     system_prompt = format_transcript_translation_system_prompt(
-        original_transcription_result_str= original_transcription_text,
+        original_transcription_result_str= original_text,
         original_language=original_language,
         romanization=romanization,
         target_language=target_language)
