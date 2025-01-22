@@ -1,20 +1,18 @@
 from pathlib import Path
 
-from moviepy.video.VideoClip import TextClip
-from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
-from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy import VideoFileClip, TextClip, CompositeVideoClip
 
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translate_video import translate_video
-from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import LanguagePair, TranslatedTranscription
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
+    TranslatedTranscription, get_default_target_languages
 
-original_language = "ENGLISH"
-target_languages = [LanguagePair(language="SPANISH", romanization_method=None),
-                    LanguagePair(language="CHINESE-MANDARIN-SIMPLIFIED", romanization_method="PINYIN"),
-                    LanguagePair(language="ARABIC-LEVANTINE", romanization_method="ALA-LC")]
+
 
 def annotate_video_with_highlighted_words(video_path: str,
                                           transcription_result: TranslatedTranscription,
-                                          output_path: str):
+                                          output_path: str,
+                                          ) -> None:
+
     # Load the video
     video = VideoFileClip(video_path)
 
@@ -58,7 +56,7 @@ async def run_video_subtitle_pipeline():
         raise ValueError(f"Path is not a file: {video_path}")
 
     translation_result = await translate_video(video_path=video_path,
-                                               target_languages=target_languages)
+                                               target_languages=get_default_target_languages())
 
 
     annotate_video_with_highlighted_words(video_path,
