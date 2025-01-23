@@ -80,4 +80,4 @@ class WordTypeSchemas(str,enum.Enum):
     ADVERB = AdverbType.model_json_schema()
     PRONOUN = PronounType.model_json_schema()
     OTHER = OtherWordType.model_json_schema()
-    UNKNOWN = UnknownWordType.model_json_schema()
+    NOT_PROCESSED = UnknownWordType.model_json_schema()

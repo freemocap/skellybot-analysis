@@ -1,3 +1,4 @@
+import json
 import logging
 
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
@@ -6,7 +7,12 @@ from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_tr
 logger = logging.getLogger(__name__)
 
 BASE_TRANSLATION_PROMPT = """
-You are an expert translator, fluent in the following languages: {languages}. You are trained in audio transcription and translation, and have been trained in the proper way to romanize languages that do not use the Latin alphabet (such as Chinese or Arabic).
+You are an expert translator. You are trained in audio transcription and translation, and have been trained in the proper way to romanize languages that do not use the Latin alphabet (such as Chinese or Arabic).
+
+You are fluent and trained in the following languages (and their romanization methods): 
+
+{languages}
+
 """
 
 SEGMENT_TRANSLATION_INSTRUCTIONS = """
@@ -50,9 +56,9 @@ def format_full_segement_level_transcript_translation_system_prompt(
         translation_task_instructions=SEGMENT_TRANSLATION_INSTRUCTIONS,
         languages=initialized_translated_transcript_without_words.target_languages_as_string,
         original_language=initialized_translated_transcript_without_words.original_language,
-        initialized_translated_transcription_object=initialized_translated_transcript_without_words.model_dump_json(
-            indent=2),
-        translation_task_instructions_repeated=SEGMENT_TRANSLATION_INSTRUCTIONS)
+        initialized_translated_transcription_object=json.dumps(initialized_translated_transcript_without_words.model_dump(), indent=2),
+        translation_task_instructions_repeated=SEGMENT_TRANSLATION_INSTRUCTIONS,
+    )
 
     logger.debug(
         "==================================\n\n"

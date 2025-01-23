@@ -1,8 +1,11 @@
+import json
+
 from pydantic import BaseModel, Field
 
 from skellybot_analysis.ai.audio_transcription.whisper_transcript_result_full_model import \
     WhisperTranscriptionResult, WhisperWordTimestamp
-from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.language_models import LanguageNames, LanguagePairs, LanguagePair
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.language_models import LanguageNames, LanguagePairs, \
+    LanguagePair
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translation_typehints import NOT_TRANSLATED_YET_TEXT, \
     LanguageNameString, RomanizationMethodString, RomanizedTextString, TranslatedTextString, OriginalTextString, \
     StartingTimestamp, EndingTimestamp
@@ -31,6 +34,11 @@ class TranslationsCollection(BaseModel):
     chinese: TranslatedText = Field(description="The translation of the original text into Chinese Mandarin Simplified")
     arabic: TranslatedText = Field(description="The translation of the original text into Arabic Levantine")
 
+    @property
+    def has_translations(self) -> bool:
+        return not any([translation['translated_text'] == NOT_TRANSLATED_YET_TEXT
+                        for translation in self.model_dump().values()])
+
     @classmethod
     def create(cls):
         return cls(spanish=TranslatedText.initialize(LanguagePair.from_enum(LanguagePairs.SPANISH)),
@@ -52,20 +60,21 @@ class TranslatedWhisperWordTimestamp(BaseModel):
         description="The original word spoken in the segment, in its original language")
     translations: TranslationsCollection = Field(
         description="The translations of the original word into the target languages with their romanizations")
-    word_type: WordTypeSchemas = Field(default=WordTypeSchemas.OTHER,
-                                              description="Linguistic features of the word, such as part of speech, tense, etc.")
+    # word_type: WordTypeSchemas|str = Field(default=WordTypeSchemas.OTHER.name,
+    #                                    description="Linguistic features of the word, such as part of speech, tense, etc.")
 
     @classmethod
-    def from_whisper_result(cls, word:WhisperWordTimestamp):
+    def from_whisper_result(cls, word: WhisperWordTimestamp):
         return cls(start=word.start,
                    end=word.end,
                    original_word=word.word,
                    translations=TranslationsCollection.create(),
-                   word_type=WordTypeSchemas.UNKNOWN)
+                   word_type=WordTypeSchemas.NOT_PROCESSED.name)
 
 
 class TranslatedTranscriptSegmentWithoutWords(BaseModel):
-    original_text: OriginalTextString = Field(description="The original text of the segment in its original language")
+    original_segment_text: OriginalTextString = Field(
+        description="The original text of the segment in its original language")
     translations: TranslationsCollection = Field(
         description="The translations of the original text into the target languages with their romanizations")
     start: StartingTimestamp = Field(
@@ -73,11 +82,18 @@ class TranslatedTranscriptSegmentWithoutWords(BaseModel):
     end: EndingTimestamp = Field(
         description="The end time of the segment in the recording when the segment was spoken in seconds since the start of the recording. Should match the start time of the next segment or the end time of the recording for the last segment.")
 
+    @property
+    def og_text_and_translations(self) -> dict:
+        return {"original_text": self.original_segment_text,
+                **self.translations.model_dump()}
 
-class TranslatedTranscriptSegmentWithWordTimestamps(TranslatedTranscriptSegmentWithoutWords):
+class TranslatedTranscriptSegmentWithWords(TranslatedTranscriptSegmentWithoutWords):
     words: list[TranslatedWhisperWordTimestamp] = Field(
         description="Timestamped words in the segment, with translations and romanizations")
 
+    @property
+    def original_words(self) -> str:
+        return ', \n'.join([word.model_dump_json(indent=2) for word in self.words])
 
 class TranslatedTranscriptionWithoutWords(BaseModel):
     original_text: OriginalTextString = Field(
@@ -94,20 +110,29 @@ class TranslatedTranscriptionWithoutWords(BaseModel):
 
     @property
     def target_languages_as_string(self) -> str:
-        return ', '.join([f"Language: {language} (Romanization method: {romanization})" for language, romanization in self.translated_language_pairs.items()])
+        return ', '.join([f"Language: {language} (Romanization method: {romanization})" for language, romanization in
+                          self.translated_language_pairs.items()])
 
+    @property
+    def has_translations(self) -> bool:
+        return self.translations.has_translations
+
+    @property
+    def og_text_and_translations(self) -> dict:
+        return {self.original_language: self.original_text,
+                **self.translations.model_dump()}
     @classmethod
     def initialize(cls,
                    og_transcription: WhisperTranscriptionResult):
         segments = []
         for segment in og_transcription.segments:
-            segments.append(TranslatedTranscriptSegmentWithoutWords(original_text=segment.text,
-                                                        translations=TranslationsCollection.create(),
-                                                        start=segment.start,
-                                                        end=segment.end,
-                                                        # words=[TranslatedWhisperWordTimestamp.from_whisper_result(word) for word in
-                                                        #     segment.words]
-                                                        )
+            segments.append(TranslatedTranscriptSegmentWithoutWords(original_segment_text=segment.text,
+                                                                    translations=TranslationsCollection.create(),
+                                                                    start=segment.start,
+                                                                    end=segment.end,
+                                                                    # words=[TranslatedWhisperWordTimestamp.from_whisper_result(word) for word in
+                                                                    #     segment.words]
+                                                                    )
                             )
         return cls(original_text=og_transcription.text,
                    original_language=LanguageNames.ENGLISH.value,
@@ -116,21 +141,33 @@ class TranslatedTranscriptionWithoutWords(BaseModel):
 
 
 class TranslatedTranscription(TranslatedTranscriptionWithoutWords):
-    segments: list[TranslatedTranscriptSegmentWithWordTimestamps] = Field(
+    segments: list[TranslatedTranscriptSegmentWithWords] = Field(
         description="Timestamped segments of the original text with translations and romanizations (including word-level timestamps)")
 
-    def initialize(cls,
-                   og_transcription: WhisperTranscriptionResult):
+    @classmethod
+    def from_segment_level_translation(cls,
+                                       og_transcription: WhisperTranscriptionResult,
+                                       segment_level_translated_transcript: TranslatedTranscriptionWithoutWords):
+        if not segment_level_translated_transcript.has_translations:
+            raise ValueError(
+                "Segment-level translated transcript must have translations to initialize a full translated transcript.")
         segments = []
-        for segment in og_transcription.segments:
-            segments.append(TranslatedTranscriptSegmentWithWordTimestamps(original_text=segment.text,
-                                                        translations=TranslationsCollection.create(),
-                                                        start=segment.start,
-                                                        end=segment.end,
-                                                        words=[TranslatedWhisperWordTimestamp.from_whisper_result(word) for word in
-                                                            segment.words]
-                                                        )
+        for og_segment, translated_segment in zip(og_transcription.segments,
+                                                  segment_level_translated_transcript.segments):
+            segments.append(TranslatedTranscriptSegmentWithWords(original_segment_text=og_segment.text,
+                                                                 translations=translated_segment.translations,
+                                                                 start=og_segment.start,
+                                                                 end=og_segment.end,
+                                                                 words=[
+                                                                     TranslatedWhisperWordTimestamp.from_whisper_result(
+                                                                         word) for word in
+                                                                     og_segment.words]
+                                                                 )
                             )
+        return cls(original_text=og_transcription.text,
+                   original_language=og_transcription.language,
+                   translations=segment_level_translated_transcript.translations,
+                   segments=segments)
 
 
 if __name__ == '__main__':

@@ -1,12 +1,12 @@
 {
-    "text": " Hello, my name is John Mathis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
+    "text": " Hello, my name is Jon Matthis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
     "segments": [
         {
             "id": 0,
             "seek": 0.0,
             "start": 0.0,
             "end": 8.58,
-            "text": " Hello, my name is John Mathis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
+            "text": " Hello, my name is Jon Matthis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
             "tokens": [
                 50365,
                 2425,
@@ -86,13 +86,13 @@
                 {
                     "start": 0.96,
                     "end": 1.14,
-                    "word": " John",
+                    "word": " Jon",
                     "probability": 0.9050883650779724
                 },
                 {
                     "start": 1.14,
                     "end": 1.6,
-                    "word": " Mathis.",
+                    "word": " Matthis.",
                     "probability": 0.9306676983833313
                 },
                 {
