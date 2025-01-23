@@ -1,0 +1,51 @@
+{
+    "original_text": " Hello, my name is John Mathis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
+    "original_language": "ENGLISH",
+    "translations": {
+        "spanish": {
+            "translated_text": "Hola, me llamo John Mathis. Encantado de conocerte. 1, 2, 3, 4, 5, azul, verde, rojo, perro, gato, vaca, pájaro. Gracias y adiós.",
+            "translated_language": "SPANISH",
+            "romanization_method": "IPA - Transcribe the text using the International Phonetic Alphabet (IPA) to provide precise pronunciation. Ensure accuracy in representing phonetic sounds",
+            "romanized_text": "ola, me ˈʝamo ʒon ˈma.tis. en.kanˈtado ðe ko.noˈθeɾ.te. 1, 2, 3, 4, 5, aˈθul, ˈbeɾðe, ˈro.xo, ˈpe.ro, ˈɡa.to, ˈβa.ka, ˈpa.xaɾo. ˈɡɾa.θjas i aˈðjos."
+        },
+        "chinese": {
+            "translated_text": "你好，我的名字是约翰·马西斯。很高兴见到你。1, 2, 3, 4, 5，蓝色，绿色，红色，狗，猫，牛，鸟。谢谢，再见。",
+            "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+            "romanization_method": "PINYIN - Convert the text from Simplified Chinese to Pinyin, including tone markers. Maintain accuracy in reflecting the original Mandarin pronunciation.",
+            "romanized_text": "Nǐ hǎo, wǒ de míngzì shì Yuēhàn Mǎxīsī. Hěn gāoxìng jiàn dào nǐ. 1, 2, 3, 4, 5, lánsè, lǜsè, hóngsè, gǒu, māo, niú, niǎo. Xièxiè, zàijiàn."
+        },
+        "arabic": {
+            "translated_text": "مرحبًا، اسمي جون ماثيس. سعيد بلقائك. 1، 2، 3، 4، 5، أزرق، أخضر، أحمر، كلب، قط، بقرة، طائر. شكرًا ووداعًا.",
+            "translated_language": "ARABIC_LEVANTINE",
+            "romanization_method": "ALA-LC -  Use the merican Library Association — Library of Congress (ALA-LC) romanization system for Arabic. Utilize full UTF-8 characters for diacritics and special characters to ensure precise representation. Adhere to standardized conventions for transliterating non-Latin scripts.",
+            "romanized_text": "marḥabā, ismī Jūn Māthīs. saʿīd biliqā'ik. 1, 2, 3, 4, 5, azraq, akhḍar, aḥmar, kalb, qiṭṭ, baqara, ṭā'ir. shakran wa-wadāʿan."
+        }
+    },
+    "segments": [
+        {
+            "original_text": " Hello, my name is John Mathis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
+            "translations": {
+                "spanish": {
+                    "translated_text": "Hola, me llamo John Mathis. Encantado de conocerte. 1, 2, 3, 4, 5, azul, verde, rojo, perro, gato, vaca, pájaro. Gracias y adiós.",
+                    "translated_language": "SPANISH",
+                    "romanization_method": "IPA - Transcribe the text using the International Phonetic Alphabet (IPA) to provide precise pronunciation. Ensure accuracy in representing phonetic sounds",
+                    "romanized_text": "ola, me ˈʝamo ʒon ˈma.tis. en.kanˈtado ðe ko.noˈθeɾ.te. 1, 2, 3, 4, 5, aˈθul, ˈbeɾðe, ˈro.xo, ˈpe.ro, ˈɡa.to, ˈβa.ka, ˈpa.xaɾo. ˈɡɾa.θjas i aˈðjos."
+                },
+                "chinese": {
+                    "translated_text": "你好，我的名字是约翰·马西斯。很高兴见到你。1, 2, 3, 4, 5，蓝色，绿色，红色，狗，猫，牛，鸟。谢谢，再见。",
+                    "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+                    "romanization_method": "PINYIN - Convert the text from Simplified Chinese to Pinyin, including tone markers. Maintain accuracy in reflecting the original Mandarin pronunciation.",
+                    "romanized_text": "Nǐ hǎo, wǒ de míngzì shì Yuēhàn Mǎxīsī. Hěn gāoxìng jiàn dào nǐ. 1, 2, 3, 4, 5, lánsè, lǜsè, hóngsè, gǒu, māo, niú, niǎo. Xièxiè, zàijiàn."
+                },
+                "arabic": {
+                    "translated_text": "مرحبًا، اسمي جون ماثيس. سعيد بلقائك. 1، 2، 3، 4، 5، أزرق، أخضر، أحمر، كلب، قط، بقرة، طائر. شكرًا ووداعًا.",
+                    "translated_language": "ARABIC_LEVANTINE",
+                    "romanization_method": "ALA-LC -  Use the merican Library Association — Library of Congress (ALA-LC) romanization system for Arabic. Utilize full UTF-8 characters for diacritics and special characters to ensure precise representation. Adhere to standardized conventions for transliterating non-Latin scripts.",
+                    "romanized_text": "marḥabā, ismī Jūn Māthīs. saʿīd biliqā'ik. 1, 2, 3, 4, 5, azraq, akhḍar, aḥmar, kalb, qiṭṭ, baqara, ṭā'ir. shakran wa-wadāʿan."
+                }
+            },
+            "start": 0.0,
+            "end": 8.58
+        }
+    ]
+}

@@ -44,25 +44,33 @@ def annotate_video_with_highlighted_words(video_path: str,
     final_video.write_videofile(output_path, codec='libx264', audio_codec='aac')
 
 
-async def run_video_subtitle_pipeline():
-    video_name = 'auto_subtitler_test_video_longer'
-    video_path = f'{video_name}.mp4'
-    output_path = video_path.replace('.mp4', '_subtitled.mp4')
+async def run_video_subtitle_pipeline(video_name: str) -> None:
 
-
-    if not Path(video_path).exists():
-        raise FileNotFoundError(f"File not found: {video_path}")
-    if not Path(video_path).is_file():
-        raise ValueError(f"Path is not a file: {video_path}")
+    output_path, video_path = await get_video_and_ouput_paths(video_name=video_name)
 
     translation_result = await translate_video(video_path=video_path)
+
+    # Save the translation result
     Path(video_path.replace('.mp4', '_translation.json')).write_text(translation_result.model_dump_json(indent=4), encoding='utf-8')
 
+    # Annotate the video with the translated words
     annotate_video_with_highlighted_words(video_path,
                                           translation_result,
                                           output_path)
 
 
+async def get_video_and_ouput_paths(video_name: str) -> tuple[str, str]:
+    video_path = f'{video_name}.mp4'
+    output_path = video_path.replace('.mp4', '_subtitled.mp4')
+    if not Path(video_path).exists():
+        raise FileNotFoundError(f"File not found: {video_path}")
+    if not Path(video_path).is_file():
+        raise ValueError(f"Path is not a file: {video_path}")
+    return output_path, video_path
+
+
 if __name__ == '__main__':
     import asyncio
-    asyncio.run(run_video_subtitle_pipeline())
+    outer_video_name = str(Path("sample_data/sample_video_short/sample_video_short").resolve())
+    # outer_video_name = "sample_data/sample_video_long/sample_video_long"
+    asyncio.run(run_video_subtitle_pipeline(video_name=outer_video_name))
