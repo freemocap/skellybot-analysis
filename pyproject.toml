@@ -23,6 +23,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "scikit-learn>=1.6.0",
     "tiktoken>=0.8.0",
+    "tqdm>=4.67.1",
     "uvicorn>=0.32.1",
     "whisper>=1.1.10",
     #NOTE - need install via: uv pip install git+https://github.com/openai/whisper.git

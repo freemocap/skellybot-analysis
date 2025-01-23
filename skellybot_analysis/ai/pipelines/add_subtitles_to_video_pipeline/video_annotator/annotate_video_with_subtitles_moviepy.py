@@ -1,0 +1,47 @@
+from pathlib import Path
+
+from moviepy import VideoFileClip, TextClip, CompositeVideoClip
+
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
+    TranslatedTranscription
+
+
+def annotate_video_with_highlighted_words_moviepy(video_path: str,
+                                                  transcription_result: TranslatedTranscription,
+                                                  output_path: str,
+                                                  ) -> None:
+
+    # Load the video
+    video = VideoFileClip(video_path)
+    # font path
+    font_path = Path(__file__).parent.parent.parent.parent.parent /"fonts/arial/ARIAL.TTF"
+    if not font_path.exists() or not font_path.is_file():
+        raise FileNotFoundError(f"Font not found: {font_path}")
+    font_path = str(font_path)
+    # Create word-level subtitle clips
+    subtitle_clips = []
+    for segment in transcription_result.segments:
+        for word_timestamp in segment.words[:-1]:
+            next_word_timestamp = segment.words[segment.words.index(word_timestamp) + 1]
+            segment_words = segment.original_segment_text.split()
+            highlighted_text = ' '.join(
+                [f"|{word}|"  if word in word_timestamp.original_word else f" {word} " for word in segment_words]
+            )
+
+            subtitle_clips.append(TextClip(text=highlighted_text,
+                                           font_size=48,
+                                           font=font_path,
+                                           color='white',
+                                           bg_color=(0, 0, 0),
+                                           stroke_width=2,
+                                           method='caption',
+                                           size=(video.w, 100),)
+                                  .with_start(word_timestamp.start)
+                                  .with_end(next_word_timestamp.start)
+                                  .with_position(('center', video.h - 380))
+                                  )
+
+    # Combine the video with the highlighted subtitles
+    final_video = CompositeVideoClip([video] + subtitle_clips).resized((1080,1920))
+    # Write the result to a file
+    final_video.write_videofile(output_path, codec='libx264', audio_codec='aac')
