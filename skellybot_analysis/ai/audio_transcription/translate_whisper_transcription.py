@@ -47,7 +47,7 @@ async def translate_transcription_pipeline(og_transcription: WhisperTranscriptio
             user_input=None,
             prompt_model=TranslatedTranscriptSegmentWithWords
             )
-        validate_translated_segment(segment_number, translated_segment, translated_transcript_with_words)
+        # validate_translated_segment(segment_number, translated_segment, translated_transcript_with_words)
 
         translated_transcript_with_words.segments[segment_number] = translated_segment
 

@@ -3,8 +3,6 @@ from pathlib import Path
 
 from skellybot_analysis.ai.pipelines.add_subtitles_to_video_pipeline.video_annotator.annotate_video_with_subtitles_cv2_PIL import \
     annotate_video_with_highlighted_words_cv2_PIL
-from skellybot_analysis.ai.pipelines.add_subtitles_to_video_pipeline.video_annotator.annotate_video_with_subtitles_moviepy import \
-    annotate_video_with_highlighted_words_moviepy
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translate_video import translate_video
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
     TranslatedTranscription
@@ -42,6 +40,6 @@ async def get_video_and_output_paths(video_name: str) -> tuple[str, str, str]:
 
 if __name__ == '__main__':
     import asyncio
-    outer_video_name = str(Path("sample_data/sample_video_short/sample_video_short").resolve())
-    # outer_video_name = "sample_data/sample_video_long/sample_video_long"
+    # outer_video_name = str(Path("sample_data/sample_video_short/sample_video_short").resolve())
+    outer_video_name = str(Path("sample_data/sample_video_long/sample_video_long").resolve())
     asyncio.run(run_video_subtitle_pipeline(video_name=outer_video_name))

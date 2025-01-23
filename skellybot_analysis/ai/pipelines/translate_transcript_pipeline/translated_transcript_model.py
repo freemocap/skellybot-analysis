@@ -82,15 +82,16 @@ class TranslatedWhisperWordTimestamp(BaseModel):
                    # word_type=WordTypeSchemas.NOT_PROCESSED.name)
 
     def get_word_by_language(self, language: LanguageNameString) -> str:
-        if language == LanguageNames.ENGLISH.value or "original_text" or "original_word" or "original":
+        if language.lower() == LanguageNames.ENGLISH.value.lower() or language.lower() == "original_text" or language.lower() == "original_word" or language.lower() == "original":
             return self.original_word
-        if language == LanguageNames.SPANISH.value:
+        if language.lower() == LanguageNames.SPANISH.value.lower():
             return self.translations.spanish.translated_text
-        if language == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value:
+        if language.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
             return self.translations.chinese.translated_text + '\n' + self.translations.chinese.romanized_text
-        if language == LanguageNames.ARABIC_LEVANTINE.value:
+        if language.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
             return self.translations.arabic.translated_text + '\n' + self.translations.arabic.romanized_text
-
+        else:
+            raise ValueError(f"Language {language} not found in the translations collection.")
 
 class TranslatedTranscriptSegmentWithoutWords(BaseModel):
     original_segment_text: OriginalTextString = Field(
@@ -108,7 +109,7 @@ class TranslatedTranscriptSegmentWithoutWords(BaseModel):
                 **self.translations.model_dump()}
 
     def get_text_by_language(self, language: LanguageNameString) -> str:
-        if language.lower() == LanguageNames.ENGLISH.value.lower() or "original_text" or "original_word" or "original":
+        if language.lower() == LanguageNames.ENGLISH.value.lower() or language.lower() == "original_text" or language.lower() == "original_word" or language.lower() == "original":
             return self.original_segment_text
         if language.lower() == LanguageNames.SPANISH.value.lower():
             return self.translations.spanish.translated_text
@@ -116,7 +117,8 @@ class TranslatedTranscriptSegmentWithoutWords(BaseModel):
             return self.translations.chinese.translated_text + '\n' + self.translations.chinese.romanized_text
         if language.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
             return self.translations.arabic.translated_text + '\n' + self.translations.arabic.romanized_text
-
+        else:
+            raise ValueError(f"Language {language} not found in the translations collection.")
 
 class TranslatedTranscriptSegmentWithWords(TranslatedTranscriptSegmentWithoutWords):
     words: list[TranslatedWhisperWordTimestamp] = Field(

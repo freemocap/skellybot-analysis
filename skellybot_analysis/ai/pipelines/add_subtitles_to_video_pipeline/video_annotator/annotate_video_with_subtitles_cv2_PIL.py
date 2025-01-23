@@ -3,8 +3,11 @@ import os
 from pathlib import Path
 
 import cv2
+import jieba
 import numpy as np
 from PIL import Image, ImageFont, ImageDraw
+from arabic_reshaper import arabic_reshaper
+from bidi.algorithm import get_display
 from tqdm import tqdm
 
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.language_models import LanguageNames
@@ -16,6 +19,22 @@ from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_tr
 logger = logging.getLogger(__name__)
 
 
+def create_multiline_text_chinese(text: str, font: ImageFont, screen_width: int, buffer: int) -> str:
+    """
+    Break a long string of Chinese text into multiple lines of text that fit within the screen width.
+    Uses jieba for segmentation.
+    """
+    words = list(jieba.cut(text))
+    lines = []
+    current_line = ""
+    for word in words:
+        if font.getlength(current_line + word) + 2 * buffer < screen_width:
+            current_line += word
+        else:
+            lines.append(current_line)
+            current_line = word
+    lines.append(current_line)
+    return '\n'.join(lines)
 def create_multiline_text(text: str, font: ImageFont, screen_width: int, buffer: int) -> str:
     """
     Break a long string into multiple lines of text that fit within the screen width by inserting `\n` characters
@@ -89,15 +108,25 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
                                    video_resolution)
     if not video_writer.isOpened():
         raise ValueError(f"Failed to open video writer: {subtitled_video_path}")
-
-    # font path
-    font_path = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts/arial/ARIAL.TTF"
-    if not font_path.exists() or not font_path.is_file():
-        raise FileNotFoundError(f"Font not found: {font_path}")
-    font_path = str(font_path)
     font_size = 48
     buffer_size = 100
-    arial_font = ImageFont.truetype(font_path, font_size)
+
+    # font path
+    english_font_path = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts/ARIAL.TTF"
+    chinese_font_path = Path(
+        __file__).parent.parent.parent.parent.parent.parent / "fonts/NotoSerifCJKsc-VF-Simplified-Chinese.ttf"
+    arabic_font_path = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts/NotoKufiArabic-Regular.otf"
+    font_paths = {'english': english_font_path,
+                  'spanish': english_font_path,
+                  'chinese_mandarin_simplified': chinese_font_path,
+                  'arabic_levantine': arabic_font_path,
+                  }
+    fonts_by_language = {}
+    for language_name, font_path in font_paths.items():
+        if not font_path.exists() or not font_path.is_file():
+            raise FileNotFoundError(f"Font not found: {font_path}")
+
+        fonts_by_language[language_name.lower()] = ImageFont.truetype(str(font_path), font_size)
 
     try:
         # Go through each frame of the video and annotate it with the translated words based on their timestamps
@@ -117,30 +146,58 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
             image_annotator = ImageDraw.Draw(pil_image)
 
             current_segment, current_word = transcription_result.get_segment_and_word_at_timestamp(frame_timestamp)
-            for language_name in [LanguageNames.ENGLISH.value, LanguageNames.SPANISH.value, LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value, LanguageNames.ARABIC_LEVANTINE.value]:
+            for language_name, color in [(LanguageNames.ENGLISH.value, (27,158,119)),
+                                         (LanguageNames.SPANISH.value, (217, 95, 2)),
+                                  (LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value, (117, 112, 179)),
+                                  (LanguageNames.ARABIC_LEVANTINE.value, (231, 41, 138))]:
+                language_font = fonts_by_language[language_name.lower()]
                 multiline_y_start = get_y_start_by_language(language_name, video_height)
 
                 segment_text = current_segment.get_text_by_language(language_name)
+                romanized_text = None
+                if '\n' in segment_text:
+                    segment_text, romanized_text = segment_text.split('\n')
+                # Handle Arabic text reshaping
+                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+                    reshaped_text = arabic_reshaper.reshape(segment_text)
+                    segment_text = get_display(reshaped_text)
+
                 word_text = current_word.get_word_by_language(language_name)
                 segment_words = segment_text.split()
-                highlighted_segment_words = [f"[{word}]" if word_text.strip() in word.strip() else word for word in segment_words]
+                highlighted_segment_words = [f"[{word}]" if word_text.strip() in word.strip() else word for word in
+                                             segment_words]
                 highlighted_segment_text = ' '.join(highlighted_segment_words)
-                multiline_text = create_multiline_text(highlighted_segment_text,
-                                                       arial_font,
-                                                       video_width,
-                                                       buffer_size)
+                if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
+                    multiline_text = create_multiline_text_chinese(highlighted_segment_text, language_font, video_width,
+                                                                   buffer_size)
+                else:
+                    multiline_text = create_multiline_text(highlighted_segment_text, language_font, video_width,
+                                                           buffer_size)
 
+                # Reverse lines for Arabic text to render correctly
+                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+                    lines = multiline_text.split('\n')
+                    multiline_text = '\n'.join(reversed(lines))
+                number_of_lines = multiline_text.count('\n') + 1
                 # Annotate the frame with the current segment using PIL
                 image_annotator.multiline_text(xy=(buffer_size, multiline_y_start),
                                                text=multiline_text,
-                                               fill=(255,0, 155),
+                                               fill=color,
                                                stroke_width=3,
                                                stroke_fill=(0, 0, 0),
-                                               font=arial_font)
+                                               font=language_font)
 
-
-
-
+                if romanized_text:
+                    multiline_text = create_multiline_text(romanized_text,
+                                                           fonts_by_language[LanguageNames.ENGLISH.value.lower()],
+                                                           video_width,
+                                                           buffer_size)
+                    image_annotator.multiline_text(xy=(buffer_size, multiline_y_start + font_size*number_of_lines*2),
+                                                   text=multiline_text,
+                                                   fill=color,
+                                                   stroke_width=3,
+                                                   stroke_fill=(0, 0, 0),
+                                                   font=fonts_by_language[LanguageNames.ENGLISH.value.lower()])
             # Convert the annotated image back to a cv2 image and write it to the video
             image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
             if not video_writer.isOpened():
@@ -172,11 +229,11 @@ def get_y_start_by_language(language_name, video_height):
     if language_name == LanguageNames.ENGLISH.value:
         multiline_y_start = 0
     elif language_name == LanguageNames.SPANISH.value:
-        multiline_y_start = video_height // 4
+        multiline_y_start = video_height // 6
     elif language_name == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value:
-        multiline_y_start = video_height // 2
+        multiline_y_start = video_height // 3
     elif language_name == LanguageNames.ARABIC_LEVANTINE.value:
-        multiline_y_start = video_height // 4 * 3
+        multiline_y_start = video_height // 1.5
     else:
         raise ValueError(f"Unsupported language name: {language_name}")
     return multiline_y_start
