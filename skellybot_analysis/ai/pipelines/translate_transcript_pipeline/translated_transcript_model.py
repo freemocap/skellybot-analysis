@@ -78,7 +78,18 @@ class TranslatedWhisperWordTimestamp(BaseModel):
                    end=word.end,
                    original_word=word.word,
                    translations=TranslationsCollection.create(),
-                   word_type=WordTypeSchemas.NOT_PROCESSED.name)
+                   )
+                   # word_type=WordTypeSchemas.NOT_PROCESSED.name)
+
+    def get_word_by_language(self, language: LanguageNameString) -> str:
+        if language == LanguageNames.ENGLISH.value or "original_text" or "original_word" or "original":
+            return self.original_word
+        if language == LanguageNames.SPANISH.value:
+            return self.translations.spanish.translated_text
+        if language == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value:
+            return self.translations.chinese.translated_text + '\n' + self.translations.chinese.romanized_text
+        if language == LanguageNames.ARABIC_LEVANTINE.value:
+            return self.translations.arabic.translated_text + '\n' + self.translations.arabic.romanized_text
 
 
 class TranslatedTranscriptSegmentWithoutWords(BaseModel):
@@ -95,6 +106,16 @@ class TranslatedTranscriptSegmentWithoutWords(BaseModel):
     def og_text_and_translations(self) -> dict:
         return {"original_text": self.original_segment_text,
                 **self.translations.model_dump()}
+
+    def get_text_by_language(self, language: LanguageNameString) -> str:
+        if language.lower() == LanguageNames.ENGLISH.value.lower() or "original_text" or "original_word" or "original":
+            return self.original_segment_text
+        if language.lower() == LanguageNames.SPANISH.value.lower():
+            return self.translations.spanish.translated_text
+        if language.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
+            return self.translations.chinese.translated_text + '\n' + self.translations.chinese.romanized_text
+        if language.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+            return self.translations.arabic.translated_text + '\n' + self.translations.arabic.romanized_text
 
 
 class TranslatedTranscriptSegmentWithWords(TranslatedTranscriptSegmentWithoutWords):
@@ -130,8 +151,11 @@ class TranslatedTranscriptionWithoutWords(BaseModel):
 
     @property
     def og_text_and_translations(self) -> dict:
-        return {self.original_language: self.original_text,
-                **self.translations.model_dump()}
+        return {'English': self.original_text,
+                'Spanish': self.translations.spanish.translated_text,
+                'Chinese': self.translations.chinese.translated_text + '\n' + self.translations.chinese.romanized_text,
+                'Arabic': self.translations.arabic.translated_text + '\n' + self.translations.arabic.romanized_text}
+
 
     @classmethod
     def initialize(cls,

@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -6,12 +7,63 @@ import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 from tqdm import tqdm
 
+from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.language_models import LanguageNames
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.transcribe_video import \
     scrape_and_save_audio_from_video
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
     TranslatedTranscription
-import logging
+
 logger = logging.getLogger(__name__)
+
+
+def create_multiline_text(text: str, font: ImageFont, screen_width: int, buffer: int) -> str:
+    """
+    Break a long string into multiple lines of text that fit within the screen width by inserting `\n` characters
+    at appropriate locations. to ensure the text will fit within the screen width with `buffer` pixels of padding on each side.
+    will use `font.getlength('word1 + ' + 'word2' ...) method to determine when to break lines.
+
+    :param text: The text to break into multiple lines
+    :param font: The font to use for the text
+    :param screen_width: The width of the screen
+    :param buffer: The number of pixels of padding to leave on each side of the text
+    """
+    words = text.split()
+    lines = []
+    current_line = ""
+    for word in words:
+        if font.getlength(current_line + ' ' + word) + 2 * buffer < screen_width:
+            current_line += ' ' + word
+        else:
+            lines.append(current_line)
+            current_line = word
+    lines.append(current_line)
+    return '\n'.join(lines)
+
+
+def finish_video_and_attach_audio_from_original(original_video_path: str,
+                                                no_audio_video_path: str,
+                                                subtitled_video_path: str) -> None:
+    # Save the audio from the original video to a wav file (if it doesn't already exist)
+    original_audio_path = original_video_path.replace('.mp4', '.wav')
+    if not Path(original_audio_path).exists():
+        scrape_and_save_audio_from_video(original_video_path, original_audio_path)
+
+    # Compress and combine the audio from the original video with the annotated video
+    command = (
+        f"ffmpeg -y -i {no_audio_video_path} -i {original_audio_path} "
+        f"-c:v libx264 -crf 23 -preset fast -c:a aac -strict experimental "
+        f"{subtitled_video_path}"
+    )
+    logger.info(f"Combining and compressing video and audio with ffmpeg command - {command}")
+    os.system(command)
+
+    # Delete the no-audio temporary video file
+    try:
+        os.remove(no_audio_video_path)
+        logger.info(f"Deleted temporary no-audio video file: {no_audio_video_path}")
+    except OSError as e:
+        logger.error(f"Error deleting temporary video file {no_audio_video_path}: {e}")
+
 
 def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
                                                   transcription_result: TranslatedTranscription,
@@ -33,42 +85,19 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
         raise ValueError(f"Output path must end with .mp4: {subtitled_video_path}")
     no_audio_video_path = subtitled_video_path.replace('.mp4', '_no_audio.mp4')
 
-    video_writer = cv2.VideoWriter(no_audio_video_path, cv2.VideoWriter_fourcc(*'x264'), video_framerate, video_resolution)
+    video_writer = cv2.VideoWriter(no_audio_video_path, cv2.VideoWriter_fourcc(*'x264'), video_framerate,
+                                   video_resolution)
     if not video_writer.isOpened():
         raise ValueError(f"Failed to open video writer: {subtitled_video_path}")
-
-    def finish_video_and_attach_audio_from_original():
-        if video_writer and video_writer.isOpened():
-            video_writer.release()
-
-        # Save the audio from the original video to a wav file (if it doesn't already exist)
-        original_audio_path = video_path.replace('.mp4', '.wav')
-        if not Path(original_audio_path).exists():
-            scrape_and_save_audio_from_video(video_path, original_audio_path)
-
-        # Compress and combine the audio from the original video with the annotated video
-        command = (
-            f"ffmpeg -i {no_audio_video_path} -i {original_audio_path} "
-            f"-c:v libx264 -crf 23 -preset fast -c:a aac -strict experimental "
-            f"{subtitled_video_path}"
-        )
-        logger.info(f"Combining and compressing video and audio with ffmpeg command - {command}")
-        os.system(command)
-
-        # Delete the no-audio temporary video file
-        try:
-            os.remove(no_audio_video_path)
-            logger.info(f"Deleted temporary no-audio video file: {no_audio_video_path}")
-        except OSError as e:
-            logger.error(f"Error deleting temporary video file {no_audio_video_path}: {e}")
-
 
     # font path
     font_path = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts/arial/ARIAL.TTF"
     if not font_path.exists() or not font_path.is_file():
         raise FileNotFoundError(f"Font not found: {font_path}")
     font_path = str(font_path)
-    arial_font_32pt = ImageFont.truetype(font_path, 32)
+    font_size = 48
+    buffer_size = 100
+    arial_font = ImageFont.truetype(font_path, font_size)
 
     try:
         # Go through each frame of the video and annotate it with the translated words based on their timestamps
@@ -84,13 +113,33 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
             frame_number += 1
             frame_timestamp = video_reader.get(
                 cv2.CAP_PROP_POS_MSEC) / 1000  # seconds - internally based on frame# * presumed frame duration based on specified framerate
-            current_segment, current_word = transcription_result.get_segment_and_word_at_timestamp(frame_timestamp)
-
-            # Annotate the frame with the current segment using PIL
-
             pil_image = Image.fromarray(image)
             image_annotator = ImageDraw.Draw(pil_image)
-            image_annotator.text((10, 10), current_segment.original_segment_text, (255, 255, 255), font=arial_font_32pt)
+
+            current_segment, current_word = transcription_result.get_segment_and_word_at_timestamp(frame_timestamp)
+            for language_name in [LanguageNames.ENGLISH.value, LanguageNames.SPANISH.value, LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value, LanguageNames.ARABIC_LEVANTINE.value]:
+                multiline_y_start = get_y_start_by_language(language_name, video_height)
+
+                segment_text = current_segment.get_text_by_language(language_name)
+                word_text = current_word.get_word_by_language(language_name)
+                segment_words = segment_text.split()
+                highlighted_segment_words = [f"[{word}]" if word_text.strip() in word.strip() else word for word in segment_words]
+                highlighted_segment_text = ' '.join(highlighted_segment_words)
+                multiline_text = create_multiline_text(highlighted_segment_text,
+                                                       arial_font,
+                                                       video_width,
+                                                       buffer_size)
+
+                # Annotate the frame with the current segment using PIL
+                image_annotator.multiline_text(xy=(buffer_size, multiline_y_start),
+                                               text=multiline_text,
+                                               fill=(255,0, 155),
+                                               stroke_width=3,
+                                               stroke_fill=(0, 0, 0),
+                                               font=arial_font)
+
+
+
 
             # Convert the annotated image back to a cv2 image and write it to the video
             image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
@@ -113,5 +162,21 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
     finally:
         video_reader.release()
         video_writer.release()
-        finish_video_and_attach_audio_from_original()
+        finish_video_and_attach_audio_from_original(original_video_path=video_path,
+                                                    no_audio_video_path=no_audio_video_path,
+                                                    subtitled_video_path=subtitled_video_path)
         cv2.destroyAllWindows()
+
+
+def get_y_start_by_language(language_name, video_height):
+    if language_name == LanguageNames.ENGLISH.value:
+        multiline_y_start = 0
+    elif language_name == LanguageNames.SPANISH.value:
+        multiline_y_start = video_height // 4
+    elif language_name == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value:
+        multiline_y_start = video_height // 2
+    elif language_name == LanguageNames.ARABIC_LEVANTINE.value:
+        multiline_y_start = video_height // 4 * 3
+    else:
+        raise ValueError(f"Unsupported language name: {language_name}")
+    return multiline_y_start
