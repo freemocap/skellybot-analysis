@@ -1,51 +1,226 @@
 {
-  "original_text": " Hello, my name is John Mathis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
+  "original_text": " Hello, I'm saying words to the microphone. My name is John Mathis with no H and two T's in Mathis. 1, 2, 3, 4, 5, 6, 7, 8, 9. And I have a cat named Pooh and another one named Ollie. And dogs are good and horses are tall. Thank you for listening. Thank you for coming to this wonderful day. And I hope that everything will be good in the future too. Cthulhu, dinosaur, vibrant, hexagon, sparkling water, juggling balls. Thank you.",
   "original_language": "ENGLISH",
   "translations": {
     "spanish": {
-      "translated_text": "Hola, mi nombre es John Mathis. Encantado de conocerte. 1, 2, 3, 4, 5, azul, verde, rojo, perro, gato, vaca, pájaro. Gracias y adiós.",
+      "translated_text": "Hola, estoy diciendo palabras al micrófono. Mi nombre es John Mathis, sin H y con dos T en Mathis. Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve. Y tengo un gato llamado Pooh y otro llamado Ollie. Y los perros son buenos y los caballos son altos. Gracias por escuchar. Gracias por venir a este día maravilloso. Y espero que todo esté bien en el futuro también. Cthulhu, dinosaurio, vibrante, hexágono, agua chispeante, pelotas de malabarismo. Gracias.",
       "translated_language": "SPANISH",
       "romanization_method": "NONE",
-      "romanized_text": "NOT-TRANSLATED-YET"
+      "romanized_text": ""
     },
     "chinese": {
-      "translated_text": "你好，我的名字是约翰·马蒂斯。很高兴见到你。 1, 2, 3, 4, 5，蓝色，绿色，红色，狗，猫，牛，鸟。谢谢，再见。",
+      "translated_text": "你好，我在麦克风前说话。我的名字是约翰·马西斯，没有H，马西斯有两个T。1，2，3，4，5，6，7，8，9。我有一只名叫普的猫，还有一只叫奥利的猫。狗很优秀，马很高。谢谢你的倾听。感谢你来到这个美好的日子。我希望未来一切都会好。克苏鲁，恐龙，活泼，六边形，气泡水，杂耍球。谢谢。",
       "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
       "romanization_method": "PINYIN",
-      "romanized_text": "Nǐ hǎo, wǒ de míngzì shì Yuēhàn·Mǎdìsī. Hěn gāoxìng jiàn dào nǐ. 1, 2, 3, 4, 5, lán sè, lǜ sè, hóng sè, gǒu, māo, niú, niǎo. Xièxiè, zàijiàn."
+      "romanized_text": "Nǐ hǎo, wǒ zài mài kè fēng qián shuōhuà. Wǒ de míngzì shì Yuēhàn Mǎxīsī, méiyǒu H, Mǎxīsī yǒu liǎng gè T. 1, 2, 3, 4, 5, 6, 7, 8, 9. Wǒ yǒu yī zhī míngjiào Pǔ de māo, hái yǒu yī zhī jiào Àolì de māo. Gǒu hěn yōuxiù, mǎ hěn gāo. Xièxiè nǐ de qīngtīng. Gǎnxiè nǐ lái dào zhège měihǎo de rìzi. Wǒ xīwàng wèilái yīqiè dōu huì hǎo. Kè sū lǔ, kǒnglóng, huópō, liùbiānxíng, qìpào shuǐ, záshuǎ qiú. Xièxiè."
     },
     "arabic": {
-      "translated_text": "مرحبا، اسمي جون ماثيس. سعيد بلقائك. 1، 2، 3، 4، 5، أزرق، أخضر، أحمر، كلب، قطة، بقرة، طائر. شكراً ووداعاً.",
+      "translated_text": "مرحبًا، أنا أقول كلمات إلى ميكروفون. اسمي جون ماثيس بدون حرف H وبتين T في ماثيس. واحد، اثنان، ثلاثة، أربعة، خمسة، ستة، سبعة، ثمانية، تسعة. ولدي قطة اسمها بوه وواحدة أخرى اسمها أولي. والكلاب جيدة والخيول طويلة. شكرًا لاستماعك. شكرًا لمجيئك إلى هذا اليوم الرائع. وآمل أن يكون كل شيء جيدًا في المستقبل أيضًا. كذيل، ديناصور، نابض، مسدس، ماء متلألئ، كرات ملهى. شكرًا.",
       "translated_language": "ARABIC_LEVANTINE",
       "romanization_method": "ALA-LC",
-      "romanized_text": "Marhaban, ismi Jun Mathis. Sa'eed biliqā'ik. 1, 2, 3, 4, 5, azraq, akhḍar, aḥmar, kalb, qiṭṭa, baqara, ṭā'ir. Shukran wa wada'an."
+      "romanized_text": "Marḥabā, anā aqūl kalimāt ilá mīkrūfōn. Ismī Jūn Māthīs bidūn Ḥarf H wa-bitnā T fī Māthīs. Wāḥid, ithnān, thalātha, arbaʿa, khamsa, sitta, sabʿa, thamāniya, tisʿa. Wa-ladī qittā ismuha Būh w-wāḥida uḫra ismuha Ūlī. Wa-l-kilāb jayyida w-l-khayūl ṭawīla. Shukrān li-isṭimāʿak. Shukrān li-majīʾak ilá hādhā al-yawm al-rāʾiʿ. Wa-amal an yakūn kull shayʾ jayyidan fī al-mustaqbal ayḍan. Kadhīlu, dīnāṣūr, nābiḍ, musaddis, māʾ mutalaʾil, kurāt malhā. Shukrān."
     }
   },
   "segments": [
     {
-      "original_text": " Hello, my name is John Mathis. Nice to meet you. 1, 2, 3, 4, 5, blue, green, red, dog, cat, cow, bird. Thank you and goodbye.",
+      "original_text": " Hello, I'm saying words to the microphone. My name is John Mathis with no H and two T's in Mathis.",
       "translations": {
         "spanish": {
-          "translated_text": "Hola, mi nombre es John Mathis. Encantado de conocerte. 1, 2, 3, 4, 5, azul, verde, rojo, perro, gato, vaca, pájaro. Gracias y adiós.",
+          "translated_text": "Hola, estoy diciendo palabras al micrófono. Mi nombre es John Mathis, sin H y con dos T en Mathis.",
           "translated_language": "SPANISH",
           "romanization_method": "NONE",
-          "romanized_text": "NOT-TRANSLATED-YET"
+          "romanized_text": ""
         },
         "chinese": {
-          "translated_text": "你好，我的名字是约翰·马蒂斯。很高兴见到你。 1, 2, 3, 4, 5，蓝色，绿色，红色，狗，猫，牛，鸟。谢谢，再见。",
+          "translated_text": "你好，我在麦克风前说话。我的名字是约翰·马西斯，没有H，马西斯有两个T。",
           "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
           "romanization_method": "PINYIN",
-          "romanized_text": "Nǐ hǎo, wǒ de míngzì shì Yuēhàn·Mǎdìsī. Hěn gāoxìng jiàn dào nǐ. 1, 2, 3, 4, 5, lán sè, lǜ sè, hóng sè, gǒu, māo, niú, niǎo. Xièxiè, zàijiàn."
+          "romanized_text": "Nǐ hǎo, wǒ zài mài kè fēng qián shuōhuà. Wǒ de míngzì shì Yuēhàn Mǎxīsī, méiyǒu H, Mǎxīsī yǒu liǎng gè T."
         },
         "arabic": {
-          "translated_text": "مرحبا، اسمي جون ماثيس. سعيد بلقائك. 1، 2، 3، 4، 5، أزرق، أخضر، أحمر، كلب، قطة، بقرة، طائر. شكراً ووداعاً.",
+          "translated_text": "مرحبًا، أنا أقول كلمات إلى ميكروفون. اسمي جون ماثيس بدون حرف H وبتين T في ماثيس.",
           "translated_language": "ARABIC_LEVANTINE",
           "romanization_method": "ALA-LC",
-          "romanized_text": "Marhaban, ismi Jun Mathis. Sa'eed biliqā'ik. 1, 2, 3, 4, 5, azraq, akhḍar, aḥmar, kalb, qiṭṭa, baqara, ṭā'ir. Shukran wa wada'an."
+          "romanized_text": "Marḥabā, anā aqūl kalimāt ilá mīkrūfōn. Ismī Jūn Māthīs bidūn Ḥarf H wa-bitnā T fī Māthīs."
         }
       },
       "start": 0.0,
       "end": 8.58
+    },
+    {
+      "original_text": " 1, 2, 3, 4, 5, 6, 7, 8, 9.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "1，2，3，4，5，6，7，8，9。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "1, 2, 3, 4, 5, 6, 7, 8, 9."
+        },
+        "arabic": {
+          "translated_text": "واحد، اثنان، ثلاثة، أربعة، خمسة، ستة، سبعة، ثمانية، تسعة.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Wāḥid, ithnān, thalātha, arbaʿa, khamsa, sitta, sabʿa, thamāniya, tisʿa."
+        }
+      },
+      "start": 9.66,
+      "end": 13.34
+    },
+    {
+      "original_text": " And I have a cat named Pooh and another one named Ollie.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Y tengo un gato llamado Pooh y otro llamado Ollie.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "我有一只名叫普的猫，还有一只叫奥利的猫。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "Wǒ yǒu yī zhī míngjiào Pǔ de māo, hái yǒu yī zhī jiào Àolì de māo."
+        },
+        "arabic": {
+          "translated_text": "ولدي قطة اسمها بوه وواحدة أخرى اسمها أولي.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Wa-ladī qittā ismuha Būh w-wāḥida uḫra ismuha Ūlī."
+        }
+      },
+      "start": 15.16,
+      "end": 19.16
+    },
+    {
+      "original_text": " And dogs are good and horses are tall.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Y los perros son buenos y los caballos son altos.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "狗很优秀，马很高。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "Gǒu hěn yōuxiù, mǎ hěn gāo."
+        },
+        "arabic": {
+          "translated_text": "والكلاب جيدة والخيول طويلة.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Wa-l-kilāb jayyida w-l-khayūl ṭawīla."
+        }
+      },
+      "start": 20.04,
+      "end": 24.98
+    },
+    {
+      "original_text": " Thank you for listening. Thank you for coming to this wonderful day.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Gracias por escuchar. Gracias por venir a este día maravilloso.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "谢谢你的倾听。感谢你来到这个美好的日子。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "Xièxiè nǐ de qīngtīng. Gǎnxiè nǐ lái dào zhège měihǎo de rìzi."
+        },
+        "arabic": {
+          "translated_text": "شكرًا لاستماعك. شكرًا لمجيئك إلى هذا اليوم الرائع.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Shukrān li-isṭimāʿak. Shukrān li-majīʾak ilá hādhā al-yawm al-rāʾiʿ."
+        }
+      },
+      "start": 24.98,
+      "end": 31.96
+    },
+    {
+      "original_text": " And I hope that everything will be good in the future too.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Y espero que todo esté bien en el futuro también.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "我希望未来一切都会好。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "Wǒ xīwàng wèilái yīqiè dōu huì hǎo."
+        },
+        "arabic": {
+          "translated_text": "وآمل أن يكون كل شيء جيدًا في المستقبل أيضًا.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Wa-amal an yakūn kull shayʾ jayyidan fī al-mustaqbal ayḍan."
+        }
+      },
+      "start": 33.16,
+      "end": 38.26
+    },
+    {
+      "original_text": " Cthulhu, dinosaur, vibrant, hexagon, sparkling water, juggling balls.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Cthulhu, dinosaurio, vibrante, hexágono, agua chispeante, pelotas de malabarismo.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "克苏鲁，恐龙，活泼，六边形，气泡水，杂耍球。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "Kè sū lǔ, kǒnglóng, huópō, liùbiānxíng, qìpào shuǐ, záshuǎ qiú."
+        },
+        "arabic": {
+          "translated_text": "كذيل، ديناصور، نابض، مسدس، ماء متلألئ، كرات ملهى.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Kadhīlu, dīnāṣūr, nābiḍ, musaddis, māʾ mutalaʾil, kurāt malhā."
+        }
+      },
+      "start": 39.67999999999999,
+      "end": 52.3
+    },
+    {
+      "original_text": " Thank you.",
+      "translations": {
+        "spanish": {
+          "translated_text": "Gracias.",
+          "translated_language": "SPANISH",
+          "romanization_method": "NONE",
+          "romanized_text": ""
+        },
+        "chinese": {
+          "translated_text": "谢谢。",
+          "translated_language": "CHINESE_MANDARIN_SIMPLIFIED",
+          "romanization_method": "PINYIN",
+          "romanized_text": "Xièxiè."
+        },
+        "arabic": {
+          "translated_text": "شكرًا.",
+          "translated_language": "ARABIC_LEVANTINE",
+          "romanization_method": "ALA-LC",
+          "romanized_text": "Shukrān."
+        }
+      },
+      "start": 54.98,
+      "end": 55.52
     }
   ]
 }

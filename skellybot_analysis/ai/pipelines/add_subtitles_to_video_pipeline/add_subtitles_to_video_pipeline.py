@@ -45,8 +45,9 @@ def annotate_video_with_highlighted_words(video_path: str,
 
 
 async def run_video_subtitle_pipeline():
-    video_path = r'auto_subtitler_test_video.mp4'
-    output_path = r'auto_subtitler_test_output.mp4'
+    video_name = 'auto_subtitler_test_video_longer'
+    video_path = f'{video_name}.mp4'
+    output_path = video_path.replace('.mp4', '_subtitled.mp4')
 
 
     if not Path(video_path).exists():
@@ -55,7 +56,7 @@ async def run_video_subtitle_pipeline():
         raise ValueError(f"Path is not a file: {video_path}")
 
     translation_result = await translate_video(video_path=video_path)
-
+    Path(video_path.replace('.mp4', '_translation.json')).write_text(translation_result.model_dump_json(indent=4), encoding='utf-8')
 
     annotate_video_with_highlighted_words(video_path,
                                           translation_result,

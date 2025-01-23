@@ -31,5 +31,4 @@ async def translate_transcription_result(initialized_translated_transcript_objec
 
     if verbose:
         print(f"transcript_translation_ai_result=\n{translated_transcript.model_dump_json(indent=2)}")
-    Path("transcript_translation_ai_result.json").write_text(translated_transcript.model_dump_json(indent=2), encoding="utf-8")
     return translated_transcript
