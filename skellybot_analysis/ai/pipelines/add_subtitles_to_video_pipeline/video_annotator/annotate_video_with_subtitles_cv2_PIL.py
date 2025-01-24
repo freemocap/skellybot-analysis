@@ -1,22 +1,71 @@
 import logging
-import os
+import re
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 import cv2
 import jieba
-import numpy as np
 from PIL import Image, ImageFont, ImageDraw
 from arabic_reshaper import arabic_reshaper
 from bidi.algorithm import get_display
 from tqdm import tqdm
 
+from skellybot_analysis.ai.pipelines.add_subtitles_to_video_pipeline.video_annotator.video_reader_writer_methods import \
+    create_video_reader_and_writer, write_frame_to_video_file, finish_video_and_attach_audio_from_original
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.language_models import LanguageNames
-from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.transcribe_video import \
-    scrape_and_save_audio_from_video
 from skellybot_analysis.ai.pipelines.translate_transcript_pipeline.translated_transcript_model import \
-    TranslatedTranscription
+    TranslatedTranscription, TranslatedTranscriptSegmentWithWords, TranslatedWhisperWordTimestamp
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class LanguageAnnotationConfig:
+    language_name: LanguageNames
+    font_path: str
+    font_size: int
+    buffer_size: int
+    color: tuple[int, int, int]
+    language_start_y: Callable[[int], int]
+    language_font: ImageFont = None
+
+    def __post_init__(self):
+        if not Path(self.font_path).exists():
+            raise FileNotFoundError(f"Font not found: {self.font_path}")
+        self.language_font = ImageFont.truetype(self.font_path, self.font_size)
+
+
+FONT_BASE_PATH = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts"
+LANGUAGE_ANNOTATION_CONFIGS = {
+    LanguageNames.ENGLISH: LanguageAnnotationConfig(language_name=LanguageNames.ENGLISH,
+                                                    font_path=str(FONT_BASE_PATH / "ARIAL.TTF"),
+                                                    color=(27, 158, 119),
+                                                    font_size=48,
+                                                    language_start_y=lambda video_height: 0,
+                                                    buffer_size=100),
+    LanguageNames.SPANISH: LanguageAnnotationConfig(language_name=LanguageNames.SPANISH,
+                                                    font_path=str(FONT_BASE_PATH / "ARIAL.TTF"),
+                                                    font_size=48,
+                                                    color=(217, 95, 2),
+                                                    language_start_y=lambda video_height: int(video_height // 6),
+                                                    buffer_size=100),
+    LanguageNames.CHINESE_MANDARIN_SIMPLIFIED: LanguageAnnotationConfig(
+        language_name=LanguageNames.CHINESE_MANDARIN_SIMPLIFIED,
+        font_path=str(FONT_BASE_PATH / "NotoSerifCJKsc-VF-Simplified-Chinese.ttf"),
+        font_size=48,
+        color=(117, 112, 179),
+        language_start_y=lambda video_height: int(video_height // 3),
+        buffer_size=100),
+    LanguageNames.ARABIC_LEVANTINE: LanguageAnnotationConfig(language_name=LanguageNames.ARABIC_LEVANTINE,
+                                                             font_path=str(
+                                                                 FONT_BASE_PATH / "NotoKufiArabic-Regular.otf"),
+                                                             color=(231, 41, 138),
+                                                             font_size=48,
+                                                             language_start_y=lambda video_height: int(
+                                                                 video_height // 1.35),
+                                                             buffer_size=100),
+}
 
 
 def create_multiline_text_chinese(text: str, font: ImageFont, screen_width: int, buffer: int) -> str:
@@ -35,6 +84,8 @@ def create_multiline_text_chinese(text: str, font: ImageFont, screen_width: int,
             current_line = word
     lines.append(current_line)
     return '\n'.join(lines)
+
+
 def create_multiline_text(text: str, font: ImageFont, screen_width: int, buffer: int) -> str:
     """
     Break a long string into multiple lines of text that fit within the screen width by inserting `\n` characters
@@ -59,75 +110,19 @@ def create_multiline_text(text: str, font: ImageFont, screen_width: int, buffer:
     return '\n'.join(lines)
 
 
-def finish_video_and_attach_audio_from_original(original_video_path: str,
-                                                no_audio_video_path: str,
-                                                subtitled_video_path: str) -> None:
-    # Save the audio from the original video to a wav file (if it doesn't already exist)
-    original_audio_path = original_video_path.replace('.mp4', '.wav')
-    if not Path(original_audio_path).exists():
-        scrape_and_save_audio_from_video(original_video_path, original_audio_path)
+def annotate_video_with_highlighted_words(video_path: str,
+                                          transcription_result: TranslatedTranscription,
+                                          subtitled_video_path: str,
+                                          show_while_annotating: bool = True
+                                          ) -> None:
+    (no_audio_video_path,
+     video_height,
+     video_reader,
+     video_width,
+     video_writer) = create_video_reader_and_writer(
+        subtitled_video_path, video_path)
 
-    # Compress and combine the audio from the original video with the annotated video
-    command = (
-        f"ffmpeg -y -i {no_audio_video_path} -i {original_audio_path} "
-        f"-c:v libx264 -crf 23 -preset fast -c:a aac -strict experimental "
-        f"{subtitled_video_path}"
-    )
-    logger.info(f"Combining and compressing video and audio with ffmpeg command - {command}")
-    os.system(command)
-
-    # Delete the no-audio temporary video file
-    try:
-        os.remove(no_audio_video_path)
-        logger.info(f"Deleted temporary no-audio video file: {no_audio_video_path}")
-    except OSError as e:
-        logger.error(f"Error deleting temporary video file {no_audio_video_path}: {e}")
-
-
-def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
-                                                  transcription_result: TranslatedTranscription,
-                                                  subtitled_video_path: str,
-                                                  show_while_annotating: bool = True
-                                                  ) -> None:
-    # Load the video
-    if not Path(video_path).exists() or not Path(video_path).is_file():
-        raise FileNotFoundError(f"File not found: {video_path}")
-    video_reader = cv2.VideoCapture(video_path)
-    video_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
-    video_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    video_resolution = (video_width, video_height)
-    video_framerate = video_reader.get(cv2.CAP_PROP_FPS)
     video_number_of_frames = int(video_reader.get(cv2.CAP_PROP_FRAME_COUNT))
-
-    Path(subtitled_video_path).parent.mkdir(parents=True, exist_ok=True)
-    if not subtitled_video_path.endswith('.mp4'):
-        raise ValueError(f"Output path must end with .mp4: {subtitled_video_path}")
-    no_audio_video_path = subtitled_video_path.replace('.mp4', '_no_audio.mp4')
-
-    video_writer = cv2.VideoWriter(no_audio_video_path, cv2.VideoWriter_fourcc(*'x264'), video_framerate,
-                                   video_resolution)
-    if not video_writer.isOpened():
-        raise ValueError(f"Failed to open video writer: {subtitled_video_path}")
-    font_size = 48
-    buffer_size = 100
-
-    # font path
-    english_font_path = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts/ARIAL.TTF"
-    chinese_font_path = Path(
-        __file__).parent.parent.parent.parent.parent.parent / "fonts/NotoSerifCJKsc-VF-Simplified-Chinese.ttf"
-    arabic_font_path = Path(__file__).parent.parent.parent.parent.parent.parent / "fonts/NotoKufiArabic-Regular.otf"
-    font_paths = {'english': english_font_path,
-                  'spanish': english_font_path,
-                  'chinese_mandarin_simplified': chinese_font_path,
-                  'arabic_levantine': arabic_font_path,
-                  }
-    fonts_by_language = {}
-    for language_name, font_path in font_paths.items():
-        if not font_path.exists() or not font_path.is_file():
-            raise FileNotFoundError(f"Font not found: {font_path}")
-
-        fonts_by_language[language_name.lower()] = ImageFont.truetype(str(font_path), font_size)
-
     try:
         # Go through each frame of the video and annotate it with the translated words based on their timestamps
         for frame_number in tqdm(range(video_number_of_frames), desc="Annotating video with subtitles",
@@ -146,24 +141,14 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
             image_annotator = ImageDraw.Draw(pil_image)
 
             current_segment, current_word = transcription_result.get_segment_and_word_at_timestamp(frame_timestamp)
-            for language_name, color in [(LanguageNames.ENGLISH.value, (27,158,119)),
-                                         (LanguageNames.SPANISH.value, (217, 95, 2)),
-                                  (LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value, (117, 112, 179)),
-                                  (LanguageNames.ARABIC_LEVANTINE.value, (231, 41, 138))]:
-                language_font = fonts_by_language[language_name.lower()]
-                multiline_y_start = get_y_start_by_language(language_name, video_height)
+            highlighted_current_segment, highlighted_current_word = highlight_current_word(segment= current_segment, word= current_word)
+            for language_name, config in LANGUAGE_ANNOTATION_CONFIGS.items():
 
-                segment_text = current_segment.get_text_by_language(language_name)
-                romanized_text = None
-                if '\n' in segment_text:
-                    segment_text, romanized_text = segment_text.split('\n')
-                # Handle Arabic text reshaping
-                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
-                    reshaped_text = arabic_reshaper.reshape(segment_text)
-                    segment_text = get_display(reshaped_text)
+                multiline_y_start = config.language_start_y(video_height)
 
-                word_text = current_word.get_word_by_language(language_name)
-                segment_words = segment_text.split()
+                segment_text, romanized_segment_text = current_segment.get_text_by_language(language_name)
+
+                current_word_text, current_word_romanized_text = current_word.get_word_by_language(language_name)
 
                 # Arabic text reshaping and display
                 if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
@@ -172,74 +157,29 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
                 else:
                     segment_text_display = segment_text
 
-                # Word highlighting logic adjustment
-                highlighted_segment_words = []
-                if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
-                    # Use jieba cut words for highlighting
-                    segment_words = list(jieba.cut(segment_text_display))
-                    for word in segment_words:
-                        if word.strip() in word_text.strip():
-                            highlighted_segment_words.append(f"[{word}]")
-                        else:
-                            highlighted_segment_words.append(word)
-                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
-                    # Use space-split words for Arabic text
-                    segment_words = segment_text_display.split()
-                    for word in segment_words:
-                        if word.strip() in word_text.strip():
-                            highlighted_segment_words.append(f"[{word}]")
-                        else:
-                            highlighted_segment_words.append(word)
-                else:
-                    # Use space-split words for other languages
-                    segment_words = segment_text_display.split()
-                    for word in segment_words:
-                        if word_text.strip() in word.strip():
-                            highlighted_segment_words.append(f"[{word}]")
-                        else:
-                            highlighted_segment_words.append(word)
-
-                highlighted_segment_text = ' '.join(highlighted_segment_words)
-
+                highlighted_segment_text = highlight_current_word(current_word_text, language_name,
+                                                                  segment_text_display)
 
                 if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
-                    multiline_text = create_multiline_text_chinese(highlighted_segment_text, language_font, video_width,
-                                                                   buffer_size)
+                    multiline_text = create_multiline_text_chinese(highlighted_segment_text, config.language_font,
+                                                                   video_width,
+                                                                   config.buffer_size)
                 else:
-                    multiline_text = create_multiline_text(highlighted_segment_text, language_font, video_width,
-                                                           buffer_size)
+                    multiline_text = create_multiline_text(highlighted_segment_text, config.language_font, video_width,
+                                                           config.buffer_size)
 
                 # Reverse lines for Arabic text to render correctly
                 if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
                     lines = multiline_text.split('\n')
                     multiline_text = '\n'.join(reversed(lines))
-                number_of_lines = multiline_text.count('\n') + 1
-                # Annotate the frame with the current segment using PIL
-                image_annotator.multiline_text(xy=(buffer_size, multiline_y_start),
-                                               text=multiline_text,
-                                               fill=color,
-                                               stroke_width=3,
-                                               stroke_fill=(0, 0, 0),
-                                               font=language_font)
 
-                if romanized_text:
-                    multiline_text = create_multiline_text(romanized_text,
-                                                           fonts_by_language[LanguageNames.ENGLISH.value.lower()],
-                                                           video_width,
-                                                           buffer_size)
-                    image_annotator.multiline_text(xy=(buffer_size, multiline_y_start + language_font.size * number_of_lines*1.5),
-                                                   text=multiline_text,
-                                                   fill=color,
-                                                   stroke_width=3,
-                                                   stroke_fill=(0, 0, 0),
-                                                   font=fonts_by_language[LanguageNames.ENGLISH.value.lower()])
-            # Convert the annotated image back to a cv2 image and write it to the video
-            image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-            if not video_writer.isOpened():
-                raise ValueError(f"Video writer is not open: {subtitled_video_path}")
-            video_writer.write(image)
-            if not video_writer.isOpened():
-                raise ValueError(f"Video writer is not open: {subtitled_video_path}")
+                number_of_lines = multiline_text.count('\n') + 1
+
+                annotate_image_with_subtitles(config, image_annotator, multiline_text, multiline_y_start,
+                                              number_of_lines, romanized_segment_text, video_width)
+
+            image = write_frame_to_video_file(pil_image=pil_image,
+                                              video_writer=video_writer)
 
             if show_while_annotating:
                 max_length = 720
@@ -260,15 +200,72 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
         cv2.destroyAllWindows()
 
 
-def get_y_start_by_language(language_name, video_height):
-    if language_name == LanguageNames.ENGLISH.value:
-        multiline_y_start = 0
-    elif language_name == LanguageNames.SPANISH.value:
-        multiline_y_start = video_height // 6
-    elif language_name == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value:
-        multiline_y_start = video_height // 3
-    elif language_name == LanguageNames.ARABIC_LEVANTINE.value:
-        multiline_y_start = video_height // 1.35
+def annotate_image_with_subtitles(config: LanguageAnnotationConfig,
+                                  image_annotator: ImageDraw,
+                                  multiline_text: str,
+                                  multiline_y_start: int,
+                                  number_of_lines: int,
+                                  romanized_segment_text: str,
+                                  video_width: int) -> None:
+    # Annotate the frame with the current segment using PIL
+    image_annotator.multiline_text(xy=(config.buffer_size, multiline_y_start),
+                                   text=multiline_text,
+                                   fill=config.color,
+                                   stroke_width=3,
+                                   stroke_fill=(0, 0, 0),
+                                   font=config.language_font)
+    if romanized_segment_text:
+        multiline_text = create_multiline_text(romanized_segment_text,
+                                               config.language_font,
+                                               video_width,
+                                               config.buffer_size)
+        image_annotator.multiline_text(
+            xy=(config.buffer_size, multiline_y_start + config.language_font.size * number_of_lines * 1.5),
+            text=multiline_text,
+            fill=config.color,
+            stroke_width=3,
+            stroke_fill=(0, 0, 0),
+            font=config.language_font)
+
+
+def highlight_current_word(segment:TranslatedTranscriptSegmentWithWords, word:TranslatedWhisperWordTimestamp) -> tuple[str, str]:
+    """Highlight the current word in the segment text, ignoring punctuation."""
+
+    # Define a helper function to strip punctuation
+    def strip_punctuation(text: str) -> str:
+        return re.sub(r'[^\w\s]', '', text)
+
+    highlighted_segment_words = []
+    if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
+        # Use jieba cut words for highlighting
+        segment_words = list(jieba.cut(segment_text_display))
+        stripped_current_word_text = strip_punctuation(current_word_text)
+        for word in segment_words:
+            stripped_word = strip_punctuation(word)
+            if stripped_word in stripped_current_word_text:
+                highlighted_segment_words.append(f"[{word}]")
+            else:
+                highlighted_segment_words.append(word)
+    elif language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+        # Use space-split words for Arabic text
+        segment_words = segment_text_display.split()
+        stripped_current_word_text = strip_punctuation(current_word_text)
+        for word in segment_words:
+            stripped_word = strip_punctuation(word)
+            if stripped_word in stripped_current_word_text:
+                highlighted_segment_words.append(f"[{word}]")
+            else:
+                highlighted_segment_words.append(word)
     else:
-        raise ValueError(f"Unsupported language name: {language_name}")
-    return multiline_y_start
+        # Use space-split words for other languages
+        segment_words = segment_text_display.split()
+        stripped_current_word_text = strip_punctuation(current_word_text)
+        for word in segment_words:
+            stripped_word = strip_punctuation(word)
+            if stripped_current_word_text in stripped_word:
+                highlighted_segment_words.append(f"[{word}]")
+            else:
+                highlighted_segment_words.append(word)
+
+    highlighted_segment_text = ' '.join(highlighted_segment_words)
+    return highlighted_segment_text
