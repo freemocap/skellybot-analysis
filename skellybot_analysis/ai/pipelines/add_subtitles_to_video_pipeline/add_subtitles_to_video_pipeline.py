@@ -40,6 +40,6 @@ async def get_video_and_output_paths(video_name: str) -> tuple[str, str, str]:
 
 if __name__ == '__main__':
     import asyncio
-    # outer_video_name = str(Path("sample_data/sample_video_short/sample_video_short").resolve())
-    outer_video_name = str(Path("sample_data/sample_video_long/sample_video_long").resolve())
+    outer_video_name = str(Path("sample_data/sample_video_short/sample_video_short").resolve())
+    # outer_video_name = str(Path("sample_data/sample_video_long/sample_video_long").resolve())
     asyncio.run(run_video_subtitle_pipeline(video_name=outer_video_name))

@@ -164,9 +164,44 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
 
                 word_text = current_word.get_word_by_language(language_name)
                 segment_words = segment_text.split()
-                highlighted_segment_words = [f"[{word}]" if word_text.strip() in word.strip() else word for word in
-                                             segment_words]
+
+                # Arabic text reshaping and display
+                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+                    reshaped_text = arabic_reshaper.reshape(segment_text)
+                    segment_text_display = get_display(reshaped_text)
+                else:
+                    segment_text_display = segment_text
+
+                # Word highlighting logic adjustment
+                highlighted_segment_words = []
+                if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
+                    # Use jieba cut words for highlighting
+                    segment_words = list(jieba.cut(segment_text_display))
+                    for word in segment_words:
+                        if word.strip() in word_text.strip():
+                            highlighted_segment_words.append(f"[{word}]")
+                        else:
+                            highlighted_segment_words.append(word)
+                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+                    # Use space-split words for Arabic text
+                    segment_words = segment_text_display.split()
+                    for word in segment_words:
+                        if word.strip() in word_text.strip():
+                            highlighted_segment_words.append(f"[{word}]")
+                        else:
+                            highlighted_segment_words.append(word)
+                else:
+                    # Use space-split words for other languages
+                    segment_words = segment_text_display.split()
+                    for word in segment_words:
+                        if word_text.strip() in word.strip():
+                            highlighted_segment_words.append(f"[{word}]")
+                        else:
+                            highlighted_segment_words.append(word)
+
                 highlighted_segment_text = ' '.join(highlighted_segment_words)
+
+
                 if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
                     multiline_text = create_multiline_text_chinese(highlighted_segment_text, language_font, video_width,
                                                                    buffer_size)
