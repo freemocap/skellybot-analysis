@@ -227,7 +227,7 @@ def annotate_video_with_highlighted_words_cv2_PIL(video_path: str,
                                                            fonts_by_language[LanguageNames.ENGLISH.value.lower()],
                                                            video_width,
                                                            buffer_size)
-                    image_annotator.multiline_text(xy=(buffer_size, multiline_y_start + font_size*number_of_lines*2),
+                    image_annotator.multiline_text(xy=(buffer_size, multiline_y_start + language_font.size * number_of_lines*1.5),
                                                    text=multiline_text,
                                                    fill=color,
                                                    stroke_width=3,
@@ -268,7 +268,7 @@ def get_y_start_by_language(language_name, video_height):
     elif language_name == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value:
         multiline_y_start = video_height // 3
     elif language_name == LanguageNames.ARABIC_LEVANTINE.value:
-        multiline_y_start = video_height // 1.5
+        multiline_y_start = video_height // 1.35
     else:
         raise ValueError(f"Unsupported language name: {language_name}")
     return multiline_y_start
