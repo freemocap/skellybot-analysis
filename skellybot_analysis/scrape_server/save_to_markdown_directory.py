@@ -95,8 +95,8 @@ def save_server_data_as_markdown_directory(server_data: ServerData,
                                            user_data: UserDataManager,
                                            tag_data: TagManager,
                                            output_directory: str):
-    directory_path = Path(output_directory)
-    save_path = directory_path / "markdown"
+    save_path = Path(output_directory)
+
     save_path.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving server data as markdown to {save_path}")
 

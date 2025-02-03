@@ -26,8 +26,11 @@ async def process_server_data():
 
     server_data, user_data, tag_data = await run_ai_analysis(server_data)
 
-    await save_ai_analyzed_jsons(output_directory, server_data, server_data_json_path, tag_data,
-                                 user_data)
+    await save_ai_analyzed_jsons(output_directory = str(Path(output_directory) /"json_data"),
+                                 server_data = server_data,
+                                 server_data_json_path = server_data_json_path,
+                                 tag_data = tag_data,
+                                 user_data = user_data)
 
     save_server_data_as_markdown_directory(server_data=server_data,
                                            user_data=user_data,
@@ -42,7 +45,7 @@ async def save_ai_analyzed_jsons(output_directory: str,
                                  server_data_json_path: str,
                                  tag_data: TagManager,
                                  user_data: UserDataManager):
-    ai_output_directory = Path(output_directory) / 'ai_analysis'
+    ai_output_directory = Path(output_directory)
     ai_output_directory.mkdir(parents=True, exist_ok=True)
     og_server_data_json_name = Path(server_data_json_path).name
 

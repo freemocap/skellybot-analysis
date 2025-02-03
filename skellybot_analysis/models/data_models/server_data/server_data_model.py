@@ -124,6 +124,8 @@ class ServerData(DataObjectModel):
         user_threads = {}
 
         for thread in self.get_chat_threads():
+            if "assignments" not in thread.context_route.category_name.lower():
+                continue
             for message in thread.messages:
                 if message.author_id in EXCLUDED_USER_IDS:
                     continue

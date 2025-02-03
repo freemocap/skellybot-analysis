@@ -31,7 +31,7 @@ async def run_server_scraper(discord_client: discord.Client,
     dated_output_directory.mkdir(parents=True, exist_ok=True)
     server_stats_json_path = dated_output_directory / f"{dated_server_str}_server_stats.json"
     server_stats_json_path.write_text(server_data.stats.model_dump_json(indent=2), encoding='utf-8')
-    raw_output_directory = dated_output_directory / "raw_data"
+    raw_output_directory = dated_output_directory / "json_data"
     raw_output_directory.mkdir(parents=True, exist_ok=True)
     server_data_json_path = raw_output_directory / f"{dated_server_str}_server_data.json"
     graph_data_json_path = Path(__file__).parent / 'docs' / 'datasets' / f"{dated_server_str}_graph_data.json"
