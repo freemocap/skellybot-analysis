@@ -20,6 +20,6 @@ def kill_process_on_port(port: int):
 
 
 if __name__ == "__main__":
-from skellybot_analysis.api.server.server_constants import PORT
+    from skellybot_analysis.api.server.server_constants import PORT
 
     kill_process_on_port(PORT)
