@@ -141,42 +141,42 @@ def annotate_video_with_highlighted_words(video_path: str,
             image_annotator = ImageDraw.Draw(pil_image)
 
             current_segment, current_word = transcription_result.get_segment_and_word_at_timestamp(frame_timestamp)
-            highlighted_current_segment, highlighted_current_word = highlight_current_word(segment= current_segment, word= current_word)
             for language_name, config in LANGUAGE_ANNOTATION_CONFIGS.items():
 
-                multiline_y_start = config.language_start_y(video_height)
+                # segment_text, romanized_segment_text = current_segment.get_text_by_language(language_name)
+                #
+                # current_word_text, current_word_romanized_text = current_word.get_word_by_language(language_name)
+                #
+                # # Arabic text reshaping and display
+                # if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+                #     reshaped_text = arabic_reshaper.reshape(segment_text)
+                #     segment_text_display = get_display(reshaped_text)
+                # else:
+                #     segment_text_display = segment_text
+                #
+                #
+                #
+                # if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
+                #     multiline_text = create_multiline_text_chinese(text=segment_text,
+                #                                                    font=config.language_font,
+                #                                                    video_width=video_width,
+                #                                                      buffer=config.buffer_size)
+                # else:
+                #     multiline_text = create_multiline_text(highlighted_segment_text, config.language_font, video_width,
+                #                                            config.buffer_size)
+                #
+                # # Reverse lines for Arabic text to render correctly
+                # if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
+                #     lines = multiline_text.split('\n')
+                #     multiline_text = '\n'.join(reversed(lines))
+                #
+                # number_of_lines = multiline_text.count('\n') + 1
 
-                segment_text, romanized_segment_text = current_segment.get_text_by_language(language_name)
-
-                current_word_text, current_word_romanized_text = current_word.get_word_by_language(language_name)
-
-                # Arabic text reshaping and display
-                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
-                    reshaped_text = arabic_reshaper.reshape(segment_text)
-                    segment_text_display = get_display(reshaped_text)
-                else:
-                    segment_text_display = segment_text
-
-                highlighted_segment_text = highlight_current_word(current_word_text, language_name,
-                                                                  segment_text_display)
-
-                if language_name.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
-                    multiline_text = create_multiline_text_chinese(highlighted_segment_text, config.language_font,
-                                                                   video_width,
-                                                                   config.buffer_size)
-                else:
-                    multiline_text = create_multiline_text(highlighted_segment_text, config.language_font, video_width,
-                                                           config.buffer_size)
-
-                # Reverse lines for Arabic text to render correctly
-                if language_name.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
-                    lines = multiline_text.split('\n')
-                    multiline_text = '\n'.join(reversed(lines))
-
-                number_of_lines = multiline_text.count('\n') + 1
-
-                annotate_image_with_subtitles(config, image_annotator, multiline_text, multiline_y_start,
-                                              number_of_lines, romanized_segment_text, video_width)
+                annotate_image_with_subtitles(config=config,
+                                              image_annotator=image_annotator,
+                                              text_to_draw= current_segment.get_text_by_language(language_name, display_text=True),
+                                              multiline_y_start= config.language_start_y(video_height),
+                                              video_width=video_width)
 
             image = write_frame_to_video_file(pil_image=pil_image,
                                               video_writer=video_writer)
@@ -202,26 +202,28 @@ def annotate_video_with_highlighted_words(video_path: str,
 
 def annotate_image_with_subtitles(config: LanguageAnnotationConfig,
                                   image_annotator: ImageDraw,
-                                  multiline_text: str,
+                                  text_to_draw: tuple[str, str|None],
                                   multiline_y_start: int,
-                                  number_of_lines: int,
-                                  romanized_segment_text: str,
                                   video_width: int) -> None:
+
+    translated_text, romanized_text = text_to_draw
+
+
     # Annotate the frame with the current segment using PIL
     image_annotator.multiline_text(xy=(config.buffer_size, multiline_y_start),
-                                   text=multiline_text,
+                                   text=text_to_draw,
                                    fill=config.color,
                                    stroke_width=3,
                                    stroke_fill=(0, 0, 0),
                                    font=config.language_font)
     if romanized_segment_text:
-        multiline_text = create_multiline_text(romanized_segment_text,
-                                               config.language_font,
-                                               video_width,
-                                               config.buffer_size)
+        text_to_draw = create_multiline_text(romanized_segment_text,
+                                             config.language_font,
+                                             video_width,
+                                             config.buffer_size)
         image_annotator.multiline_text(
             xy=(config.buffer_size, multiline_y_start + config.language_font.size * number_of_lines * 1.5),
-            text=multiline_text,
+            text=text_to_draw,
             fill=config.color,
             stroke_width=3,
             stroke_fill=(0, 0, 0),

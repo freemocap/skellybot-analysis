@@ -1,3 +1,5 @@
+from arabic_reshaper import arabic_reshaper
+from bidi import get_display
 from pydantic import BaseModel, Field
 
 from skellybot_analysis.ai.audio_transcription.whisper_transcript_result_full_model import \
@@ -108,7 +110,9 @@ class TranslatedTranscriptSegmentWithoutWords(BaseModel):
         return {"original_text": self.original_segment_text,
                 **self.translations.model_dump()}
 
-    def get_text_by_language(self, language: LanguageNameString) -> tuple[str, str|None]:
+    def get_text_by_language(self,
+                             language: LanguageNameString,
+                             display_text:bool=True) -> tuple[str, str|None]:
         if language.lower() == LanguageNames.ENGLISH.value.lower() or language.lower() == "original_text" or language.lower() == "original_word" or language.lower() == "original":
             return self.original_segment_text, None
         if language.lower() == LanguageNames.SPANISH.value.lower():
@@ -116,7 +120,12 @@ class TranslatedTranscriptSegmentWithoutWords(BaseModel):
         if language.lower() == LanguageNames.CHINESE_MANDARIN_SIMPLIFIED.value.lower():
             return self.translations.chinese.translated_text , self.translations.chinese.romanized_text
         if language.lower() == LanguageNames.ARABIC_LEVANTINE.value.lower():
-            return self.translations.arabic.translated_text , self.translations.arabic.romanized_text
+            arabic_text = self.translations.arabic.translated_text
+            if display_text:
+                # re-arrange the arabic text so it displays correctly in this L2R world
+                reshaped_text = arabic_reshaper.reshape(arabic_text)
+                arabic_text = get_display(reshaped_text)
+            return  arabic_text, self.translations.arabic.romanized_text
         else:
             raise ValueError(f"Language {language} not found in the translations collection.")
 
