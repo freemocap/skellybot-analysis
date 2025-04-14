@@ -4,20 +4,17 @@ import os
 import platform
 import subprocess
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
-from skellybot_analysis.configure_logging import configure_logging
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 
-configure_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -52,13 +49,13 @@ def open_file_path(path: str) -> None:
         raise
 
 
-def create_dataframes(server_data: ServerData) -> Dict[str, Dict[str, pd.DataFrame]]:
+def create_dataframes(server_data: ServerData) -> dict[str, dict[str, pd.DataFrame]]:
     logger.info(f"Creating DataFrames for 3D visualization for server named {server_data.name}")
     data_types = {
         'by_chats': server_data.get_chat_threads(),
         'by_categories': server_data.get_categories(),
         'by_channels': server_data.get_channels(),
-        'by_users': server_data.extract_user_data(assignments_channel_only=True)
+        'by_users': list(server_data.extract_user_data(assignments_channel_only=True).users.values())
     }
 
     dfs = {}
@@ -112,7 +109,7 @@ def create_dataframes(server_data: ServerData) -> Dict[str, Dict[str, pd.DataFra
     return dfs
 
 
-def create_dash_app(dfs: Dict[str, Dict[str, pd.DataFrame]],
+def create_dash_app(dfs: dict[str, dict[str, pd.DataFrame]],
                     save_html_path: str) -> Dash:
     logger.info("Creating Dash app for 3D visualization")
     app = Dash(__name__)
@@ -196,7 +193,7 @@ def create_dash_app(dfs: Dict[str, Dict[str, pd.DataFrame]],
     return app
 
 
-def save_dataframes_to_json(dfs: Dict[str, Dict[str, pd.DataFrame]], file_path: str) -> None:
+def save_dataframes_to_json(dfs: dict[str, dict[str, pd.DataFrame]], file_path: str) -> None:
     # Convert each DataFrame to a JSON string
     json_data = {key: {norm_type: df.to_json() for norm_type, df in norm_dict.items()} for key, norm_dict in
                  dfs.items()}
@@ -206,7 +203,7 @@ def save_dataframes_to_json(dfs: Dict[str, Dict[str, pd.DataFrame]], file_path: 
         json.dump(json_data, f)
 
 
-def load_dataframes_from_json(file_path: str) -> Dict[str, Dict[str, pd.DataFrame]]:
+def load_dataframes_from_json(file_path: str) -> dict[str, dict[str, pd.DataFrame]]:
     # Load the JSON string from the file
     with open(file_path, 'r') as f:
         json_data = json.load(f)
@@ -219,16 +216,16 @@ def load_dataframes_from_json(file_path: str) -> Dict[str, Dict[str, pd.DataFram
 
 
 if __name__ == "__main__":
-    server_data, json_path = get_server_data()
-    outer_output_path = Path(json_path).parent
-    cluster_json_file_name = Path(json_path).stem + '_3d_cluster_data.json'
+    _server_data, _json_path = get_server_data()
+    outer_output_path = Path(_json_path).parent
+    cluster_json_file_name = Path(_json_path).stem + '_3d_cluster_data.json'
     cluster_csv_full_path = outer_output_path / cluster_json_file_name
-    html_file_name = Path(json_path).stem + '_3d_cluster_data_viz.html'
+    html_file_name = Path(_json_path).stem + '_3d_cluster_data_viz.html'
     html_file_path = outer_output_path / html_file_name
-    if cluster_csv_full_path.exists() or False:
+    if cluster_csv_full_path.exists() and False: #disable caching for now
         dfs = load_dataframes_from_json(str(cluster_csv_full_path))
     else:
-        dfs = create_dataframes(server_data)
+        dfs = create_dataframes(_server_data)
         save_dataframes_to_json(dfs, str(cluster_csv_full_path))
 
     app = create_dash_app(dfs, save_html_path=str(html_file_path))
