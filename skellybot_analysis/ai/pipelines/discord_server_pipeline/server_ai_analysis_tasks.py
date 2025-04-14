@@ -28,6 +28,7 @@ async def ai_analyze_server_data(system_prompt_og: str, server_data: ServerData)
     for thing in analyzable_things:
         if thing.ai_analysis is None:
             logger.error(f"Failed to analyze {thing.__class__.__name__}: {thing.name}")
+            raise ValueError(f"Failed to analyze {thing.__class__.__name__}: {thing.name}")
     return server_data
 
 
@@ -41,6 +42,7 @@ async def ai_analyze_user_data(user_data: UserDataManager,
     for user in user_data.users.values():
         if user.ai_analysis is None:
             logger.error(f"Failed to analyze {user.__class__.__name__}: {user.name}")
+            raise ValueError(f"Failed to analyze {user.__class__.__name__}: {user.name}")
     return user_data
 
 

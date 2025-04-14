@@ -17,15 +17,11 @@ from skellybot_analysis.models.data_models.server_data.server_data_sub_object_mo
 from skellybot_analysis.models.data_models.user_data_model import UserData, UserDataManager
 from skellybot_analysis.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
-EmbeddingVectors = Dict[str, List[float]]
+import logging
+logger = logging.getLogger(__name__)
 
 PROF_JON_USER_ID = 362711467104927744
 EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID]  # , PROF_JON_USER_ID]
-
-NODE_SIZE_EXPONENT = 2
-TSNE_SEED = 42
-TSNE_DIMENSIONS = 3
-TSNE_PERPLEXITY = 25
 
 
 class ServerData(DataObjectModel):
@@ -33,6 +29,8 @@ class ServerData(DataObjectModel):
     bot_prompt_messages: List[DiscordContentMessage] = Field(default_factory=list)
 
     categories: Dict[str, CategoryData] = Field(default_factory=dict)
+
+    graph_data: GraphData|None=None
 
     @property
     def server_system_prompt(self) -> str:
@@ -48,7 +46,6 @@ class ServerData(DataObjectModel):
     def stats(self) -> ServerDataStats:
         return ServerDataStats(id=self.id,
                                name=self.name,
-                               type=self.type,
                                categories=len(self.categories),
                                channels=sum([len(category.channels) for category in self.categories.values()]),
                                threads=sum(
@@ -69,7 +66,7 @@ class ServerData(DataObjectModel):
                                  [len(message.content.split()) for category in self.categories.values() for channel in
                                   category.channels.values() for thread in channel.chat_threads.values() for message
                                   in thread.messages if message.is_bot == True]),
-                               users = self.extract_user_data(assignments_channel_only=True).stats,
+                               users = self.extract_user_data(assignments_channel_only=False).stats,
                                # tags = self.extract_tag_data().stats,
                                )
 
@@ -79,7 +76,7 @@ class ServerData(DataObjectModel):
 
 
     def get_all_sub_objects(self,
-                            include_messages: bool = True) -> List[DataObjectModel]:
+                            include_messages: bool = False) -> List[DataObjectModel]:
         things = [self]
         things.extend(self.get_categories())
         things.extend(self.get_channels())
@@ -151,111 +148,76 @@ class ServerData(DataObjectModel):
 
 
     def calculate_graph_data(self):
-        nodes = []
-        links = []
+        try:
+            nodes = []
+            links = []
 
-        server_node_id = f"server-{self.id}"
-        server_node_name = self.name
+            server_node_id = f"server-{self.id}"
+            server_node_name = self.name
 
-        group_number = -1
+            group_number = -1
 
-        def group_number_incrementer():
-            nonlocal group_number
-            group_number += 1
-            return group_number
+            def group_number_incrementer():
+                nonlocal group_number
+                group_number += 1
+                return group_number
 
-        server_node = ServerNode(id=server_node_id,
-                                 name=server_node_name,
-                                 group=group_number_incrementer() )
-        nodes.append(server_node)
+            server_node = ServerNode(id=server_node_id,
+                                     name=server_node_name,
+                                     group=group_number_incrementer() )
+            nodes.append(server_node)
 
-        for category_number, category in enumerate(self.categories.values()):
-            category_node_id = f"category-{category.id}"
-            category_name = category.name
-            category_node = CategoryNode(id=category_node_id,
-                                         name=category_name,
-                                         group=group_number_incrementer(),
-                                         )
-            nodes.append(category_node)
-            server_node.childLinks.append(category_node_id)
-            links.append(ParentLink(source=server_node_id,
-                                    target=category_node_id,
-                                    ))
-
-            for channel_number, channel in enumerate(category.channels.values()):
-                if channel.name == "bot-playground":
-                    continue
-                channel_node_id = f"channel-{channel.id}"
-                channel_name = channel.name
-                channel_node = ChannelNode(id=channel_node_id,
-                                           name=channel_name,
-                                           group=group_number_incrementer(),
-                                           )
-                nodes.append(channel_node)
-                links.append(ParentLink(source=category_node_id,
-                                        target=channel_node_id,
-                                        ))
-                category_node.childLinks.append(channel_node_id)
-
-                for thread_number, thread in enumerate(channel.chat_threads.values()):
-                    thread_node_id = f"thread-{thread.id}"
-                    thread_name = thread.name
-                    thread_node = ThreadNode(id=thread_node_id,
-                                             name=thread_name,
+            for category_number, category in enumerate(self.categories.values()):
+                category_node_id = f"category-{category.id}"
+                category_name = category.name
+                category_node = CategoryNode(id=category_node_id,
+                                             name=category_name,
                                              group=group_number_incrementer(),
                                              )
-                    nodes.append(thread_node)
-                    links.append(ParentLink(source=channel_node_id,
-                                            target=thread_node_id,
-                                            group=channel_number,
-                                            ))
-                    channel_node.childLinks.append(thread_node_id)
+                nodes.append(category_node)
+                server_node.childLinks.append(category_node_id)
+                links.append(ParentLink(source=server_node_id,
+                                        target=category_node_id,
+                                        ))
 
-        return GraphData(nodes=nodes, links=links)
-    #
-    # def calculate_embedding_tsne(self):
-    #     all_server_things = self.get_all_sub_objects()
-    #     all_server_tags = self._tags()
-    #     all_things = all_server_things + all_server_tags
-    #     embeddable_texts = [thing.as_text() for thing in all_things]
-    #     embeddings = calculate_ollama_embeddings(embeddable_texts)
-    #     if not embeddings:
-    #         raise ValueError("No embeddings found for server data")
-    #
-    #     embeddings_array = np.array(embeddings)
-    #     tsne = TSNE(n_components=TSNE_DIMENSIONS, perplexity=TSNE_PERPLEXITY, random_state=TSNE_SEED)
-    #     print(f"Calculating TSNE for {len(embeddings_array)} embeddings...")
-    #     tsne_results = tsne.fit_transform(embeddings_array)
-    #     print(f"TSNE calculated for {len(tsne_results)} embeddings!")
-    #
-    #     for thing, embedding, tsne_xyz, in zip(all_things, embeddings, tsne_results):
-    #         thing.embedding = EmbeddingVector(embedding=embedding,
-    #                                           source=f"ollama/{DEFAULT_OLLAMA_EMBEDDINGS_MODEL}", )
-    #         thing.tsne_xyz = XYZData(x=tsne_xyz[0], y=tsne_xyz[1], z=tsne_xyz[2])
-    #
-    # def calculate_tsne_embedding(self):
-    #     embeddings = []
-    #     for thing in self.self.get_all_sub_objects():
-    #         if hasattr(thing, 'embedding') and thing.embedding:
-    #             embeddings.append(thing.embedding)
-    #
-    #     if not embeddings:
-    #         return None
-    #
-    #     embeddings_array = np.array(embeddings)
-    #     tsne = TSNE(n_components=TSNE_DIMENSIONS, perplexity=TSNE_PERPLEXITY, random_state=TSNE_SEED)
-    #     tsne_results = tsne.fit_transform(embeddings_array)
-    #
-    #     data_thing_tsne_results = tsne_results[:len(self.get_all_sub_objects())]
-    #     for tsne_xyz, thing in zip(data_thing_tsne_results, self.get_all_sub_objects()):
-    #         thing.tsne_norm_magnitude = np.linalg.norm(tsne_xyz)
-    #         thing.tsne_xyz_normalized = tsne_xyz / thing.tsne_norm_magnitude
+                for channel_number, channel in enumerate(category.channels.values()):
+                    if channel.name == "bot-playground":
+                        continue
+                    channel_node_id = f"channel-{channel.id}"
+                    channel_name = channel.name
+                    channel_node = ChannelNode(id=channel_node_id,
+                                               name=channel_name,
+                                               group=group_number_incrementer(),
+                                               )
+                    nodes.append(channel_node)
+                    links.append(ParentLink(source=category_node_id,
+                                            target=channel_node_id,
+                                            ))
+                    category_node.childLinks.append(channel_node_id)
+
+                    for thread_number, thread in enumerate(channel.chat_threads.values()):
+                        thread_node_id = f"thread-{thread.id}"
+                        thread_name = thread.name
+                        thread_node = ThreadNode(id=thread_node_id,
+                                                 name=thread_name,
+                                                 group=group_number_incrementer(),
+                                                 )
+                        nodes.append(thread_node)
+                        links.append(ParentLink(source=channel_node_id,
+                                                target=thread_node_id,
+                                                group=channel_number,
+                                                ))
+                        channel_node.childLinks.append(thread_node_id)
+        except Exception as e:
+            logger.exception("Error calculating Server Graph data")
+            raise
+        self.graph_data =  GraphData(nodes=nodes, links=links)
 
 
 if __name__ == '__main__':
     from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 
     server_data, _ = get_server_data()
-    asyncio.run(server_data.calculate_graph_data())
+    server_data.calculate_graph_data()
     pprint(server_data.stats)
     # pprint(server_data.get_graph_data())

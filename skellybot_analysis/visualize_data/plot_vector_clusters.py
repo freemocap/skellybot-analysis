@@ -1,8 +1,5 @@
 import json
 import logging
-import os
-import platform
-import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -10,9 +7,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
-from sklearn.manifold import TSNE
 
-from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
 from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 
 logger = logging.getLogger(__name__)
@@ -28,85 +23,6 @@ def normalize_rows(arr: np.ndarray) -> np.ndarray:
     normalized_array = arr / norms
     return normalized_array
 
-
-def open_file_path(path: str) -> None:
-    """
-    Opens a file or directory using the default application on the host operating system.
-
-    :param path: The file or directory path to open.
-    """
-    logger.info(f"Opening file path: {path}")
-    try:
-        if platform.system() == 'Windows':
-            os.startfile(path)
-        elif platform.system() == 'Darwin':  # macOS
-            subprocess.run(['open', path])
-        else:  # Linux and other Unix-like systems
-            subprocess.run(['xdg-open', path])
-    except Exception as e:
-        logger.error(f"Failed to open file path: {path}")
-        logger.exception(e)
-        raise
-
-
-def create_dataframes(server_data: ServerData) -> dict[str, dict[str, pd.DataFrame]]:
-    logger.info(f"Creating DataFrames for 3D visualization for server named {server_data.name}")
-    data_types = {
-        'by_chats': server_data.get_chat_threads(),
-        'by_categories': server_data.get_categories(),
-        'by_channels': server_data.get_channels(),
-        'by_users': list(server_data.extract_user_data(assignments_channel_only=True).users.values())
-    }
-
-    dfs = {}
-
-    tsne = TSNE(n_components=3, random_state=2, perplexity=5)
-    for key, data in data_types.items():
-        logger.info(f"Processing {key} data with {len(data)} items")
-        embedding_vectors = []
-        for item in data:
-            if hasattr(item, 'embedding') and item.embedding:
-                embedding_vectors.append(item.embedding)
-            else:
-                logger.warning(f"{key} item named: `{item.name}` has no embedding data.")
-        embeddings_npy = np.array(embedding_vectors)
-
-        if embeddings_npy.size == 0:
-            logger.warning(f"No embeddings found for {key}. Skipping t-SNE.")
-            continue
-
-        logger.info(f"Running t-SNE on {key} embeddings")
-        embeddings_3d = tsne.fit_transform(embeddings_npy)
-        embeddings_3d_normalized = normalize_rows(embeddings_3d)
-
-        logger.info(f"Creating DataFrame for 3D visualization for {key}")
-        dfs[key] = {}
-        for norm_type, embds in {'raw': embeddings_3d,
-                                 'normalized': embeddings_3d_normalized}.items():
-            dfs[key][norm_type] = pd.DataFrame(embds, columns=['Dimension 1', 'Dimension 2', 'Dimension 3'])
-
-            dfs[key][norm_type]['text_contents'] = [item.as_full_text() for item in data]
-            dfs[key][norm_type]['name'] = [item.name if hasattr(item, 'name') else 'None' for item in data]
-            dfs[key][norm_type]['ai_title'] = [item.ai_analysis.title for item in data]
-            dfs[key][norm_type]['ai_summary'] = [item.ai_analysis.very_short_summary for item in data]
-            dfs[key][norm_type]['tags'] = [item.ai_analysis.tags for item in data]
-            dfs[key][norm_type]['relevant'] = [item.ai_analysis.relevant for item in data]
-
-            if key == 'by_chats':
-                dfs[key][norm_type]['category_name'] = [item.category_name if item.category_name else 'None' for item in
-                                                        data]
-                dfs[key][norm_type]['channel_name'] = [item.channel_name for item in data]
-
-            if key == 'by_channels':
-                dfs[key][norm_type]['category_name'] = [item.category_name for item in data]
-
-            if key == 'by_users':
-                dfs[key][norm_type]['user_id'] = [item.user_id for item in data]
-                dfs[key][norm_type]['stats'] = [item.stats for item in data]
-
-    logger.info(f"DataFrames created for 3D visualization for server named {server_data.name}")
-
-    return dfs
 
 
 def create_dash_app(dfs: dict[str, dict[str, pd.DataFrame]],
@@ -215,20 +131,14 @@ def load_dataframes_from_json(file_path: str) -> dict[str, dict[str, pd.DataFram
     return dfs
 
 
+
 if __name__ == "__main__":
     _server_data, _json_path = get_server_data()
     outer_output_path = Path(_json_path).parent
-    cluster_json_file_name = Path(_json_path).stem + '_3d_cluster_data.json'
-    cluster_csv_full_path = outer_output_path / cluster_json_file_name
     html_file_name = Path(_json_path).stem + '_3d_cluster_data_viz.html'
     html_file_path = outer_output_path / html_file_name
-    if cluster_csv_full_path.exists() and False: #disable caching for now
-        dfs = load_dataframes_from_json(str(cluster_csv_full_path))
-    else:
-        dfs = create_dataframes(_server_data)
-        save_dataframes_to_json(dfs, str(cluster_csv_full_path))
 
-    app = create_dash_app(dfs, save_html_path=str(html_file_path))
+    app = create_dash_app(_dfs, save_html_path=str(html_file_path))
     logger.info(f"Running Dash app server...")
     app.run_server(debug=True, port=8050)
     logger.info(f"Dash app server stopped.")

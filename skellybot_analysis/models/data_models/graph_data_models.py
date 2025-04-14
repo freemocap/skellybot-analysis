@@ -151,6 +151,7 @@ class GraphData(BaseModel):
     # metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+
 if __name__ == "__main__":
     dummy_graph_data = GraphData(
         nodes=[

@@ -31,15 +31,11 @@ async def run_server_scraper(discord_client: discord.Client,
     dated_output_directory.mkdir(parents=True, exist_ok=True)
     server_stats_json_path = dated_output_directory / f"{dated_server_str}_server_stats.json"
     server_stats_json_path.write_text(server_data.stats.model_dump_json(indent=2), encoding='utf-8')
-    raw_output_directory = dated_output_directory / "json_data"
-    raw_output_directory.mkdir(parents=True, exist_ok=True)
-    server_data_json_path = raw_output_directory / f"{dated_server_str}_server_data.json"
-    graph_data_json_path = Path(__file__).parent / 'docs' / 'datasets' / f"{dated_server_str}_graph_data.json"
+
+    server_data_json_path = dated_output_directory / f"{dated_server_str}_server_data.json"
 
     server_data_json_path.write_text(server_data.model_dump_json(indent=2), encoding='utf-8')
 
-    # server_graph_data = server_data.calculate_graph_data()
-    # graph_data_json_path.write_text(json.dumps(server_graph_data.model_dump(), indent=2), encoding='utf-8')
     persist_most_recent_scrape_location(most_recent_server_data_json_path=str(server_data_json_path))
 
     logger.info(f"Server data saved to: {dated_output_directory}")

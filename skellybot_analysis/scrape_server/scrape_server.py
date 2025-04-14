@@ -170,6 +170,7 @@ async def scrape_server(target_server: discord.Guild) -> ServerData:
             raise e
 
     logger.info(f"Processed {len(server_data.categories)} categories in server: {target_server.name}")
+    server_data.calculate_graph_data()
 
     logger.info(f"Finished processing server: {target_server.name} - Stats:\n {server_data.stats}")
 
