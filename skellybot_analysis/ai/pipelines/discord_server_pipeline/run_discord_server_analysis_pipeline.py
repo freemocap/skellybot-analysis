@@ -18,7 +18,7 @@ async def run_ai_analysis(server_data: ServerData) -> tuple[ServerData, UserData
 
     logger.success(f"Servers analyzed: {server_data.name}, server stats: {server_data.stats}")
 
-    user_data = await ai_analyze_user_data(user_data=server_data.extract_user_data(),
+    user_data = await ai_analyze_user_data(user_data=server_data.extract_user_data(assignments_channel_only=True),
                                            system_prompt_og=system_prompt_og)
     logger.success(f"Analyzed {len(list(user_data.users.keys()))} user(s), user stats: {user_data.stats}")
 

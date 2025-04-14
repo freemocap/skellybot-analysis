@@ -46,7 +46,7 @@ async def ai_analyze_user_data(user_data: UserDataManager,
 
 async def ai_analyze_topic_tags(tag_manager: TagManager,
                                 system_prompt_og: str,
-                                min_tag_rank: int = 4
+                                min_tag_rank: int = 20
                                 ) -> TagManager:
     system_prompt = system_prompt_og + f"\n\n{WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT}"
     tasks = []
@@ -57,7 +57,7 @@ async def ai_analyze_topic_tags(tag_manager: TagManager,
         logger.info(f"Analyzing tag {tag.name} with {len(tag.tagged_threads)} tagged threads")
         all_tagged_threads_str = "\n_____________________\n".join(
             [thread.ai_analysis.to_string() for thread in tag.tagged_threads])
-        task_description = "You are generating an article on the following topic:\n\n{tag.name}\n\n"
+        task_description = "You are generating an article on the following topic:\n\n{tag.name}\n\n Prioritize the content of the conversation threads that are relevant to this topic. Consider the context of the course as a whole! "
         user_input_text = (
             f"{task_description} \n\n You are generating an article on the following topic:"
             f"\n\n{tag.name}\n\n"

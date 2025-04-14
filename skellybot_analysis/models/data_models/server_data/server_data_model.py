@@ -69,7 +69,7 @@ class ServerData(DataObjectModel):
                                  [len(message.content.split()) for category in self.categories.values() for channel in
                                   category.channels.values() for thread in channel.chat_threads.values() for message
                                   in thread.messages if message.is_bot == True]),
-                               users = self.extract_user_data().stats,
+                               users = self.extract_user_data(assignments_channel_only=True).stats,
                                # tags = self.extract_tag_data().stats,
                                )
 
@@ -120,12 +120,13 @@ class ServerData(DataObjectModel):
             categories.append(category_data)
         return categories
 
-    def extract_user_data(self) -> UserDataManager:
+    def extract_user_data(self, assignments_channel_only:bool) -> UserDataManager:
         user_threads = {}
 
         for thread in self.get_chat_threads():
-            if "assignments" not in thread.context_route.category_name.lower():
-                continue
+            if assignments_channel_only:
+                if "assignments" not in thread.context_route.category_name.lower():
+                    continue
             for message in thread.messages:
                 if message.author_id in EXCLUDED_USER_IDS:
                     continue

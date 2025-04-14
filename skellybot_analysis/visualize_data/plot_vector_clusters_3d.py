@@ -58,7 +58,7 @@ def create_dataframes(server_data: ServerData) -> Dict[str, Dict[str, pd.DataFra
         'by_chats': server_data.get_chat_threads(),
         'by_categories': server_data.get_categories(),
         'by_channels': server_data.get_channels(),
-        'by_users': server_data.extract_user_data()
+        'by_users': server_data.extract_user_data(assignments_channel_only=True)
     }
 
     dfs = {}
