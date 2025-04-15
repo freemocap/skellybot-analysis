@@ -44,7 +44,7 @@ def save_user_as_markdown(user_key: id,
     user_file_path = users_directory / user_filename
     with open(str(user_file_path), 'w', encoding='utf-8') as f:
         f.write(f"# Summary for User: {user_data.name}\n\n")
-        f.write(user_data.as_text())
+        f.write(user_data.as_text)
 
 
 def save_thread_as_markdown(thread_data:ChatThread,

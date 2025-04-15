@@ -112,6 +112,7 @@ class UserData(DataObjectModel):
         return user_string
 
     @computed_field()
+    @property
     def as_text(self) -> str:
         if self.ai_analysis is None:
             ai_text = ""
