@@ -9,7 +9,6 @@ from skellybot_analysis.system.logging_configuration.configure_logging import co
 
 configure_logging()
 from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData, EXCLUDED_USER_IDS
-from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)
@@ -45,7 +44,7 @@ def save_user_as_markdown(user_key: id,
     user_file_path = users_directory / user_filename
     with open(str(user_file_path), 'w', encoding='utf-8') as f:
         f.write(f"# Summary for User: {user_data.name}\n\n")
-        f.write(user_data.as_text)
+        f.write(user_data.as_text())
 
 
 def save_thread_as_markdown(thread_data:ChatThread,
@@ -124,7 +123,3 @@ def save_server_data_as_markdown_directory(server_data: ServerData,
     logger.info(f"Saved server data as markdown to {save_path}!")
 
 
-if __name__ == "__main__":
-    logger.info("Saving server data as markdown directory")
-    server_data, output_directory = get_server_data()
-    save_server_data_as_markdown_directory(server_data, str(Path(output_directory).parent))

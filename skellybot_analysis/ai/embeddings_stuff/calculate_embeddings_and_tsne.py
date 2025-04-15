@@ -36,4 +36,4 @@ if __name__ == "__main__":
     from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
     _server_data, server_data_json_path = get_server_data()
     asyncio.run(create_embedding_and_tsne_clusters(_server_data))
-    Path(server_data_json_path).write_text(_server_data.model_dump_json(indent=2))
+    Path(server_data_json_path).write_text(_server_data.model_dump_json(indent=2), encoding="utf-8")

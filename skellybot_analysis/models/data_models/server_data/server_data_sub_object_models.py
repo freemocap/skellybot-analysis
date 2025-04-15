@@ -42,8 +42,8 @@ class DiscordContentMessage(DataObjectModel):
             context_route=ServerContextRoute(
                 server_name=discord_message.guild.name,
                 server_id=discord_message.guild.id,
-                category_name=(discord_message.channel.category.name) if discord_message.channel.category else None,
-                category_id=(discord_message.channel.category.id) if discord_message.channel.category else None,
+                category_name=discord_message.channel.category.name if discord_message.channel.category else None,
+                category_id=discord_message.channel.category.id if discord_message.channel.category else None,
                 channel_name=discord_message.channel.name,
                 channel_id=discord_message.channel.id,
                 thread_name=discord_message.thread.name if discord_message.thread else None,
@@ -80,7 +80,7 @@ class DiscordContentMessage(DataObjectModel):
     @computed_field(return_type=str)
     @property
     def text(self):
-        return self.as_text()
+        return self.as_full_text()
 
     def as_text(self):
         if self.is_bot:

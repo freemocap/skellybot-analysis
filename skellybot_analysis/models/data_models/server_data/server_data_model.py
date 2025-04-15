@@ -1,7 +1,7 @@
-import asyncio
+from datetime import datetime
+import logging
 from datetime import datetime
 from pprint import pprint
-from typing import Dict, List
 
 from pydantic import Field
 
@@ -17,7 +17,6 @@ from skellybot_analysis.models.data_models.server_data.server_data_sub_object_mo
 from skellybot_analysis.models.data_models.user_data_model import UserData, UserDataManager
 from skellybot_analysis.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_BOT_ID
 
-import logging
 logger = logging.getLogger(__name__)
 
 PROF_JON_USER_ID = 362711467104927744
@@ -26,9 +25,9 @@ EXCLUDED_USER_IDS = [DISCORD_BOT_ID, DISCORD_DEV_BOT_ID]  # , PROF_JON_USER_ID]
 
 class ServerData(DataObjectModel):
     type: ServerDataObjectTypes = ServerDataObjectTypes.SERVER
-    bot_prompt_messages: List[DiscordContentMessage] = Field(default_factory=list)
+    bot_prompt_messages: list[DiscordContentMessage] = Field(default_factory=list)
 
-    categories: Dict[str, CategoryData] = Field(default_factory=dict)
+    categories: dict[str, CategoryData] = Field(default_factory=dict)
 
     graph_data: GraphData|None=None
 
@@ -76,7 +75,7 @@ class ServerData(DataObjectModel):
 
 
     def get_all_sub_objects(self,
-                            include_messages: bool = False) -> List[DataObjectModel]:
+                            include_messages: bool = False) -> list[DataObjectModel]:
         things = [self]
         things.extend(self.get_categories())
         things.extend(self.get_channels())
@@ -85,7 +84,7 @@ class ServerData(DataObjectModel):
             things.extend(self.get_messages())
         return things
 
-    def get_messages(self) -> List[DiscordContentMessage]:
+    def get_messages(self) -> list[DiscordContentMessage]:
         messages = []
         for category_key, category_data in self.categories.items():
             for channel_key, channel_data in category_data.channels.items():
@@ -94,7 +93,7 @@ class ServerData(DataObjectModel):
                         messages.append(message)
         return messages
 
-    def get_chat_threads(self) -> List[ChatThread]:
+    def get_chat_threads(self) -> list[ChatThread]:
         chat_threads = []
         for category_key, category_data in self.categories.items():
             for channel_key, channel_data in category_data.channels.items():
@@ -102,7 +101,7 @@ class ServerData(DataObjectModel):
                     chat_threads.append(thread_data)
         return chat_threads
 
-    def get_channels(self, exclude_bot_playground: bool = True) -> List[ChannelData]:
+    def get_channels(self, exclude_bot_playground: bool = True) -> list[ChannelData]:
         channels = []
         for category_key, category_data in self.categories.items():
             for channel_key, channel_data in category_data.channels.items():
@@ -111,7 +110,7 @@ class ServerData(DataObjectModel):
                 channels.append(channel_data)
         return channels
 
-    def get_categories(self) -> List[CategoryData]:
+    def get_categories(self) -> list[CategoryData]:
         categories = []
         for category_key, category_data in self.categories.items():
             categories.append(category_data)
