@@ -14,17 +14,13 @@ logger = logging.getLogger(__name__)
 MINIMUM_THREAD_MESSAGE_COUNT = 4  # Minimum number of messages in a thread to be included in the scraped data
 
 LATEST_MESSAGE_DATETIME = None
-
-
 def update_latest_message_datetime(message_datetime):
     global LATEST_MESSAGE_DATETIME
     if LATEST_MESSAGE_DATETIME is None or message_datetime > LATEST_MESSAGE_DATETIME:
         LATEST_MESSAGE_DATETIME = message_datetime
 
-
-def get_checkpoint_name(server_name: str):
+def get_checkpoint_name(server_name:str):
     return f"{server_name}_{LATEST_MESSAGE_DATETIME.strftime('%Y-%m-%d_%H-%M-%S')}"
-
 
 async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoji: str) -> list[DiscordContentMessage]:
     logger.info(f"Getting bot prompt messages from channel: {channel.name}")
@@ -78,8 +74,8 @@ async def scrape_channel(channel: discord.TextChannel) -> ChannelData | None:
                                context_route=ServerContextRoute(
                                    server_name=channel.guild.name,
                                    server_id=channel.guild.id,
-                                   category_name=channel.category.name if channel.category else None,
-                                   category_id=channel.category.id if channel.category else None,
+                                   category_name=(channel.category.name) if channel.category else None,
+                                   category_id=(channel.category.id) if channel.category else None,
                                    channel_name=channel.name,
                                    channel_id=channel.id,
                                )
@@ -92,8 +88,7 @@ async def scrape_channel(channel: discord.TextChannel) -> ChannelData | None:
     except discord.Forbidden:
         logger.warning(f"Permission error extracting messages from {channel.name} - skipping!")
 
-    channel_data.pinned_messages = [await DiscordContentMessage.from_discord_message(message) for message in
-                                    await channel.pins()]
+    channel_data.pinned_messages = [await DiscordContentMessage.from_discord_message(message) for message in await channel.pins()]
     threads = channel.threads
 
     archived_threads = []
@@ -132,7 +127,7 @@ async def scrape_category(category: discord.CategoryChannel) -> CategoryData:
         if 'bot' in channel.name or 'prompt' in channel.name:
             category_data.bot_prompt_messages.extend(await get_reaction_tagged_messages(channel, '🤖'))
         channel_data = await scrape_channel(channel)
-        if channel_data is None or (len(channel_data.chat_threads) == 0 and len(channel_data.messages) == 0):
+        if channel_data is None or (len(channel_data.chat_threads)==0 and len(channel_data.messages)== 0):
             logger.warning(f"No threads found in channel: {channel.name}")
             continue
         category_data.channels[f"name:{channel.name},id:{channel.id}"] = channel_data
@@ -146,22 +141,18 @@ async def scrape_server(target_server: discord.Guild) -> ServerData:
 
     server_data = ServerData(name=target_server.name,
                              id=target_server.id,
-                             context_route=ServerContextRoute(
-                                 server_name=target_server.name,
-                                 server_id=target_server.id
-                             )
-                             )
+                                context_route=ServerContextRoute(
+                                    server_name=target_server.name,
+                                    server_id=target_server.id
+                                )
+                                )
     channels = await target_server.fetch_channels()
     category_channels = [channel for channel in channels if isinstance(channel, discord.CategoryChannel)]
 
-    # Find Top-level bot prompt channels and apply tagged/pinned message to global server prompt
     for channel in channels:
         if not channel.category and ("bot" in channel.name or "prompt" in channel.name):
-
             logger.info(f"Extracting server-level prompts from channel: {channel.name}")
             server_data.bot_prompt_messages.extend(await get_reaction_tagged_messages(channel, '🤖'))
-            server_data.bot_prompt_messages.extend([await DiscordContentMessage.from_discord_message(message)
-                                                    for message in await channel.pins()])
 
     for category in category_channels:
         try:

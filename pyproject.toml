@@ -23,7 +23,6 @@ dependencies = [
     "python-bidi>=0.6.3",
     "python-dotenv>=1.0.1",
     "scikit-learn>=1.6.0",
-    "sqlmodel>=0.0.24",
     "tiktoken>=0.8.0",
     "tqdm>=4.67.1",
     "uvicorn>=0.32.1",

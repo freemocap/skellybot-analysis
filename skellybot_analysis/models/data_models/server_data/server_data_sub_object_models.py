@@ -39,7 +39,17 @@ class DiscordContentMessage(DataObjectModel):
         return cls(
             id=discord_message.id,
             name=f"message-{discord_message.id}",
-            context_route=ServerContextRoute.from_discord_message(discord_message),
+            context_route=ServerContextRoute(
+                server_name=discord_message.guild.name,
+                server_id=discord_message.guild.id,
+                category_name=discord_message.channel.category.name if discord_message.channel.category else None,
+                category_id=discord_message.channel.category.id if discord_message.channel.category else None,
+                channel_name=discord_message.channel.name,
+                channel_id=discord_message.channel.id,
+                thread_name=discord_message.thread.name if discord_message.thread else None,
+                thread_id=discord_message.thread.id if discord_message.thread else None,
+                message_id=discord_message.id
+            ),
 
             author_id=discord_message.author.id,
             is_bot=discord_message.author.bot,
