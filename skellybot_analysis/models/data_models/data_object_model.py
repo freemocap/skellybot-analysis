@@ -1,15 +1,16 @@
 from abc import abstractmethod, ABC
 
-from pydantic import BaseModel
+from sqlmodel import SQLModel, Field
 
 from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
 from skellybot_analysis.models.data_models.xyz_data_model import XYZData
 from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 
 
-class DataObjectModel(BaseModel, ABC):
+class DataObjectModel(SQLModel, ABC,table=True):
+    db_id: int|None = Field(default=None, primary_key=True) # primary database key - will be set by db engine
+    id: int | str  # unique identifier from client (e.g. Discord ID)
     name: str
-    id: int | str  # unique id
     type: str
     context_route: ServerContextRoute
     ai_analysis: TextAnalysisPromptModel|None = None
