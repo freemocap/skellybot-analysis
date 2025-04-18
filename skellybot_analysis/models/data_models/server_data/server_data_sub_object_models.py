@@ -88,10 +88,13 @@ class DiscordContentMessage(DataObjectModel):
         else:
             return f"HUMAN: {self.content}\n"
 
-    def as_full_text(self):
+    def as_full_text(self, include_info:bool=False):
         # Assuming 'attachments' is a list of strings after processing with 'extract_attachment_text'.
         attachments_str = '\n'.join(self.attachments)
-        return f"{self.content}\n\n{attachments_str}\n\n{self.timestamp} {self.jump_url}\n"
+        if include_info:
+            return f"{self.content}\n\n{attachments_str}\n\n{self.timestamp} {self.jump_url}\n"
+        else:
+            return f"{self.content}\n\n{attachments_str}\n"
 
     def __str__(self):
         return self.as_full_text()

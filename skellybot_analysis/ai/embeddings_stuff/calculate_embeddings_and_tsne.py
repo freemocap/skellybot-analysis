@@ -5,14 +5,14 @@ import numpy as np
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
-from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer
+from skellybot_analysis.models.data_models.server_data.server_data_model import Server
 from skellybot_analysis.models.data_models.xyz_data_model import XYZData
 
 
 logger = logging.getLogger(__name__)
 
 
-async def create_embedding_and_tsne_clusters(server_data: DiscordServer):
+async def create_embedding_and_tsne_clusters(server_data: Server):
     logger.info(f"Creating DataFrames for 3D visualization for server named {server_data.name}")
 
     tsne = TSNE(n_components=3, random_state=2, perplexity=5)

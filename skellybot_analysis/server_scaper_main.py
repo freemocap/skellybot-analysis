@@ -34,6 +34,6 @@ if __name__ == "__main__":
     import asyncio
     from skellybot_analysis.ai.analyze_server_data import process_server_data
 
-    asyncio.run(process_server_data())
+    # asyncio.run(process_server_data())
     print("Server Data Analysis Done!")
 
