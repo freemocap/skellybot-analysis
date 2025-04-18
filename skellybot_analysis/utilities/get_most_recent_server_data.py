@@ -4,7 +4,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Tuple
 
-from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer
 
 logger = logging.getLogger(__name__)
 RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE = Path(__file__).parent / "most_recent_scrape_location.txt"
@@ -40,7 +40,7 @@ def get_most_recent_scrape_location() -> str:
     return server_json_path
 
 
-def get_server_data(server_data_json_path: str | None = None) -> Tuple[ServerData, str]:
+def get_server_data(server_data_json_path: str | None = None) -> Tuple[DiscordServer, str]:
     if server_data_json_path is None:
         json_path = get_most_recent_scrape_location()
     else:
@@ -50,7 +50,7 @@ def get_server_data(server_data_json_path: str | None = None) -> Tuple[ServerDat
     try:
         logger.info(f"Loading ServerData JSON from: `{json_path}`")
         with open(json_path, "r", encoding='utf-8') as file:
-            return ServerData(**json.load(file)), json_path
+            return DiscordServer(**json.load(file)), json_path
     except OSError:
         raise FileNotFoundError("No most recent server data found")
 

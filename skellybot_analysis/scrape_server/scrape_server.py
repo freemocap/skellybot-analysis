@@ -1,26 +1,34 @@
-import asyncio
 import logging
+from copy import copy
 
+import logging
+from copy import copy
+
+import aiohttp
 import discord
+from sqlmodel import Session, create_engine, SQLModel
 
-from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
-from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer, ContextSystemPrompt, \
+    DiscordCategory, DiscordThread, DiscordMessage
 from skellybot_analysis.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage, \
-    ChatThread, \
-    ChannelData, CategoryData
+    ChannelData
 
 logger = logging.getLogger(__name__)
 
 MINIMUM_THREAD_MESSAGE_COUNT = 4  # Minimum number of messages in a thread to be included in the scraped data
 
 LATEST_MESSAGE_DATETIME = None
+
+
 def update_latest_message_datetime(message_datetime):
     global LATEST_MESSAGE_DATETIME
     if LATEST_MESSAGE_DATETIME is None or message_datetime > LATEST_MESSAGE_DATETIME:
         LATEST_MESSAGE_DATETIME = message_datetime
 
-def get_checkpoint_name(server_name:str):
+
+def get_checkpoint_name(server_name: str):
     return f"{server_name}_{LATEST_MESSAGE_DATETIME.strftime('%Y-%m-%d_%H-%M-%S')}"
+
 
 async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoji: str) -> list[DiscordContentMessage]:
     logger.info(f"Getting bot prompt messages from channel: {channel.name}")
@@ -37,141 +45,130 @@ async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoj
     return prompt_messages
 
 
-async def scrape_chat_thread(thread: discord.Thread) -> ChatThread:
-    chat_thread = ChatThread(name=thread.name,
-                             id=thread.id,
-                             context_route=ServerContextRoute(
-                                 server_name=thread.guild.name,
-                                 server_id=thread.guild.id,
-                                 category_name=(thread.category.name) if thread.category else None,
-                                 category_id=(thread.category.id) if thread.category else None,
-                                 channel_name=thread.parent.name,
-                                 channel_id=thread.parent.id,
-                                 thread_name=thread.name,
-                                 thread_id=thread.id
-                             )
-                             )
-
-    async for message in thread.history(limit=None, oldest_first=True):
-        if message.content == '' and len(message.attachments) == 0:
-            continue
-        if message.content.startswith('~'):
-            continue
-        update_latest_message_datetime(message.created_at)
-
-        chat_thread.messages.append(await DiscordContentMessage.from_discord_message(message))
-
-    # chat_thread.couplets = await build_couplet_list(messages)
-    logger.info(f"Found {len(chat_thread.messages)} messages in thread: {thread.name}")
-    if len(chat_thread.messages) == 0:
-        logger.warning(f"No messages found in thread: {thread.name}")
-    return chat_thread
+async def extract_attachment_text(attachment: discord.Attachment) -> str:
+    """
+    Extract the text from a discord attachment.
+    """
+    attachment_string = f"START [{attachment.filename}]({attachment.url})"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(attachment.url) as resp:
+            if resp.status == 200:
+                try:
+                    attachment_string += await resp.text()
+                except UnicodeDecodeError:
+                    attachment_string += await resp.text(errors='replace')
+    attachment_string += f" END [{attachment.filename}]({attachment.url})"
+    return attachment_string
 
 
-async def scrape_channel(channel: discord.TextChannel) -> ChannelData | None:
-    channel_data = ChannelData(name=channel.name,
-                               id=channel.id,
-                               context_route=ServerContextRoute(
-                                   server_name=channel.guild.name,
-                                   server_id=channel.guild.id,
-                                   category_name=(channel.category.name) if channel.category else None,
-                                   category_id=(channel.category.id) if channel.category else None,
-                                   channel_name=channel.name,
-                                   channel_id=channel.id,
-                               )
-                               )
-    channel_data.channel_description_prompt = channel.topic
-
-    try:
-        channel_data.messages = [await DiscordContentMessage.from_discord_message(message) async for message in
-                                 channel.history(limit=None, oldest_first=True)]
-    except discord.Forbidden:
-        logger.warning(f"Permission error extracting messages from {channel.name} - skipping!")
-
-    channel_data.pinned_messages = [await DiscordContentMessage.from_discord_message(message) for message in await channel.pins()]
-    threads = channel.threads
-
-    archived_threads = []
-    async for thread in channel.archived_threads(limit=None):
-        archived_threads.append(thread)
-    all_threads = threads + archived_threads
-    for thread in all_threads:
-
-        chat_data = await scrape_chat_thread(thread)
-        if not chat_data.messages or len(chat_data.messages) < MINIMUM_THREAD_MESSAGE_COUNT:
-            continue
-        channel_data.chat_threads[f"name:{chat_data.name},id:{chat_data.id}"] = chat_data
-        await asyncio.sleep(.1)
-    if len(channel_data.chat_threads) == 0:
-        logger.warning(f"No chat threads found in channel: {channel.name}")
-        return
-    else:
-        logger.info(f"Processed {len(channel_data.chat_threads.items())} threads in channel: {channel.name}")
-    return channel_data
-
-
-async def scrape_category(category: discord.CategoryChannel) -> CategoryData:
-    logger.info(f"\n\n---------------------------\n\n"
-                f"Processing category: {category.name}\n\n"
-                f"-------------------------\n\n")
-    category_data = CategoryData(name=category.name,
-                                 id=category.id,
-                                 context_route=ServerContextRoute(
-                                     server_name=category.guild.name,
-                                     server_id=category.guild.id,
-                                     category_name=category.name,
-                                     category_id=category.id
-                                 )
-                                 )
-    for channel in category.text_channels:
-        if 'bot' in channel.name or 'prompt' in channel.name:
-            category_data.bot_prompt_messages.extend(await get_reaction_tagged_messages(channel, '🤖'))
-        channel_data = await scrape_channel(channel)
-        if channel_data is None or (len(channel_data.chat_threads)==0 and len(channel_data.messages)== 0):
-            logger.warning(f"No threads found in channel: {channel.name}")
-            continue
-        category_data.channels[f"name:{channel.name},id:{channel.id}"] = channel_data
-
-    logger.info(f"Processed {len(category_data.channels.items())} channels in category: {category.name}")
-    return category_data
-
-
-async def scrape_server(target_server: discord.Guild) -> ServerData:
+async def scrape_server(target_server: discord.Guild, db_path: str):
     logger.info(f'Successfully connected to the guild: {target_server.name} (ID: {target_server.id})')
+    engine = create_engine(f"sqlite:///{db_path}", echo=True)
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        server_prompt_messages = []
+        discord_server = DiscordServer(name=target_server.name,
+                               id=target_server.id,
+                               categories=[])
 
-    server_data = ServerData(name=target_server.name,
-                             id=target_server.id,
-                                context_route=ServerContextRoute(
-                                    server_name=target_server.name,
-                                    server_id=target_server.id
-                                )
-                                )
-    channels = await target_server.fetch_channels()
-    category_channels = [channel for channel in channels if isinstance(channel, discord.CategoryChannel)]
+        channels = await target_server.fetch_channels()
 
-    for channel in channels:
-        if not channel.category and ("bot" in channel.name or "prompt" in channel.name):
-            logger.info(f"Extracting server-level prompts from channel: {channel.name}")
-            server_data.bot_prompt_messages.extend(await get_reaction_tagged_messages(channel, '🤖'))
+        for channel in channels:
+            if not channel.category and ("bot" in channel.name or "prompt" in channel.name):
+                logger.info(f"Extracting server-level prompts from channel: {channel.name}")
+                server_prompt_messages.extend(await get_reaction_tagged_messages(channel, '🤖'))
+                server_prompt_messages.extend(
+                    await DiscordContentMessage.from_discord_message(message) for message in await channel.pins())
+                session.add(ContextSystemPrompt(
+                    server_id=target_server.id,
+                    system_prompt="\n".join(server_prompt_messages)
+                ))
 
-    for category in category_channels:
-        try:
-            category_data = await scrape_category(category)
-            if len(category_data.channels) == 0:
-                logger.warning(f"No channels found in category: {category.name}")
-                continue
-            server_data.categories[f"name:{category.name},id:{category.id}"] = category_data
+        for category in [channel for channel in channels if isinstance(channel, discord.CategoryChannel)]:
+            discord_server.categories.append(category.id)
+            category_prompts = copy(server_prompt_messages)
+            logger.info(f"\n\n---------------------------\n\n"
+                        f"Processing category: {category.name}\n\n"
+                        f"-------------------------\n\n")
+            discord_category = DiscordCategory(name=category.name,
+                                       id=category.id,
+                                       server_name=category.guild.name,
+                                       server_id=category.guild.id,
+                                       channels=[]
+                                       )
+            for channel in category.text_channels:
+                if 'bot' in channel.name or 'prompt' in channel.name:
+                    category_prompts.extend(await get_reaction_tagged_messages(channel, '🤖'))
+                    server_prompt_messages.extend(
+                        await DiscordContentMessage.from_discord_message(message) for message in
+                        await channel.pins())
+            session.add(ContextSystemPrompt(
+                server_id=discord_server.id,
+                category_id=category.id,
+                prompt_messages="\n".join(category_prompts)
+            ))
+            for channel in category.text_channels:
+                discord_category.channels.append(channel.id)
+                channel_prompts = copy(category_prompts)
+                discord_channel = ChannelData(name=channel.name,
+                                              id=channel.id,
+                                              server_name=channel.guild.name,
+                                              server_id=channel.guild.id,
+                                              category_name=channel.category.name if channel.category else None,
+                                              category_id=channel.category.id if channel.category else None,
+                                              threads=[]
+                                              )
+                channel_prompts.append(channel.topic)
 
-        except discord.Forbidden as e:
-            logger.error(f"Skipping category: {category.name} due to missing permissions")
-        except Exception as e:
-            logger.error(f"Error processing category: {category.name}")
-            logger.error(e)
-            raise e
+                channel_prompts.extend([await DiscordContentMessage.from_discord_message(message) for message in
+                                        await channel.pins()])
+                session.add(ContextSystemPrompt(
+                    server_id=discord_server.id,
+                    category_id=category.id,
+                    channel_id=channel.id,
+                    prompt_messages="\n".join(channel_prompts)
+                ))
 
-    logger.info(f"Processed {len(server_data.categories)} categories in server: {target_server.name}")
-    server_data.calculate_graph_data()
+                for thread in channel.threads:
+                    discord_channel.threads.append(thread.id)
 
-    logger.info(f"Finished processing server: {target_server.name} - Stats:\n {server_data.stats}")
+                    discord_thread = DiscordThread(name=thread.name,
+                                                   id=thread.id,
+                                                   channel_name=thread.parent.name,
+                                                   channel_id=thread.parent.id,
+                                                   messages=[]
+                                                   )
 
-    return server_data
+                    async for message in thread.history(limit=None, oldest_first=True):
+                        if message.content == '' and len(message.attachments) == 0:
+                            continue
+                        if message.content.startswith('~'):
+                            continue
+                        update_latest_message_datetime(message.created_at)
+                        discord_thread.messages.append(message.id)
+                        discord_message = DiscordMessage(id=discord_message.id,
+                                                         name=f"message-{discord_message.id}",
+                                                         channel_id=discord_message.channel_id,
+                                                         channel_name=discord_message.channel_name,
+                                                         author_id=discord_message.author.id,
+                                                         is_bot=discord_message.author.bot,
+                                                         content=discord_message.clean_content,
+                                                         jump_url=discord_message.jump_url,
+                                                         attachments=[await extract_attachment_text(attachment) for
+                                                                      attachment in
+                                                                      discord_message.attachments],
+                                                         timestamp=discord_message.created_at.isoformat(),
+                                                         reactions=[reaction.emoji for reaction in
+                                                                    discord_message.reactions],
+                                                         parent_message_id=discord_message.reference.message_id if discord_message.reference else None
+
+                                                         )
+
+                        discord_thread.messages.append(discord_message.id)
+                        session.add(discord_message)
+                    session.add(discord_thread)
+                session.add(discord_channel)
+            session.add(discord_category)
+        session.add(discord_server)
+        session.commit()
+

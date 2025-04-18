@@ -6,7 +6,7 @@ from skellybot_analysis.models.data_models.data_object_model import DataObjectMo
 from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
 
 if TYPE_CHECKING:
-    from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+    from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer
     from skellybot_analysis.models.data_models.user_data_model import UserDataManager
 
 class TagModel(DataObjectModel):
@@ -75,7 +75,7 @@ class TagManager(BaseModel):
         return ServerTagStats.from_tag_manager(self)
 
     @classmethod
-    def create(cls, server_data: 'ServerData', user_data: 'UserDataManager'):
+    def create(cls, server_data: 'DiscordServer', user_data: 'UserDataManager'):
         tag_manager = cls(context_route = server_data.context_route)
         for thread in server_data.get_chat_threads():
             tag_manager.extract_thread_tags(thread)

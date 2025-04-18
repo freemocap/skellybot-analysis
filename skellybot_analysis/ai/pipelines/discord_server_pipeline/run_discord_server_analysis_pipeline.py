@@ -3,14 +3,14 @@ import logging
 
 from skellybot_analysis.ai.pipelines.discord_server_pipeline.server_ai_analysis_tasks import ai_analyze_server_data, \
     ai_analyze_user_data, ai_analyze_topic_tags
-from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer
 from skellybot_analysis.models.data_models.tag_models import TagManager
 from skellybot_analysis.models.data_models.user_data_model import UserDataManager
 
 logger = logging.getLogger(__name__)
 
 
-async def run_ai_analysis(server_data: ServerData) -> tuple[ServerData, UserDataManager, TagManager]:
+async def run_ai_analysis(server_data: DiscordServer) -> tuple[DiscordServer, UserDataManager, TagManager]:
     system_prompt_full = server_data.server_system_prompt
     system_prompt_og = system_prompt_full.split("CLASS BOT SERVER INSTRUCTIONS")[0]
     server_data = await ai_analyze_server_data(server_data=server_data,

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import discord
 
-from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData
+from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer
 from skellybot_analysis.scrape_server.scrape_server import scrape_server
 from skellybot_analysis.utilities.get_most_recent_server_data import persist_most_recent_scrape_location
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
@@ -20,10 +20,12 @@ async def run_server_scraper(discord_client: discord.Client,
     if not target_server:
         logger.error(f"Could not find server with ID: {target_server_id}")
         raise ValueError(f"Could not find server with ID: {target_server_id}")
-
-    server_data: ServerData = await scrape_server(target_server)
-
-    server_output_directory = Path(output_directory) / f"{sanitize_name(target_server.name)}_data"
+    server_name = f"{sanitize_name(target_server.name)}"
+    server_output_directory = Path(output_directory) / f"{server_name}_data"
+    server_output_directory.mkdir(parents=True, exist_ok=True)
+    db_path = server_output_directory  / f"{server_name}.sqlite.db"
+    server_data: DiscordServer = await scrape_server(target_server=target_server, db_path=str(db_path))
+    return
 
     latest_message_timestamp = sanitize_name(server_data.latest_message_timestamp.split('.')[0])
     dated_server_str = f"{sanitize_name(target_server.name)}_{latest_message_timestamp}"

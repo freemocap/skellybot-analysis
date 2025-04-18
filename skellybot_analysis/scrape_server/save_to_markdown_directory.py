@@ -8,7 +8,7 @@ from skellybot_analysis.models.data_models.user_data_model import UserDataManage
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
 
 configure_logging()
-from skellybot_analysis.models.data_models.server_data.server_data_model import ServerData, EXCLUDED_USER_IDS
+from skellybot_analysis.models.data_models.server_data.server_data_model import DiscordServer, EXCLUDED_USER_IDS
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ def save_category_as_markdown(category_data: CategoryData,
         save_channel_as_markdown(channel_data, category_directory)
 
 
-def save_server_data_as_markdown_directory(server_data: ServerData,
+def save_server_data_as_markdown_directory(server_data: DiscordServer,
                                            user_data: UserDataManager,
                                            tag_data: TagManager,
                                            output_directory: str):
