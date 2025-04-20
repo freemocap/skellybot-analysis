@@ -3,7 +3,7 @@ from typing import Optional, Type, TypeVar
 
 import aiohttp
 import discord
-from sqlalchemy import Column, CheckConstraint, Index, JSON, Text
+from sqlalchemy import Column, Index, JSON, Text
 from sqlmodel import SQLModel, Field, Relationship, Session
 
 # Define TypeVar T bound to BaseSQLModel
@@ -198,7 +198,6 @@ class ContextSystemPrompt(SQLModel, table=True):
         return instance
 
 
-
 class Message(BaseSQLModel, table=True):
     """Represents a message in a  channel or thread."""
     content: str = Field(sa_column=Column(Text))
@@ -251,26 +250,31 @@ class Message(BaseSQLModel, table=True):
                                         is_bot=discord_message.author.bot,
                                         content=discord_message.clean_content,
                                         jump_url=discord_message.jump_url,
-                                        attachments=[await cls.extract_attachment_text(attachment) for
-                                                     attachment in discord_message.attachments if
-                                                     "text" in attachment.content_type],
+                                        attachments=await cls.extract_attachments(discord_message.attachments),
                                         timestamp=discord_message.created_at.isoformat(),
                                         reactions=[reaction.emoji for reaction in discord_message.reactions],
                                         parent_message_id=discord_message.reference.message_id if discord_message.reference else None
                                         )
 
     @staticmethod
-    async def extract_attachment_text(attachment: discord.Attachment) -> str:
+    async def extract_attachments(attachments: list[discord.Attachment]|None) -> list[str]:
         """
         Extract the text from a discord attachment.
         """
-        attachment_string = f"START [{attachment.filename}]({attachment.url})"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(attachment.url) as resp:
-                if resp.status == 200:
-                    try:
-                        attachment_string += await resp.text()
-                    except UnicodeDecodeError:
-                        attachment_string += await resp.text(errors='replace')
-        attachment_string += f" END [{attachment.filename}]({attachment.url})"
-        return attachment_string
+        attachment_texts = []
+        if not attachments:
+            return attachment_texts
+
+        for attachment in attachments:
+            if attachment.content_type and 'text' in attachment.content_type:
+                attachment_string = f"START [{attachment.filename}]({attachment.url})"
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(attachment.url) as resp:
+                        if resp.status == 200:
+                            try:
+                                attachment_string += await resp.text()
+                            except UnicodeDecodeError:
+                                attachment_string += await resp.text(errors='replace')
+                attachment_string += f" END [{attachment.filename}]({attachment.url})"
+                attachment_texts.append(attachment_string)
+        return attachment_texts

@@ -2,7 +2,7 @@ import logging
 from copy import copy
 
 import discord
-from sqlmodel import Session, create_engine, SQLModel
+from sqlmodel import Session, create_engine, SQLModel, select
 
 from skellybot_analysis.models.data_models.server_data.server_data_model import Server, ContextSystemPrompt, \
     Category, Thread, Message, Channel, User
@@ -26,21 +26,30 @@ async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
             # Process categories
             channels = await target_server.fetch_channels()
             for category in [channel for channel in channels if isinstance(channel, discord.CategoryChannel)]:
-                db_category, category_prompts = await db_process_category(session=session,
-                                                                          category=category,
-                                                                          server_prompt_messages=server_prompt_messages,
-                                                                          target_server=target_server)
-                db_server.categories.append(db_category)
+                try:
+                    db_category, category_prompts = await db_process_category(session=session,
+                                                                              category=category,
+                                                                              server_prompt_messages=server_prompt_messages,
+                                                                              target_server=target_server)
+                    db_server.categories.append(db_category)
+                except discord.errors.Forbidden as e:
+                    logger.warning(f"Failed to access category {category.name} (ID: {category.id}): {str(e)} - skipping")
+                    continue
+
 
                 logger.info(f"✅ Added category: {db_category.name} (ID: {db_category.id})")
 
                 for channel in category.text_channels:
                     if not isinstance(channel, discord.TextChannel):
                         continue
-                    db_channel, channel_prompts = await db_process_channel(session=session,
+                    try:
+                        db_channel, channel_prompts = await db_process_channel(session=session,
                                                                            context_prompts=category_prompts,
                                                                            channel=channel,
                                                                            )
+                    except discord.errors.Forbidden as e:
+                        logger.warning(f"Failed to access channel {channel.name} (ID: {channel.id}): {str(e)} - skipping")
+                        continue
 
                     db_category.channels.append(db_channel)
                     logger.info(f"✅ Added channel: {db_channel.name} (ID: {db_channel.id})")
