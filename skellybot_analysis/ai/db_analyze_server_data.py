@@ -14,10 +14,12 @@ from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import T
 from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 
+MIN_MESSAGE_LIMIT = 4
+
 logger = logging.getLogger(__name__)
 
 
-async def analyze_server_db(db_path: str | None = None) -> None:
+async def db_analyze_server_data(db_path: str | None = None) -> None:
     """Run AI analysis on server data stored in the SQLite database"""
     db_engine: Engine = initialize_database_engine(db_path=db_path)
     analysis_tasks = []
@@ -262,9 +264,13 @@ def get_object_text(session: Session, object_id: int, object_type: str) -> str:
         ).all()
         # ensure sorting by timestamp
         messages.sort(key=lambda x: x.created_at)
-        if len(messages) < 4:
-            logger.warning(f"Thread {thread.name} has less than 4 messages, skipping analysis.")
+        if not messages:
+            logger.warning(f"Thread {thread.name} (id: {thread.id}) has no messages, skipping analysis.")
             continue
+        if thread.name == ".":
+            if len(messages) < MIN_MESSAGE_LIMIT:
+                logger.warning(f"Thread {thread.name} has less than {MIN_MESSAGE_LIMIT} messages, skipping analysis.")
+                continue
         thread_text = f"Thread: {thread.name} (id: {thread.id})\n\nurl: {messages[0].jump_url}\n\n"
         for msg in messages:
             if msg.is_bot:
@@ -393,4 +399,4 @@ def store_analysis_result(
 
 
 if __name__ == "__main__":
-    asyncio.run(analyze_server_db())
+    asyncio.run(db_analyze_server_data())

@@ -1,4 +1,3 @@
-# skellybot_analysis/scrape_server/db_save_to_markdown_directory.py
 import logging
 from pathlib import Path
 

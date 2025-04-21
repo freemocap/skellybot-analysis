@@ -61,7 +61,9 @@ class BaseSQLModel(SQLModel):
 
         if needs_update:
             session.add(instance)
-            if flush: session.flush()
+            if flush:
+                session.flush()
+                session.commit()
 
         return instance
 
@@ -113,10 +115,36 @@ class Channel(BaseSQLModel, table=True):
 class UserThread(SQLModel, table=True):
     """Association table for the many-to-many relationship between users and threads."""
     user_id: int = Field(foreign_key="user.id", primary_key=True)
-    user_name: str = Field(index=True)
+    user_name: Optional[str] = Field(index=True)
     thread_id: int = Field(foreign_key="thread.id", primary_key=True)
-    thread_name: str = Field(index=True)
-    joined_at: datetime = Field(default_factory=datetime.now)
+    thread_name: Optional[str] = Field(index=True)
+
+    @classmethod
+    def get_create_or_update(cls,session: Session, user_id: int, thread_id: int, user_name: str | None = None, thread_name: str | None = None) -> "UserThread":
+        """
+        Get or create a UserThread instance.
+        """
+        instance = session.get(UserThread, (user_id, thread_id))
+        if not instance:
+            instance = UserThread(user_id=user_id, thread_id=thread_id,
+                                  user_name=user_name, thread_name=thread_name)
+            session.add(instance)
+            session.flush()
+
+        # Update the instance with any additional kwargs
+        needs_update = False
+        if user_name and instance.user_name != user_name:
+            instance.user_name = user_name
+            needs_update = True
+        if thread_name and instance.thread_name != thread_name:
+            instance.thread_name = thread_name
+            needs_update = True
+        # Flush the session if needed
+        if needs_update:
+            session.add(instance)
+            session.flush()
+
+        return instance
 
 
 class Thread(BaseSQLModel, table=True):

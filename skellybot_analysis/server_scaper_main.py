@@ -3,7 +3,8 @@ import logging
 import discord
 from discord.ext import commands
 
-from skellybot_analysis.ai.db_analyze_server_data import analyze_server_db
+from skellybot_analysis.ai.db_analyze_server_data import db_analyze_server_data
+from skellybot_analysis.ai.db_extract_user_profiles import db_extract_user_profiles
 from skellybot_analysis.scrape_server.db_save_to_markdown_directory import save_server_db_as_markdown_directory
 from skellybot_analysis.scrape_server.run_server_scraper import run_server_scraper
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
@@ -34,7 +35,8 @@ DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
 print("Server Scraper Done!")
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(analyze_server_db())
-    save_server_db_as_markdown_directory()
+    # asyncio.run(db_analyze_server_data())
+    # asyncio.run(db_extract_user_profiles(server_id=TARGET_SERVER_ID))
+    # save_server_db_as_markdown_directory()
     print("Server Data Analysis Done!")
 
