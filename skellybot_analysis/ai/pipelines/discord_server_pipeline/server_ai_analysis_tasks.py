@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from skellybot_analysis.ai.pipelines.discord_server_pipeline.add_ai_analysis_to_object import add_ai_analysis
-from skellybot_analysis.models.data_models.server_data.server_data_model import Server
+from skellybot_analysis.models.data_models.server_data.server_db_models import Server
 from skellybot_analysis.models.data_models.tag_models import TagManager
 from skellybot_analysis.models.data_models.user_data_model import UserDataManager
 from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
@@ -13,11 +13,19 @@ from skellybot_analysis.models.prompt_models.user_profile_prompt_model import Us
 
 logger = logging.getLogger(__name__)
 
+
 async def ai_analyze_server_data(system_prompt_og: str, server_data: Server):
     system_prompt = system_prompt_og + (
         "\n You are currently reviewing the chat data from the server extracting the content "
         "of the conversations to provide a landscape of the topics that the students are discussing. "
-        f"Provide your output in accordance to the provided JSON  schema.\n {TextAnalysisPromptModel.as_description_schema()}")
+        f"Provide your output in accordance to the provided JSON  schema. "
+        "\n You are currently reviewing the chat data from the server extracting the content "
+        "of the conversations to provide a landscape of the topics that the students are discussing. "
+        f"Provide your output in accordance to the provided JSON  schema. "
+        "\n You are currently reviewing the chat data from the server extracting the content "
+        "of the conversations to provide a landscape of the topics that the students are discussing. "
+        f"Provide your output in accordance to the provided JSON  schema. "
+    )
     analyzable_things = server_data.get_all_sub_objects(include_messages=False)
     ai_analysis_tasks = [add_ai_analysis(thing=thing,
                                          text_to_analyze=thing.as_text(),

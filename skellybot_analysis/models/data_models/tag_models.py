@@ -6,7 +6,7 @@ from skellybot_analysis.models.data_models.data_object_model import DataObjectMo
 from skellybot_analysis.models.data_models.server_data.server_context_route_model import ServerContextRoute
 
 if TYPE_CHECKING:
-    from skellybot_analysis.models.data_models.server_data.server_data_model import Server
+    from skellybot_analysis.models.data_models.server_data.server_db_models import Server
     from skellybot_analysis.models.data_models.user_data_model import UserDataManager
 
 class TagModel(DataObjectModel):

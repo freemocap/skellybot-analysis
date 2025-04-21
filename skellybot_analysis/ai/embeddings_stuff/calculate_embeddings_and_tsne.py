@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
-from skellybot_analysis.models.data_models.server_data.server_data_model import Server
+from skellybot_analysis.models.data_models.server_data.server_db_models import Server
 from skellybot_analysis.models.data_models.xyz_data_model import XYZData
 
 

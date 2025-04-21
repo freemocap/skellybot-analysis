@@ -2,23 +2,23 @@ import logging
 from copy import copy
 
 import discord
-from sqlmodel import Session, create_engine, SQLModel, select
+from sqlmodel import Session, create_engine, SQLModel
+from sqlalchemy.engine import Engine
 
-from skellybot_analysis.models.data_models.server_data.server_data_model import Server, ContextSystemPrompt, \
+from skellybot_analysis.models.data_models.server_data.server_db_models import Server, ContextSystemPrompt, \
     Category, Thread, Message, Channel, User
 from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel
 
 logger = logging.getLogger(__name__)
 
 
-async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
+async def scrape_server(target_server: discord.Guild,
+                        db_engine:Engine) -> None:
     logger.info(f'Successfully connected to the guild: {target_server.name} (ID: {target_server.id})')
 
-    # Configure SQLAlchemy to log all SQL statements for debugging
-    engine = create_engine(f"sqlite:///{db_path}", echo=True)
-    SQLModel.metadata.create_all(engine)
 
-    with Session(engine) as session:
+
+    with Session(db_engine) as session:
         try:
             db_server, server_prompt_messages = await db_process_server(session=session,
                                                                         target_server=target_server)
@@ -33,9 +33,9 @@ async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
                                                                               target_server=target_server)
                     db_server.categories.append(db_category)
                 except discord.errors.Forbidden as e:
-                    logger.warning(f"Failed to access category {category.name} (ID: {category.id}): {str(e)} - skipping")
+                    logger.warning(
+                        f"Failed to access category {category.name} (ID: {category.id}): {str(e)} - skipping")
                     continue
-
 
                 logger.info(f"✅ Added category: {db_category.name} (ID: {db_category.id})")
 
@@ -44,11 +44,12 @@ async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
                         continue
                     try:
                         db_channel, channel_prompts = await db_process_channel(session=session,
-                                                                           context_prompts=category_prompts,
-                                                                           channel=channel,
-                                                                           )
+                                                                               context_prompts=category_prompts,
+                                                                               channel=channel,
+                                                                               )
                     except discord.errors.Forbidden as e:
-                        logger.warning(f"Failed to access channel {channel.name} (ID: {channel.id}): {str(e)} - skipping")
+                        logger.warning(
+                            f"Failed to access channel {channel.name} (ID: {channel.id}): {str(e)} - skipping")
                         continue
 
                     db_category.channels.append(db_channel)
@@ -60,8 +61,8 @@ async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
                         threads.append(thread)
 
                     for thread in threads:
-                        db_thread = await db_process_thread(session= session,
-                                                            thread= thread)
+                        db_thread = await db_process_thread(session=session,
+                                                            thread=thread)
                         db_channel.threads.append(db_thread)
         except Exception as e:
             session.rollback()
@@ -71,11 +72,9 @@ async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
         session.commit()
         logger.info("✅ All data has been committed to the database")
 
-    validate_database(db_path)
 
-
-async def db_process_thread( session:Session,
-                             thread:discord.Thread) -> Thread:
+async def db_process_thread(session: Session,
+                            thread: discord.Thread) -> Thread:
     User.get_create_or_update(session=session,
                               db_id=thread.owner.id,
                               user_name=thread.owner.name,
@@ -86,6 +85,7 @@ async def db_process_thread( session:Session,
                                             channel_name=thread.parent.name,
                                             channel_id=thread.parent.id,
                                             owner_id=thread.owner_id,
+                                            owner_name=thread.owner.name,
                                             messages=[]
                                             )
 
@@ -117,7 +117,7 @@ async def db_process_server(session: Session,
                                             db_id=target_server.id,
                                             name=target_server.name,
                                             categories=[],
-                                            channels=[],)
+                                            channels=[], )
     session.flush()
     logger.info(f"✅ Added server record: {target_server.name} (ID: {target_server.id})")
 
@@ -138,20 +138,12 @@ async def db_process_server(session: Session,
                                      )
     if server_prompt_messages:
         ContextSystemPrompt.from_context(session=session,
+                                         system_prompt="\n".join(server_prompt_messages),
                                          server_id=target_server.id,
-                                         system_prompt="\n".join(server_prompt_messages)
+                                         server_name=target_server.name,
                                          )
         logger.info(f"✅ Added server-level system prompt")
     return db_server, server_prompt_messages
-
-
-
-
-
-
-
-
-
 
 
 async def db_process_channel(session: Session,
@@ -171,10 +163,13 @@ async def db_process_channel(session: Session,
                                               threads=[]
                                               )
     ContextSystemPrompt.from_context(session=session,
+                                     system_prompt="\n".join(channel_prompts),
                                      server_id=channel.guild.id,
+                                     server_name=channel.guild.name,
                                      category_id=channel.category.id if channel.category else 0,
+                                     category_name=channel.category.name if channel.category else 'top-level',
                                      channel_id=channel.id,
-                                     system_prompt="\n".join(channel_prompts)
+                                     channel_name=channel.name,
                                      )
     return db_channel, channel_prompts
 
@@ -199,30 +194,10 @@ async def db_process_category(session: Session,
                                                 channels=[]
                                                 )
     ContextSystemPrompt.from_context(session=session,
+                                     system_prompt="\n".join(category_prompts),
                                      server_id=target_server.id,
+                                     server_name=target_server.name,
                                      category_id=category.id,
-                                     system_prompt="\n".join(category_prompts)
+                                     category_name=category.name,
                                      )
     return db_category, category_prompts
-
-
-def validate_database(db_path: str):
-    """Validate that data was properly saved to the database"""
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
-    with Session(engine) as session:
-        server_count = session.query(Server).count()
-        category_count = session.query(Category).count()
-        channel_count = session.query(Channel).count()
-        thread_count = session.query(Thread).count()
-        message_count = session.query(Message).count()
-        user_count = session.query(User).count()
-
-        logger.info(f"Database validation results:")
-        logger.info(f"  - Servers: {server_count}")
-        logger.info(f"  - Categories: {category_count}")
-        logger.info(f"  - Channels: {channel_count}")
-        logger.info(f"  - Threads: {thread_count}")
-        logger.info(f"  - Messages: {message_count}")
-        logger.info(f"  - Users: {user_count}")
-
-        return server_count > 0 and message_count > 0

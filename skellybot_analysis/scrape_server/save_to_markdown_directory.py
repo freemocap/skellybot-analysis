@@ -8,7 +8,7 @@ from skellybot_analysis.models.data_models.user_data_model import UserDataManage
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
 
 configure_logging()
-from skellybot_analysis.models.data_models.server_data.server_data_model import Server
+from skellybot_analysis.models.data_models.server_data.server_db_models import Server
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)

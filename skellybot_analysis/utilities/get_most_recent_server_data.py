@@ -4,7 +4,7 @@ from pathlib import Path
 from pprint import pprint
 from typing import Tuple
 
-from skellybot_analysis.models.data_models.server_data.server_data_model import Server
+from skellybot_analysis.models.data_models.server_data.server_db_models import Server
 
 logger = logging.getLogger(__name__)
 RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE = Path(__file__).parent / "most_recent_scrape_location.txt"
