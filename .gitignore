@@ -174,3 +174,4 @@ cython_debug/
 *.avi
 
 .env
+/skellybot_analysis/utilities/most_recent_db_location.txt

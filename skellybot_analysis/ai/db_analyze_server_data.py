@@ -1,30 +1,27 @@
-import logging
-from typing import Optional
 import asyncio
+import logging
 
-from sqlmodel import Session, create_engine, select
+from sqlalchemy.engine import Engine
+from sqlmodel import Session, select
 
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.models.data_models.server_data.server_db_models import (
-    Server, Message, Category, Channel, Thread, ServerObjectAiAnalysis, ContextSystemPrompt, User
+    Server, Message, Category, Channel, Thread, ServerObjectAiAnalysis, ContextSystemPrompt
 )
 from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
-from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
+from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 
 logger = logging.getLogger(__name__)
 
 
-async def analyze_server_db(db_path: str | None = None):
+async def analyze_server_db(db_path: str | None = None) -> None:
     """Run AI analysis on server data stored in the SQLite database"""
-    if db_path is None:
-        db_path = get_most_recent_db_location()
-
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
+    db_engine: Engine = initialize_database_engine(db_path=db_path)
     analysis_tasks = []
-    with Session(engine) as session:
+    with Session(db_engine) as session:
         # Get the server from the DB
         server = session.exec(select(Server)).first()
         if not server:
@@ -38,20 +35,20 @@ async def analyze_server_db(db_path: str | None = None):
                                                          server_id=server.id)
 
         # Run analysis at the server level
-        await analyze_object(
-            session=session,
-            server_id=server.id,
-            server_name=server.name,
-            object_id=server.id,
-            object_type="server",
-            system_prompt=server_system_prompt
-        )
-
+        analysis_tasks.append(analyze_object(session=session,
+                                             server_id=server.id,
+                                             server_name=server.name,
+                                             object_id=server.id,
+                                             object_type="server",
+                                             system_prompt=server_system_prompt
+                                             )
+                              )
         # Run analysis on categories
         categories = session.exec(select(Category).where(Category.server_id == server.id)).all()
         logger.info(f"Analyzing {len(categories)} categories")
 
         for category in categories:
+            logger.info(f"Analyzing category: {category.name} (ID: {category.id})")
             category_prompt = get_context_system_prompt(session=session,
                                                         server_id=server.id,
                                                         category_id=category.id)
@@ -73,6 +70,7 @@ async def analyze_server_db(db_path: str | None = None):
         logger.info(f"Analyzing {len(channels)} channels")
 
         for channel in channels:
+            logger.info(f"Analyzing channel: {channel.name} (ID: {channel.id})")
             channel_prompt = get_context_system_prompt(session=session,
                                                        server_id=server.id,
                                                        category_id=channel.category_id,
@@ -96,18 +94,21 @@ async def analyze_server_db(db_path: str | None = None):
         threads = session.exec(select(Thread).join(Channel).where(Channel.server_id == server.id)).all()
         logger.info(f"Analyzing {len(threads)} threads")
         for thread in threads:
+            logger.info(f"Analyzing thread: {thread.name} (ID: {thread.id})")
             channel = session.exec(select(Channel).where(Channel.id == thread.channel_id)).first()
             analysis_tasks.append(
                 analyze_object(
                     session=session,
                     server_id=server.id,
-                    server_name = server.name,
+                    server_name=server.name,
                     object_id=thread.id,
                     object_type="thread",
                     category_id=channel.category_id,
-                    category_name= channel.category_name,
+                    category_name=channel.category_name,
                     channel_id=channel.id,
                     channel_name=channel.name,
+                    thread_id=thread.id,
+                    thread_name=thread.name,
                     system_prompt=channel_prompt
                 )
             )
@@ -120,8 +121,8 @@ async def analyze_server_db(db_path: str | None = None):
 
 def get_context_system_prompt(session: Session,
                               server_id: int,
-                              category_id: Optional[int] = None,
-                              channel_id: Optional[int] = None
+                              category_id: int | None = None,
+                              channel_id: int | None = None
                               ) -> str:
     """Get the system prompt for a server from the ContextSystemPrompt table"""
 
@@ -148,10 +149,14 @@ async def analyze_object(
         object_id: int,
         object_type: str,
         system_prompt: str,
-        category_id: Optional[int] = None,
-        channel_id: Optional[int] = None,
-        category_name: Optional[str] = None,
-        channel_name: Optional[str] = None) -> None:
+        category_id: int | None = None,
+        category_name: str | None = None,
+
+        channel_id: int | None = None,
+        channel_name: str | None = None,
+
+        thread_id: int | None = None,
+        thread_name: str | None = None) -> None:
     """
     Run AI analysis on a server object (server, category, or channel)
     and store the results in the ServerObjectAiAnalysis table.
@@ -169,7 +174,7 @@ async def analyze_object(
     context_route_names = f"{server_name}"
     if category_id is not None:
         context_route += f"/{category_id}"
-        if category_name is  None:
+        if category_name is None:
             raise ValueError("Category name is required when category_id is provided.")
         context_route_names += f"/{category_name}"
     if channel_id is not None:
@@ -177,6 +182,11 @@ async def analyze_object(
         if channel_name is None:
             raise ValueError("Channel name is required when channel_id is provided.")
         context_route_names += f"/{channel_name}"
+    if thread_id is not None:
+        context_route += f"/{thread_id}"
+        if thread_name is None:
+            raise ValueError("Thread name is required when thread_id is provided.")
+        context_route_names += f"/{thread_name}"
 
     # Enhance system prompt for analysis
     enhanced_system_prompt = ("You are currently reviewing the chat data from the server extracting the content "
@@ -199,10 +209,15 @@ async def analyze_object(
             context_route_names=context_route_names,
             server_id=server_id,
             server_name=server_name,
+
             category_id=category_id,
-            category_name=category_name if category_id else 'top-level',
+            category_name=category_name,
+
             channel_id=channel_id,
-            channel_name=channel_name if channel_id else 'top-level',
+            channel_name=channel_name,
+
+            thread_id=thread_id,
+            thread_name=thread_name,
             analysis_result=analysis_result,
             base_text=text_to_analyze
         )
@@ -253,9 +268,9 @@ def get_object_text(session: Session, object_id: int, object_type: str) -> str:
         thread_text = f"Thread: {thread.name} (id: {thread.id})\n\nurl: {messages[0].jump_url}\n\n"
         for msg in messages:
             if msg.is_bot:
-                author_name = "BOT"
+                author_name = "- **BOT**"
             else:
-                author_name = "HUMAN"
+                author_name = "- **HUMAN**"
             thread_text += f"{author_name}: {msg.content}\n\n"
             if msg.attachments:
                 thread_text += "\n\nBEGIN MESSAGE ATTACHMENTS\n\n"
@@ -264,8 +279,6 @@ def get_object_text(session: Session, object_id: int, object_type: str) -> str:
                 thread_text += "\n\nEND MESSAGE ATTACHMENTS\n\n"
         thread_texts.append(thread_text)
     return "\n\n_______________\n\n_______________\n\n".join(thread_texts)
-
-
 
 
 async def analyze_text(text_to_analyze: str, system_prompt: str) -> TextAnalysisPromptModel:
@@ -314,13 +327,15 @@ def store_analysis_result(
         context_route_names: str,
         server_id: int,
         server_name: str,
-        category_name: str| None,
-        channel_name: str| None,
         base_text: str,
         analysis_result: TextAnalysisPromptModel,
         category_id: int | None = None,
-        channel_id: int | None = None
-) -> None:
+        category_name: str | None = None,
+
+        channel_id: int | None = None,
+        channel_name: str | None = None,
+        thread_id: int | None = None,
+        thread_name: str | None = None) -> None:
     """Store the analysis result in the ServerObjectAiAnalysis table"""
     # Check if analysis already exists
     existing = session.exec(
@@ -334,6 +349,7 @@ def store_analysis_result(
         existing.server_name = server_name
         existing.category_name = category_name
         existing.channel_name = channel_name
+        existing.thread_name = thread_name
         existing.title_slug = analysis_result.title_slug
         existing.extremely_short_summary = analysis_result.extremely_short_summary
         existing.very_short_summary = analysis_result.very_short_summary
@@ -345,15 +361,23 @@ def store_analysis_result(
     else:
         # Create new analysis
         analysis = ServerObjectAiAnalysis(
+
             context_route=context_route,
-            server_id=server_id,
-            category_id=category_id,
-            channel_id=channel_id,
             context_route_names=context_route_names,
+
+            server_id=server_id,
             server_name=server_name,
+
+            category_id=category_id,
             category_name=category_name,
+
+            channel_id=channel_id,
             channel_name=channel_name,
-            base_text = base_text,
+
+            thread_id=thread_id,
+            thread_name=thread_name,
+
+            base_text=base_text,
             title_slug=analysis_result.title_slug,
             extremely_short_summary=analysis_result.extremely_short_summary,
             very_short_summary=analysis_result.very_short_summary,
@@ -369,5 +393,4 @@ def store_analysis_result(
 
 
 if __name__ == "__main__":
-
     asyncio.run(analyze_server_db())

@@ -17,17 +17,12 @@ def update_latest_message_datetime(message_datetime):
 
 
 async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoji: str) -> list[str]:
-    logger.info(f"Getting bot prompt messages from channel: {channel.name}")
     tagged_messages = []
     async for message in channel.history(limit=None, oldest_first=True):
         if message.reactions:
             for reaction in message.reactions:
                 if reaction.emoji == target_emoji:
-                    logger.info(
-                        f"Found message with target emoji {target_emoji} with content:\n\n{message.clean_content}")
                     tagged_messages.append(await  DiscordContentMessage.from_discord_message(message))
-
-    logger.info(f"Found {len(tagged_messages)} messages with target emoji {target_emoji} in channel: {channel.name}")
     return [msg.as_full_text() for msg in tagged_messages]
 
 
