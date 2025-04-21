@@ -119,11 +119,13 @@ async def db_process_thread(session: Session,
 async def create_user_thread_associations(session: Session, thread: discord.Thread):
     try:
         # Get the thread members
-        members = await thread.fetch_members()
-        if len(members) == 0:
-            raise ValueError(f"No members found for thread {thread.name} (ID: {thread.id})")
 
-        for member in members:
+        members = await thread.fetch_members()
+        members = set([thread.owner] + members)
+        if len(members) == 0:
+            logger.warning(f"No members found for thread {thread.name} (ID: {thread.id})")
+
+        for member in  members:
             # Get or create the user
             discord_user = await thread.guild.fetch_member(member.id)
             user = User.get_create_or_update(session=session,
