@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
@@ -41,6 +42,7 @@ async def db_analyze_server_data(db_path: str | None = None) -> None:
                                              server_id=server.id,
                                              server_name=server.name,
                                              object_id=server.id,
+                                             object_name=server.name,
                                              object_type="server",
                                              system_prompt=server_system_prompt
                                              )
@@ -60,6 +62,7 @@ async def db_analyze_server_data(db_path: str | None = None) -> None:
                     server_id=server.id,
                     server_name=server.name,
                     object_id=category.id,
+                    object_name=category.name,
                     object_type="category",
                     category_id=category.id,
                     category_name=category.name,
@@ -83,6 +86,7 @@ async def db_analyze_server_data(db_path: str | None = None) -> None:
                     server_id=server.id,
                     server_name=server.name,
                     object_id=channel.id,
+                    object_name=channel.name,
                     object_type="channel",
                     category_id=channel.category_id,
                     category_name=channel.category_name,
@@ -104,6 +108,7 @@ async def db_analyze_server_data(db_path: str | None = None) -> None:
                     server_id=server.id,
                     server_name=server.name,
                     object_id=thread.id,
+                    object_name=thread.name,
                     object_type="thread",
                     category_id=channel.category_id,
                     category_name=channel.category_name,
@@ -149,6 +154,7 @@ async def analyze_object(
         server_id: int,
         server_name: str,
         object_id: int,
+        object_name: str,
         object_type: str,
         system_prompt: str,
         category_id: int | None = None,
@@ -168,7 +174,7 @@ async def analyze_object(
                                       object_id=object_id,
                                       object_type=object_type)
     if not text_to_analyze:
-        logger.warning(f"No text content found for {object_type} ID: {object_id}")
+        logger.warning(f"No text content found for {object_type} - {object_name} (ID: {object_id})")
         return
 
     # Build context route
@@ -263,7 +269,7 @@ def get_object_text(session: Session, object_id: int, object_type: str) -> str:
             select(Message).where(Message.thread_id == object_id)
         ).all()
         # ensure sorting by timestamp
-        messages.sort(key=lambda x: x.created_at)
+        messages.sort(key=lambda x: x.timestamp)
         if not messages:
             logger.warning(f"Thread {thread.name} (id: {thread.id}) has no messages, skipping analysis.")
             continue
@@ -314,6 +320,8 @@ async def analyze_text(text_to_analyze: str, system_prompt: str) -> TextAnalysis
             prompt_model=TextAnalysisPromptModel,
             llm_model=DEFAULT_LLM
         )
+        for topic in analysis_result.topic_areas:
+            topic.id  = uuid.uuid4()
 
         # Update message for subsequent chunks
         if chunk_number < len(text_chunks) - 1:

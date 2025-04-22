@@ -38,19 +38,21 @@ class ServerAnalysisTopicArea(SQLModel, table=True):
 
 class TopicArea(SQLModel, table=True):
     """Represents a topic area of interest."""
-    id: int = Field(default=None, primary_key=True)  # will be auto-generated when the object is created in the database
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    name: str = Field(
+        description="The name of this topic area. This should be a single word or hyphenated phrase that describes the topic area. For example, 'machine-learning', 'python', 'oculomotor-control', 'neural-networks', 'computer-vision', etc. Do not include conversational aspects such as 'greetings', 'farewells', 'thanks', etc.")
     category: str = Field(
-        description="The broad/general category or field of interest (e.g., 'science', 'technology', 'arts', 'sports', 'medicine', etc).")
+        description="The general category or field of interest (e.g., 'science', 'technology', 'arts', 'activities', 'health', etc).")
+    subject: str = Field(
+        description="A more specific subject or area of interest within the category (e.g., 'biology', 'computer science', 'music', 'sports', 'medicine', etc).")
     topic: str = Field(
-        description="More specific topic or subfield within the category (e.g., 'machine learning', 'quantum physics', 'classical music', 'basketball', 'cardiology', etc).")
+        description="More specific topic or subfield within the category (e.g., 'neuroscience', 'machine learning',  'classical music', 'basketball', 'cardiology', etc).")
     subtopic: str = Field(
-        description="An even more specific subtopic or area of interest within the topic (e.g., 'deep learning', 'quantum computing', 'Baroque music', 'NBA', 'heart surgery', etc).")
+        description="An even more specific subtopic or area of interest within the topic (e.g., 'oculomotor-control', 'neural-networks', 'Baroque music', 'NBA', 'heart surgery', etc).")
     niche: str = Field(
-        description="A very specific niche or focus area within the subtopic (e.g., 'reinforcement learning', 'quantum cryptography', 'Bach', 'NBA playoffs', 'pediatric cardiology', etc).")
+        description="A very specific niche or focus area within the subtopic (e.g., 'gaze-stabilization', 'convolutional-neural-networks', 'Bach', 'NBA playoffs', 'pediatric cardiology', etc).")
     description: str = Field(sa_column=Column(Text),
                              description="A brief description of this interest, including any relevant background information, key concepts, notable figures, recent developments, and related topics. This should be a concise summary that provides context and depth to the interest")
-    tag: str = Field(
-        description="A #kebab-case tag this topic area can be categorized by. This should be a single word, unless the tag is a multi-word phrase that is commonly used as a single tag, in which case it should be hyphenated. For example, '#machine-learning', '#quantum-physics', '#classical-music', '#basketball', '#cardiology', etc. Do not include conversational aspects such as '#greetings', '#farewells', '#thanks', etc.")
 
     user_profiles: list["UserProfile"] = Relationship(
         back_populates="interests",
@@ -60,6 +62,13 @@ class TopicArea(SQLModel, table=True):
         back_populates="topic_areas",
         link_model=ServerAnalysisTopicArea  # Change this to use ServerAnalysisTopicArea
     )
+
+    @property
+    def as_string(self):
+        """
+        Convert the TopicArea instance to a string representation.
+        """
+        return f"{self.name} -> {self.category} -> {self.subject} -> {self.topic} -> {self.subtopic} -> {self.niche}"
 
 class UserProfile(BaseSQLModel, table=True):
     """Represents a user's profile with interests and recommendations."""
@@ -105,7 +114,7 @@ class ServerObjectAiAnalysis(SQLModel, table=True):
         description="A (comma-separated string) list of the 5-10 most important points of the text, formatted as a bulleted list")
     detailed_summary: str = Field(
         description="An exhaustively thorough and detailed summary of the major points of this text in markdown bulleted outline format, like `* point 1\n* point 2\n* point 3` etc. Do not include conversational aspects such as 'the human greets the ai' and the 'ai responds with a greeting', only include the main contentful components of the text.")
-    topic_areas: list["TopicArea"] = Relationship(
+    topic_areas: list[TopicArea] = Relationship(
         back_populates="server_analyses",
         link_model=ServerAnalysisTopicArea,
     )
@@ -136,10 +145,12 @@ class ServerObjectAiAnalysis(SQLModel, table=True):
 
 
     @property
-    def tags_list(self):
-        tags_list = self.tags.split(",")
+    def tags(self):
+        tag_list = []
+        for topic in self.topic_areas:
+            tag_list.extend(list(topic.model_dump(exclude={"id", "created_at", "description"}).values()))
         clean_tags = []
-        for tag in tags_list:
+        for tag in tag_list:
             tag.strip()
             if not tag.startswith("#"):
                 tag = "#" + tag
@@ -147,17 +158,25 @@ class ServerObjectAiAnalysis(SQLModel, table=True):
             tag = tag.replace("# ", "#")
             tag = tag.replace("##", "#")
             tag = tag.replace("###", "#")
-            clean_tags.append(tag)
+            if not tag in clean_tags:
+                clean_tags.append(tag)
         return clean_tags
 
     @property
+    def topic_areas_string(self):
+        topic_areas = []
+        for topic in self.topic_areas:
+            topic_areas.append(topic.as_string)
+        return "\n- ".join(topic_areas)
+
+    @property
     def tags_string(self):
-        return "\n".join(self.tags_list)
+        return ", \n".join(self.tags)
 
     @property
     def backlinks(self):
         bl = []
-        for thing in self.tags_list:
+        for thing in self.tags:
             thing = f"[[{thing}]]"
             bl.append(thing)
         return "\n".join(bl)
@@ -178,8 +197,11 @@ class ServerObjectAiAnalysis(SQLModel, table=True):
 {self.short_summary}\n\n
 ## Detailed Summary\n
 {self.detailed_summary}\n\n
+## Topic Areas\n
+{self.topic_areas_string}\n\n
 ## Tags\n
-{self.tags_string}\n\n
+{self.tags}\n\n
+
 ## Backlinks\n
 {self.backlinks}\n\n
 __

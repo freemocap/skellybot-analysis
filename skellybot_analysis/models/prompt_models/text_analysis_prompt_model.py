@@ -2,6 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
+from skellybot_analysis.models.data_models.user_db_models import TopicArea
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
@@ -15,8 +16,8 @@ class TextAnalysisPromptModel(BaseModel):
         description="A list of the 5-10 most important points of the text, formatted as a bulleted list")
     detailed_summary: str = Field(
         description="An exhaustively thorough and detailed summary of the major points of this text in markdown bulleted outline format, like `* point 1\n* point 2\n* point 3` etc. Do not include conversational aspects such as 'the human greets the ai' and the 'ai responds with a greeting', only include the main contentful components of the text.")
-    tags: str = Field(
-        description="A list of #tags that describe the content of the text, formatted as comma separated #lower-kabob-case. These should be like topic tags that can be used to categorize the text within a larger collection of texts. Ignore conversational aspects (such as '#greetings', '#farewells', '#thanks', etc.).  These should almost always be single word, unless the tag is a multi-word phrase that is commonly used as a single tag, in which case it should be hyphenated. For example, '#machine-learning, #python, #oculomotor-control,#neural-networks, #computer-vision', but NEVER things like '#computer-vision-conversation', '#computer-vision-questions', etc.")
+    topic_areas: list[TopicArea] = Field(
+        description="A list of topic areas that describe the content of the text. These will be used to categorize the text within a larger collection of texts. Ignore conversational aspects (such as 'greetings', 'farewells', 'thanks', etc.).  These should almost always be single word, unless the tag is a multi-word phrase that is commonly used as a single tag, in which case it should be hyphenated. For example, 'machine-learning, python, oculomotor-control,neural-networks, computer-vision', but NEVER things like 'computer-vision-conversation', 'computer-vision-questions', etc.")
 
 
     @property
