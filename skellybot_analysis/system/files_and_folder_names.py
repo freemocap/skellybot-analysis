@@ -14,26 +14,6 @@ def get_gmt_offset_string():
     return f"{gmt_offset_int:+}"
 
 
-def get_iso6201_time_string(timespec: str = "milliseconds", make_filename_friendly: bool = True):
-    iso6201_timestamp = datetime.now().isoformat(timespec=timespec)
-    gmt_offset_string = f"_gmt{get_gmt_offset_string()}"
-    iso6201_timestamp_w_gmt = iso6201_timestamp + gmt_offset_string
-    if make_filename_friendly:
-        iso6201_timestamp_w_gmt = iso6201_timestamp_w_gmt.replace(":", "_")
-        iso6201_timestamp_w_gmt = iso6201_timestamp_w_gmt.replace(".", "ms")
-    return iso6201_timestamp_w_gmt
-
-
-def create_new_default_recording_name():
-    full_time = get_iso6201_time_string(timespec="seconds")
-    just_hours_minutes_seconds = full_time.split("T")[1]
-    recording_name = "recording_" + just_hours_minutes_seconds
-    return recording_name
-
-
-
-
-
 def create_log_file_name():
     return "skellybot_analysis_" + time.strftime("%Y-%m-%d_%H_%M_%S") + ".log"
 

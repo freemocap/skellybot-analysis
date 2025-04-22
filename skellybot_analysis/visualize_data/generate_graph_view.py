@@ -1,12 +1,12 @@
 import asyncio
 
-from skellybot_analysis.models.data_models.graph_data_models import GraphData
+from skellybot_analysis.models.db_models.graph_data_models import GraphData
 from skellybot_analysis.utilities.json_datatime_encoder import JSONDateTimeEncoder
 
 if __name__ == "__main__":
     import json
     from pathlib import Path
-    from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
+    from skellybot_analysis.utilities.get_most_recent_scrape_data import get_server_data
 
     # Generate graph data
     server_data, server_data_file_path = get_server_data()

@@ -2,7 +2,7 @@ import logging
 
 import discord
 
-from skellybot_analysis.models.data_models.server_data.server_data_sub_object_models import DiscordContentMessage
+from skellybot_analysis.models.server_db_models import Message
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +22,12 @@ async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoj
         if message.reactions:
             for reaction in message.reactions:
                 if reaction.emoji == target_emoji:
-                    tagged_messages.append(await  DiscordContentMessage.from_discord_message(message))
+                    tagged_messages.append(await  Message.from_discord_message(message))
     return [msg.as_full_text() for msg in tagged_messages]
 
 
 async def get_pinned_message_contents(channel: discord.TextChannel):
-    pinned_messages = [await DiscordContentMessage.from_discord_message(msg) for msg in await channel.pins()]
+    pinned_messages = [await Message.from_discord_message(msg) for msg in await channel.pins()]
     return [msg.as_full_text() for msg in pinned_messages]
 
 

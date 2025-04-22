@@ -5,7 +5,7 @@ from pathlib import Path
 from skellybot_analysis.ai.embeddings_stuff.calculate_embeddings_and_tsne import create_embedding_and_tsne_clusters
 from skellybot_analysis.ai.pipelines.discord_server_pipeline.run_discord_server_analysis_pipeline import run_ai_analysis
 from skellybot_analysis.scrape_server.save_to_markdown_directory import save_server_data_as_markdown_directory
-from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
+from skellybot_analysis.utilities.get_most_recent_scrape_data import get_server_data
 
 logging.getLogger("httpcore").setLevel(logging.INFO)
 logging.getLogger("openai").setLevel(logging.WARNING)

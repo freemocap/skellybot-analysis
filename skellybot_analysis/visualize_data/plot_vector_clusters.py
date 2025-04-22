@@ -8,7 +8,7 @@ import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
 
-from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
+from skellybot_analysis.utilities.get_most_recent_scrape_data import get_server_data
 
 logger = logging.getLogger(__name__)
 

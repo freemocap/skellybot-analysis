@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
-from skellybot_analysis.models.data_models.xyz_data_model import XYZData
+from skellybot_analysis.models.xyz_data_model import XYZData
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ async def create_embedding_and_tsne_clusters(texts_to_embed: list[str]):
 
 if __name__ == "__main__":
     import asyncio
-    from skellybot_analysis.utilities.get_most_recent_server_data import get_server_data
+    from skellybot_analysis.utilities.get_most_recent_scrape_data import get_server_data
     _server_data, server_data_json_path = get_server_data()
     asyncio.run(create_embedding_and_tsne_clusters(_server_data))
     Path(server_data_json_path).write_text(_server_data.model_dump_json(indent=2), encoding="utf-8")
