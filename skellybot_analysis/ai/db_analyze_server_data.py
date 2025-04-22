@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import uuid
 
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
@@ -8,10 +7,9 @@ from sqlmodel import Session, select
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
+from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis, TextAnalysisPromptModel, TopicArea
 from skellybot_analysis.models.server_db_models import Server, Category, Channel, Thread, \
     ContextSystemPrompt, Message
-from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis
-from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 
@@ -151,18 +149,16 @@ def get_context_system_prompt(session: Session,
 
 async def analyze_object(
         session: Session,
-        server_id: int,
-        server_name: str,
         object_id: int,
         object_name: str,
         object_type: str,
         system_prompt: str,
+        server_id: int,
+        server_name: str,
         category_id: int | None = None,
         category_name: str | None = None,
-
         channel_id: int | None = None,
         channel_name: str | None = None,
-
         thread_id: int | None = None,
         thread_name: str | None = None) -> None:
     """
@@ -211,23 +207,29 @@ async def analyze_object(
         analysis_result = await analyze_text(text_to_analyze, enhanced_system_prompt)
 
         # Store analysis in database
-        store_analysis_result(
+        ServerObjectAiAnalysis.get_create_or_update(
+            db_id=context_route,
             session=session,
+            flush=True,
             context_route=context_route,
             context_route_names=context_route_names,
             server_id=server_id,
             server_name=server_name,
-
             category_id=category_id,
             category_name=category_name,
-
             channel_id=channel_id,
             channel_name=channel_name,
-
             thread_id=thread_id,
             thread_name=thread_name,
-            analysis_result=analysis_result,
-            base_text=text_to_analyze
+            base_text=text_to_analyze,
+            title_slug=analysis_result.title_slug,
+            extremely_short_summary=analysis_result.extremely_short_summary,
+            very_short_summary=analysis_result.very_short_summary,
+            short_summary=analysis_result.short_summary,
+            highlights=analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
+                analysis_result.highlights),
+            detailed_summary=analysis_result.detailed_summary,
+            topic_areas=[TopicArea.get_create_or_update(topic.id) for topic in analysis_result.topic_areas]
         )
 
         logger.info(f"Successfully analyzed {object_type} ID: {object_id}")
@@ -320,90 +322,26 @@ async def analyze_text(text_to_analyze: str, system_prompt: str) -> TextAnalysis
             prompt_model=TextAnalysisPromptModel,
             llm_model=DEFAULT_LLM
         )
-        for topic in analysis_result.topic_areas:
-            topic.id  = uuid.uuid4()
+
 
         # Update message for subsequent chunks
         if chunk_number < len(text_chunks) - 1:
             chunk_based_message = (
                 f"Here is chunk #{chunk_number + 2} out of {len(text_chunks)}. "
-                f"Here is the running AI analysis of the previous chunk(s):\n"
+                f"Here is the running AI analysis of the previous chunk(s):"
+                f"BEGIN RUNNING ANALYSIS MODEL OUTPUT\n"
                 f"{analysis_result.model_dump_json(indent=2)}\n\n"
+                f"BEGIN RUNNING ANALYSIS MODEL OUTPUT\n"
+        
                 f"Use the previous results in conjunction with the new text to continue the analysis."
             )
 
     return analysis_result
 
 
-def store_analysis_result(
-        session: Session,
-        context_route: str,
-        context_route_names: str,
-        server_id: int,
-        server_name: str,
-        base_text: str,
-        analysis_result: TextAnalysisPromptModel,
-        category_id: int | None = None,
-        category_name: str | None = None,
 
-        channel_id: int | None = None,
-        channel_name: str | None = None,
-        thread_id: int | None = None,
-        thread_name: str | None = None) -> None:
-    """Store the analysis result in the ServerObjectAiAnalysis table"""
-    # Check if analysis already exists
-    existing = session.exec(
-        select(ServerObjectAiAnalysis).where(ServerObjectAiAnalysis.context_route == context_route)
-    ).first()
 
-    if existing:
-        # Update existing analysis
-        existing.base_text = base_text
-        existing.context_route_names = context_route_names
-        existing.server_name = server_name
-        existing.category_name = category_name
-        existing.channel_name = channel_name
-        existing.thread_name = thread_name
-        existing.title_slug = analysis_result.title_slug
-        existing.extremely_short_summary = analysis_result.extremely_short_summary
-        existing.very_short_summary = analysis_result.very_short_summary
-        existing.short_summary = analysis_result.short_summary
-        existing.highlights = analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
-            analysis_result.highlights)
-        existing.detailed_summary = analysis_result.detailed_summary
-        existing.topic_areas = analysis_result.topic_areas
-    else:
-        # Create new analysis
-        analysis = ServerObjectAiAnalysis(
 
-            context_route=context_route,
-            context_route_names=context_route_names,
-
-            server_id=server_id,
-            server_name=server_name,
-
-            category_id=category_id,
-            category_name=category_name,
-
-            channel_id=channel_id,
-            channel_name=channel_name,
-
-            thread_id=thread_id,
-            thread_name=thread_name,
-
-            base_text=base_text,
-            title_slug=analysis_result.title_slug,
-            extremely_short_summary=analysis_result.extremely_short_summary,
-            very_short_summary=analysis_result.very_short_summary,
-            short_summary=analysis_result.short_summary,
-            highlights=analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
-                analysis_result.highlights),
-            detailed_summary=analysis_result.detailed_summary,
-            topic_areas=analysis_result.topic_areas
-        )
-        session.add(analysis)
-
-    session.commit()
 
 
 if __name__ == "__main__":

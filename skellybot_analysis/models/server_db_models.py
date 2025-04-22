@@ -192,6 +192,17 @@ class Message(BaseSQLModel, table=True):
                 attachment_texts.append(attachment_string)
         return attachment_texts
 
+    def as_full_text(self) -> str:
+        """
+        Get the full text of the message.
+        """
+        full_text = f"{self.content}\n\n"
+        if self.attachments:
+            full_text += "\n\nBEGIN ATTACHMENTS:\n\n"
+            full_text += "\n\n".join(self.attachments)
+            full_text += "\n\nEND ATTACHMENTS\n\n"
+        return full_text
+
 
 class ContextSystemPrompt(SQLModel, table=True):
     """Represents a prompt for a given context"""

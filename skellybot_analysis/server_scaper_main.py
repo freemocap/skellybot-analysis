@@ -35,8 +35,8 @@ DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
 print("Server Scraper Done!")
 if __name__ == "__main__":
     import asyncio
-    # asyncio.run(db_analyze_server_data())
+    asyncio.run(db_analyze_server_data())
     # asyncio.run(db_extract_user_profiles(server_id=TARGET_SERVER_ID))
     save_server_db_as_markdown_directory()
-    print("Server Data Analysis Done!")
+    print("Done!")
 

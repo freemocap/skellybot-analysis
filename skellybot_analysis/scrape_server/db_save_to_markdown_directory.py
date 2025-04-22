@@ -29,6 +29,9 @@ def save_server_db_as_markdown_directory(db_path: str | None = None):
     with Session(db_engine) as session:
         # Get all analyses
         analyses = session.exec(select(ServerObjectAiAnalysis)).all()
+        if not analyses:
+            logger.warning("No analyses found in the database - nothing to save as markdown")
+            return
         for analysis in analyses:
             print(f"Saving analysis {analysis.context_route_names} analysis as markdown")
             analysis.save_as_markdown(base_folder=str(save_path))

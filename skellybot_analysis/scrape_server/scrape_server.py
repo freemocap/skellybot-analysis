@@ -78,83 +78,6 @@ async def scrape_server(target_server: discord.Guild,
         session.commit()
         logger.info("✅ All data has been committed to the database")
 
-
-async def db_process_thread(session: Session,
-                            thread: discord.Thread) -> Thread:
-    User.get_create_or_update(session=session,
-                              db_id=thread.owner.id,
-                              name=thread.owner.name,
-                              is_bot=thread.owner.bot)
-    db_thread = Thread.get_create_or_update(session=session,
-                                            db_id=thread.id,
-                                            name=thread.name,
-                                            channel_name=thread.parent.name,
-                                            channel_id=thread.parent.id,
-                                            owner_id=thread.owner_id,
-                                            owner_name=thread.owner.name,
-                                            messages=[]
-                                            )
-
-    message_count = 0
-    async for discord_message in thread.history(limit=None, oldest_first=True):
-        if discord_message.content == '' and len(discord_message.attachments) == 0:
-            continue
-        if discord_message.content.startswith('~'):
-            continue
-        update_latest_message_datetime(discord_message.created_at)
-        user = User.get_create_or_update(session=session,
-                                         db_id=discord_message.author.id,
-                                         name=discord_message.author.name,
-                                         is_bot=discord_message.author.bot)
-
-        db_message = await Message.from_discord_message(session=session,
-                                                        discord_message=discord_message)
-        db_thread.messages.append(db_message)
-        message_count += 1
-    logger.info(
-        f"✅ Added thread: {db_thread.name} (ID: {db_thread.id}) with {message_count} messages")
-
-    return db_thread
-
-
-async def create_user_thread_associations(session: Session, thread: discord.Thread):
-    try:
-        # Get the thread members
-
-        members = await thread.fetch_members()
-        members = set([thread.owner] + members)
-        if len(members) == 0:
-            logger.warning(f"No members found for thread {thread.name} (ID: {thread.id})")
-
-        for member in  members:
-            # Get or create the user
-            discord_user = await thread.guild.fetch_member(member.id)
-            user = User.get_create_or_update(session=session,
-                                             db_id=discord_user.id,
-                                             name=discord_user.name,
-                                             is_bot=discord_user.bot,
-                                             )
-
-            # Create the association between user and thread
-            user_thread = UserThread.get_create_or_update(session=session,
-                                                          user_id=user.id,
-                                                          user_name=user.name,
-                                                          thread_id=thread.id,
-                                                          thread_name=thread.name,
-                                                          )
-
-            # Add the association to the session
-            session.add(user_thread)
-            logger.info(
-                f"✅ Added user-thread associations for thread: {thread.name} (ID: {thread.id}) and user: {user.name} (ID: {user.id})")
-        session.commit()
-    except discord.errors.Forbidden:
-        logger.warning(f"Cannot access members for thread {thread.name} (ID: {thread.id})")
-    except Exception as e:
-        logger.error(f"Error getting members for thread {thread.name}: {str(e)}")
-        raise
-
-
 async def db_process_server(session: Session,
                             target_server: discord.Guild) -> tuple[Server, list[str]]:
     server_prompt_messages: list[str] = []
@@ -246,3 +169,80 @@ async def db_process_category(session: Session,
                                      category_name=category.name,
                                      )
     return db_category, category_prompts
+
+async def db_process_thread(session: Session,
+                            thread: discord.Thread) -> Thread:
+    User.get_create_or_update(session=session,
+                              db_id=thread.owner.id,
+                              name=thread.owner.name,
+                              is_bot=thread.owner.bot)
+    db_thread = Thread.get_create_or_update(session=session,
+                                            db_id=thread.id,
+                                            name=thread.name,
+                                            channel_name=thread.parent.name,
+                                            channel_id=thread.parent.id,
+                                            owner_id=thread.owner_id,
+                                            owner_name=thread.owner.name,
+                                            messages=[]
+                                            )
+
+    message_count = 0
+    async for discord_message in thread.history(limit=None, oldest_first=True):
+        if discord_message.content == '' and len(discord_message.attachments) == 0:
+            continue
+        if discord_message.content.startswith('~'):
+            continue
+        update_latest_message_datetime(discord_message.created_at)
+        user = User.get_create_or_update(session=session,
+                                         db_id=discord_message.author.id,
+                                         name=discord_message.author.name,
+                                         is_bot=discord_message.author.bot)
+
+        db_message = await Message.from_discord_message(session=session,
+                                                        discord_message=discord_message)
+        db_thread.messages.append(db_message)
+        message_count += 1
+    logger.info(
+        f"✅ Added thread: {db_thread.name} (ID: {db_thread.id}) with {message_count} messages")
+
+    return db_thread
+
+
+async def create_user_thread_associations(session: Session, thread: discord.Thread):
+    try:
+        # Get the thread members
+
+        members = await thread.fetch_members()
+        members = set([thread.owner] + members)
+        if len(members) == 0:
+            logger.warning(f"No members found for thread {thread.name} (ID: {thread.id})")
+
+        for member in  members:
+            # Get or create the user
+            discord_user = await thread.guild.fetch_member(member.id)
+            user = User.get_create_or_update(session=session,
+                                             db_id=discord_user.id,
+                                             name=discord_user.name,
+                                             is_bot=discord_user.bot,
+                                             )
+
+            # Create the association between user and thread
+            user_thread = UserThread.get_create_or_update(session=session,
+                                                          user_id=user.id,
+                                                          user_name=user.name,
+                                                          thread_id=thread.id,
+                                                          thread_name=thread.name,
+                                                          )
+
+            # Add the association to the session
+            session.add(user_thread)
+            logger.info(
+                f"✅ Added user-thread associations for thread: {thread.name} (ID: {thread.id}) and user: {user.name} (ID: {user.id})")
+        session.commit()
+    except discord.errors.Forbidden:
+        logger.warning(f"Cannot access members for thread {thread.name} (ID: {thread.id})")
+    except Exception as e:
+        logger.error(f"Error getting members for thread {thread.name}: {str(e)}")
+        raise
+
+

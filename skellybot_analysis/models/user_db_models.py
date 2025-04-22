@@ -3,10 +3,10 @@ from typing import Optional
 from sqlalchemy import Column, JSON, Text
 from sqlmodel import Field, Relationship
 
+from skellybot_analysis.models.ai_analysis_db import TopicArea
 from skellybot_analysis.models.base_sql_model import BaseSQLModel
-from skellybot_analysis.models.db_join_tables import UserProfileTopicArea
+from skellybot_analysis.models.db_association_tables import UserProfileTopicArea
 from skellybot_analysis.models.server_db_models import  UserThread, Message, Thread
-from skellybot_analysis.models.topic_db_model import TopicArea
 
 
 class User(BaseSQLModel, table=True):
