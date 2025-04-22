@@ -8,11 +8,9 @@ from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_reques
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.ai.db_analyze_server_data import get_context_system_prompt
-from skellybot_analysis.models.data_models.server_data.server_db_models import (
-    Message, Channel, Thread, ServerObjectAiAnalysis, User
-)
+from skellybot_analysis.models.data_models.server_db_models import UserThread, Thread
+from skellybot_analysis.models.data_models.user_db_models import User, ServerObjectAiAnalysis, UserProfile
 from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
-from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
 from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 from skellybot_analysis.utilities.load_env_variables import TARGET_SERVER_ID
@@ -64,76 +62,62 @@ async def analyze_user(
     text_to_analyze = get_user_text(session=session,
                                       user=user,)
     if not text_to_analyze:
-        logger.warning(f"No text content found for {object_type} ID: {object_id}")
+        logger.warning(f"No text content found for {user.name} ID: {user.id}")
         return
-
-    # Build context route
-    context_route = f"{server_id}"
-    context_route_names = f"{server_name}"
-    if category_id is not None:
-        context_route += f"/{category_id}"
-        if category_name is None:
-            raise ValueError("Category name is required when category_id is provided.")
-        context_route_names += f"/{category_name}"
-    if channel_id is not None:
-        context_route += f"/{channel_id}"
-        if channel_name is None:
-            raise ValueError("Channel name is required when channel_id is provided.")
-        context_route_names += f"/{channel_name}"
-    if thread_id is not None:
-        context_route += f"/{thread_id}"
-        if thread_name is None:
-            raise ValueError("Thread name is required when thread_id is provided.")
-        context_route_names += f"/{thread_name}"
 
     # Enhance system prompt for analysis
     enhanced_system_prompt = ("You are currently reviewing the chat data from the server extracting the content "
-                              "of the conversations to provide a landscape of the topics that are being discussed. "
-                              f"Provide your output in accordance to the provided JSON schema. Here is the System Prompt that was driving the bot's behavior during the conversation:\n"
+                              "of the conversations to develop a profile of the human users based on their interactions with the bot in this server. "
+                              f" Here is the System Prompt that was driving the bot's behavior during the conversation:\n"
                               f" BEGIN SYSTEM PROMPT\n\n\n"
-                              f"{system_prompt}\n\n\n"
+                              f"{server_system_prompt}\n\n\n"
                               f"END SYSTEM PROMPT\n"
-                              f"Here is the text to analyze:\n\n"
+                              f"Here are the summaries and full-texts of the conversations this user had with the Bot in the server. "
+                              " Please analyze the conversations and provide a summary of the user's profile. "
+                              " Provide your output in accordance to the provided JSON schema."
+                              f":\n\n"
                               )
 
     # Run AI analysis
     try:
-        analysis_result = await analyze_text(text_to_analyze, enhanced_system_prompt)
+        user_profile = await analyze_user_text(text_to_analyze, enhanced_system_prompt)
 
         # Store analysis in database
-        store_analysis_result(
+        store_user_profile_result(
             session=session,
-            context_route=context_route,
-            context_route_names=context_route_names,
-            server_id=server_id,
-            server_name=server_name,
-
-            category_id=category_id,
-            category_name=category_name,
-
-            channel_id=channel_id,
-            channel_name=channel_name,
-
-            thread_id=thread_id,
-            thread_name=thread_name,
-            analysis_result=analysis_result,
-            base_text=text_to_analyze
+            base_text=text_to_analyze,
+            user_name=user.name,
+            user_id=user.id,
+            user_profile=user_profile,
         )
 
-        logger.info(f"Successfully analyzed {object_type} ID: {object_id}")
+        logger.info(f"Successfully analyzed user {user.name} ID: {user.id}")
     except Exception as e:
-        logger.error(f"Error analyzing {object_type} ID: {object_id}: {str(e)}")
+        logger.error(f"Error analyzing user {user.name} ID: {user.id}: {e}")
         raise
 
 
 def get_user_text(session: Session, user:User) -> str:
     """Get all the relevant text for this user from the db"""
     user_threads = session.exec(
-        select(Thread).where(Thread.user_id == user.id)
+        select(UserThread).where(Thread.user_id == user.id)
     ).all()
+    if not user_threads:
+        logger.warning(f"No threads found for user ID: {user.id}")
+        return ""
+    texts = []
+    for user_thread in user_threads:
+        analysis = session.exec(
+            select(ServerObjectAiAnalysis).where(Thread.id == user_thread.thread_id)
+        ).first()
+        if analysis:
+            texts.append(analysis.full_text)
+
+    return "\n".join(texts)
 
 
-async def analyze_user_text(text_to_analyze: str, system_prompt: str) -> UserProfilePromptModel:
+
+async def analyze_user_text(text_to_analyze: str, system_prompt: str) -> UserProfile:
     """Run the AI analysis on the text content"""
     text_chunks = chunk_string_by_max_tokens(
         text_to_analyze,
@@ -175,74 +159,30 @@ async def analyze_user_text(text_to_analyze: str, system_prompt: str) -> UserPro
 
 def store_user_profile_result(
         session: Session,
-        context_route: str,
-        context_route_names: str,
-        server_id: int,
-        server_name: str,
-        base_text: str,
-        analysis_result: TextAnalysisPromptModel,
-        category_id: int | None = None,
-        category_name: str | None = None,
-
-        channel_id: int | None = None,
-        channel_name: str | None = None,
-        thread_id: int | None = None,
-        thread_name: str | None = None) -> None:
+        base_text:str,
+        user_name:str,
+        user_id:int,
+        user_profile:UserProfile,
+) -> None:
     """Store the analysis result in the ServerObjectAiAnalysis table"""
     # Check if analysis already exists
     existing = session.exec(
-        select(ServerObjectAiAnalysis).where(ServerObjectAiAnalysis.context_route == context_route)
+        select(ServerObjectAiAnalysis).where(ServerObjectAiAnalysis.user_id == user_id)
     ).first()
 
     if existing:
         # Update existing analysis
         existing.base_text = base_text
-        existing.context_route_names = context_route_names
-        existing.server_name = server_name
-        existing.category_name = category_name
-        existing.channel_name = channel_name
-        existing.thread_name = thread_name
-        existing.title_slug = analysis_result.title_slug
-        existing.extremely_short_summary = analysis_result.extremely_short_summary
-        existing.very_short_summary = analysis_result.very_short_summary
-        existing.short_summary = analysis_result.short_summary
-        existing.highlights = analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
-            analysis_result.highlights)
-        existing.detailed_summary = analysis_result.detailed_summary
-        existing.tags = analysis_result.tags
+
     else:
         # Create new analysis
-        analysis = ServerObjectAiAnalysis(
+        profile = UserProfile(
 
-            context_route=context_route,
-            context_route_names=context_route_names,
-
-            server_id=server_id,
-            server_name=server_name,
-
-            category_id=category_id,
-            category_name=category_name,
-
-            channel_id=channel_id,
-            channel_name=channel_name,
-
-            thread_id=thread_id,
-            thread_name=thread_name,
-
-            base_text=base_text,
-            title_slug=analysis_result.title_slug,
-            extremely_short_summary=analysis_result.extremely_short_summary,
-            very_short_summary=analysis_result.very_short_summary,
-            short_summary=analysis_result.short_summary,
-            highlights=analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
-                analysis_result.highlights),
-            detailed_summary=analysis_result.detailed_summary,
-            tags=analysis_result.tags
         )
-        session.add(analysis)
+        session.add(profile)
 
     session.commit()
 
 
 if __name__ == "__main__":
-    asyncio.run(db_analyze_user_data(TARGET_SERVER_ID))
+    asyncio.run(db_extract_user_profiles(TARGET_SERVER_ID))

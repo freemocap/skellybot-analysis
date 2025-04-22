@@ -4,12 +4,12 @@ import logging
 from skellybot_analysis.ai.pipelines.discord_server_pipeline.add_ai_analysis_to_object import add_ai_analysis
 from skellybot_analysis.models.data_models.server_data.server_db_models import Server
 from skellybot_analysis.models.data_models.tag_models import TagManager
-from skellybot_analysis.models.data_models.user_data_model import UserDataManager
+from skellybot_analysis.models.data_models.user_data_stats import UserDataManager
 from skellybot_analysis.models.prompt_models.text_analysis_prompt_model import TextAnalysisPromptModel
 from skellybot_analysis.models.prompt_models.topic_article_writer_prompt_model import \
     WIKIPEDIA_STYLE_ARTICLE_WRITER_PROMPT, \
     WikipediaStyleArticleWriterModel
-from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
+from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def ai_analyze_user_data(user_data: UserDataManager,
                                system_prompt_og: str) -> UserDataManager:
     user_ai_analysis_tasks = [add_ai_analysis(thing=user,
                                               text_to_analyze=user.as_ai_prompt_text(),
-                                              prompt_model=UserProfilePromptModel,
+                                              prompt_model=UserProfile,
                                               system_prompt=system_prompt_og) for user in user_data.users.values()]
     await asyncio.gather(*user_ai_analysis_tasks)
     for user in user_data.users.values():

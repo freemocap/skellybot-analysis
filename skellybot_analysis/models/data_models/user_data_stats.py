@@ -1,11 +1,11 @@
 from typing import List, Optional, Dict, Any
 
 from pydantic import Field, BaseModel, computed_field
+from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfile
 
 from skellybot_analysis.models.data_models.data_object_model import DataObjectModel
 from skellybot_analysis.models.data_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
 from skellybot_analysis.models.data_models.tag_models import TagModel
-from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfilePromptModel
 
 
 class DescriptiveStatistics(BaseModel):
@@ -87,7 +87,7 @@ class UserData(DataObjectModel):
     id: int
     type: ServerDataObjectTypes = ServerDataObjectTypes.USER
     threads: List[DataObjectModel] = Field(default_factory=list)
-    ai_analysis: Optional[UserProfilePromptModel] = None
+    ai_analysis: Optional[UserProfile] = None
     tag_tsne_xyzs: Dict[str, List[float]] = Field(default_factory=dict)
 
     @computed_field()

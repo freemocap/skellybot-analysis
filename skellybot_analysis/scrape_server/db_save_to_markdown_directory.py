@@ -3,13 +3,10 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from skellybot_analysis.models.data_models.server_data.server_db_models import (
-    Server, Category, Channel, Thread, Message, ServerObjectAiAnalysis
-)
+from skellybot_analysis.models.data_models.user_db_models import ServerObjectAiAnalysis
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
-from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 configure_logging()
 logger = logging.getLogger(__name__)

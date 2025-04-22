@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from skellybot_analysis.models.data_models.user_data_model import ServerUserStats
+from skellybot_analysis.models.data_models.user_data_stats import ServerUserStats
 
 
 class ServerDataStats(BaseModel):

@@ -7,7 +7,7 @@ from skellybot_analysis.models.data_models.server_data.server_context_route_mode
 
 if TYPE_CHECKING:
     from skellybot_analysis.models.data_models.server_data.server_db_models import Server
-    from skellybot_analysis.models.data_models.user_data_model import UserDataManager
+    from skellybot_analysis.models.data_models.user_data_stats import UserDataManager
 
 class TagModel(DataObjectModel):
     tagged_threads: List[DataObjectModel] = Field(default_factory=list)

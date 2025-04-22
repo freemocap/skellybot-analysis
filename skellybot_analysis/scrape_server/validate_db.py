@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlmodel import Session, select
 
-from skellybot_analysis.models.data_models.server_data.server_db_models import Server, Category, Channel, Thread, \
-    Message, User
+from skellybot_analysis.models.data_models.server_db_models import Server, Category, Channel, Thread, Message
+from skellybot_analysis.models.data_models.user_db_models import User
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 import  logging

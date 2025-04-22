@@ -5,8 +5,9 @@ import discord
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from skellybot_analysis.models.data_models.server_data.server_db_models import Server, ContextSystemPrompt, \
-    Category, Thread, Message, Channel, User, UserThread
+from skellybot_analysis.models.data_models.server_db_models import Thread, Message, UserThread, Server, \
+    ContextSystemPrompt, Channel, Category
+from skellybot_analysis.models.data_models.user_db_models import User
 from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel
 
 logger = logging.getLogger(__name__)
