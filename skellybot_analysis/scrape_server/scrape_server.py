@@ -5,11 +5,11 @@ import discord
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-
 from skellybot_analysis.models.context_route import ContextRoute
 from skellybot_analysis.models.server_db_models import Thread, Message, UserThread, Server, \
-    ContextSystemPrompt, Channel, Category,User
-from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel
+    ContextSystemPrompt, Channel, Category, User
+from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel, \
+    MINIMUM_THREAD_MESSAGE_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +17,16 @@ logger = logging.getLogger(__name__)
 async def scrape_server(target_server: discord.Guild,
                         db_engine: Engine) -> None:
     logger.info(f'Successfully connected to the guild: {target_server.name} (ID: {target_server.id})')
-
-    all_discord_threads: list[discord.Thread] = []
+    all_discord_threads = []
     with Session(db_engine) as session:
         try:
             db_server, server_prompt_messages = await db_process_server(session=session,
                                                                         target_server=target_server)
+            if not db_server:
+                logger.error(
+                    f"Failed to process server: {target_server.name} (ID: {target_server.id}) - server not found")
+                raise ValueError("Server not found in the database")
+
             # Process categories
             channels = await target_server.fetch_channels()
             for category in [channel for channel in channels if isinstance(channel, discord.CategoryChannel)]:
@@ -34,6 +38,10 @@ async def scrape_server(target_server: discord.Guild,
                                                                               category=category,
                                                                               server_prompt_messages=server_prompt_messages,
                                                                               target_server=target_server)
+                    if not db_category:
+                        logger.error(
+                            f"Failed to process category: {category.name} (ID: {category.id}) - category not found")
+                        raise ValueError("Category not found in the database")
                     db_server.categories.append(db_category)
                 except discord.errors.Forbidden as e:
                     logger.warning(
@@ -45,28 +53,37 @@ async def scrape_server(target_server: discord.Guild,
                 for channel in category.text_channels:
                     if not isinstance(channel, discord.TextChannel):
                         continue
+                    channel_threads = await get_channel_threads(channel=channel)
+                    if not channel_threads:
+                        logger.info(f"No chat threads found in: {channel.name} (ID: {channel.id}) - skipping")
+                        continue
                     try:
                         db_channel, channel_prompts = await db_process_channel(session=session,
                                                                                context_prompts=category_prompts,
                                                                                channel=channel,
                                                                                )
+                        if not db_channel:
+                            logger.error(
+                                f"Failed to process channel: {channel.name} (ID: {channel.id}) - channel not found")
+                            raise ValueError("Channel not found in the database")
+                        channel_threads = await get_channel_threads(channel=channel)
+                        db_category.channels.append(db_channel)
+                        logger.info(f"✅ Added channel: {db_channel.name} (ID: {db_channel.id})")
+
                     except discord.errors.Forbidden as e:
                         logger.warning(
                             f"Failed to access channel {channel.name} (ID: {channel.id}): {str(e)} - skipping")
                         continue
 
-                    db_category.channels.append(db_channel)
-                    logger.info(f"✅ Added channel: {db_channel.name} (ID: {db_channel.id})")
 
-                    threads = channel.threads
-                    # get archived (i.e. 'timed out'/'inactive') threads
-                    async for thread in channel.archived_threads(limit=None):
-                        threads.append(thread)
 
-                    for thread in threads:
+                    for thread in channel_threads:
                         all_discord_threads.append(thread)
                         db_thread = await db_process_thread(session=session,
                                                             thread=thread)
+                        if not db_thread:
+                            logger.info(f"Skipping thread {thread.name} (ID: {thread.id}) for being empty or too short.")
+                            continue
                         db_channel.threads.append(db_thread)
             session.commit()
             for discord_thread in all_discord_threads:
@@ -80,6 +97,14 @@ async def scrape_server(target_server: discord.Guild,
         # Final commit to ensure everything is saved
         session.commit()
         logger.info("✅ All data has been committed to the database")
+
+
+async def get_channel_threads(channel: discord.TextChannel) -> list[discord.Thread]:
+    channel_threads = channel.threads
+    # get archived (i.e. 'timed out'/'inactive') threads
+    async for thread in channel.archived_threads(limit=None):
+        channel_threads.append(thread)
+    return channel_threads
 
 
 async def db_process_server(session: Session,
@@ -150,7 +175,7 @@ async def db_process_category(session: Session,
 async def db_process_channel(session: Session,
                              context_prompts: list[str],
                              channel: discord.TextChannel,
-                             ) -> tuple[Channel, list[str]]:
+                             ) -> tuple[Channel, list[str]] :
     channel_prompts = copy(context_prompts)
     channel_prompts.extend(await get_prompts_from_channel(channel=channel))
 
@@ -176,7 +201,21 @@ async def db_process_channel(session: Session,
 
 
 async def db_process_thread(session: Session,
-                            thread: discord.Thread) -> Thread:
+                            thread: discord.Thread) -> Thread | None:
+
+
+    message_count = 0
+    thread_messages: list[discord.Message] = []
+    async for message in thread.history(limit=None, oldest_first=True):
+        thread_messages.append(message)
+
+    if thread.name == '.' and all([message.author.bot for message in thread_messages]):
+        logger.info(f"Thread {thread.name} (ID: {thread.id}) is empty or only has bot messages.")
+        return None
+
+    if len(thread_messages) < MINIMUM_THREAD_MESSAGE_COUNT:
+        logger.info(f"Thread {thread.name} (ID: {thread.id}) has fewer than {MINIMUM_THREAD_MESSAGE_COUNT} messages.")
+        return None
     User.get_create_or_update(session=session,
                               db_id=thread.owner.id,
                               name=thread.owner.name,
@@ -190,18 +229,16 @@ async def db_process_thread(session: Session,
                                             owner_name=thread.owner.name,
                                             messages=[]
                                             )
-
-    message_count = 0
-    async for discord_message in thread.history(limit=None, oldest_first=True):
-        if discord_message.content == '' and len(discord_message.attachments) == 0:
+    for discord_message in thread_messages:
+        if not discord_message.content and len(discord_message.attachments) == 0:
             continue
         if discord_message.content.startswith('~'):
             continue
         update_latest_message_datetime(discord_message.created_at)
-        user = User.get_create_or_update(session=session,
-                                         db_id=discord_message.author.id,
-                                         name=discord_message.author.name,
-                                         is_bot=discord_message.author.bot)
+        User.get_create_or_update(session=session,
+                                  db_id=discord_message.author.id,
+                                  name=discord_message.author.name,
+                                  is_bot=discord_message.author.bot)
 
         db_message = await Message.from_discord_message(session=session,
                                                         discord_message=discord_message)
