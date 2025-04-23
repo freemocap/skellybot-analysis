@@ -39,7 +39,7 @@ async def make_openai_json_mode_ai_request(client: AsyncOpenAI,
 
 
 if __name__ == "__main__":
-    from skellybot_analysis.models.ai_analysis_db import TextAnalysisPromptModel
+    from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
     from skellybot_analysis.ai.clients.openai_client.openai_client import OPENAI_CLIENT, DEFAULT_LLM
 
     _system_prompt = "Analyze the following text\nProduce your response using the following JSON schema instructions:\n\n" + TextAnalysisPromptModel.as_description_schema()

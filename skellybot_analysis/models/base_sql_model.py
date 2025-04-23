@@ -8,7 +8,7 @@ BaseSQLModelType = TypeVar('BaseSQLModelType', bound='BaseSQLModel')
 
 
 class BaseSQLModel(SQLModel):
-    """Base model for all  entities with common fields."""
+    """Base model for all entities with common fields."""
     id: int = Field(default=None, primary_key=True)
     name: str | None = None
     created_at: datetime = Field(default_factory=datetime.now)

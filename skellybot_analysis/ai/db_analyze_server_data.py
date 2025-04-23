@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from copy import deepcopy
 
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
@@ -7,10 +8,11 @@ from sqlmodel import Session, select
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
-from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis, TextAnalysisPromptModel, TopicArea
-from skellybot_analysis.models.server_db_models import Server, Category, Channel, Thread, \
+from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis, TopicArea
+from skellybot_analysis.models.context_route import ContextRoute
+from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
+from skellybot_analysis.models.server_db_models import Server, Channel, Thread, \
     ContextSystemPrompt, Message
-from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 
 MIN_MESSAGE_LIMIT = 4
@@ -18,10 +20,12 @@ MIN_MESSAGE_LIMIT = 4
 logger = logging.getLogger(__name__)
 
 
-async def db_analyze_server_data(db_path: str | None = None) -> None:
+async def db_analyze_server_threads(db_path: str | None = None) -> None:
     """Run AI analysis on server data stored in the SQLite database"""
     db_engine: Engine = initialize_database_engine(db_path=db_path)
     analysis_tasks = []
+    context_routes = []
+    thread_ids = []
     with Session(db_engine) as session:
         # Get the server from the DB
         server = session.exec(select(Server)).first()
@@ -31,115 +35,44 @@ async def db_analyze_server_data(db_path: str | None = None) -> None:
 
         logger.info(f"Analyzing server: {server.name} (ID: {server.id})")
 
-        # Build the system prompt from context system prompts
-        server_system_prompt = get_context_system_prompt(session=session,
-                                                         server_id=server.id)
-
-        # Run analysis at the server level
-        analysis_tasks.append(analyze_object(session=session,
-                                             server_id=server.id,
-                                             server_name=server.name,
-                                             object_id=server.id,
-                                             object_name=server.name,
-                                             object_type="server",
-                                             system_prompt=server_system_prompt
-                                             )
-                              )
-        # Run analysis on categories
-        categories = session.exec(select(Category).where(Category.server_id == server.id)).all()
-        logger.info(f"Analyzing {len(categories)} categories")
-
-        for category in categories:
-            logger.info(f"Analyzing category: {category.name} (ID: {category.id})")
-            category_prompt = get_context_system_prompt(session=session,
-                                                        server_id=server.id,
-                                                        category_id=category.id)
-            analysis_tasks.append(
-                analyze_object(
-                    session=session,
-                    server_id=server.id,
-                    server_name=server.name,
-                    object_id=category.id,
-                    object_name=category.name,
-                    object_type="category",
-                    category_id=category.id,
-                    category_name=category.name,
-                    system_prompt=category_prompt
-                )
-            )
-
-        # Run analysis on channels
         channels = session.exec(select(Channel).where(Channel.server_id == server.id)).all()
         logger.info(f"Analyzing {len(channels)} channels")
-
+        context_route = ContextRoute(
+            server_id=server.id,
+            server_name=server.name
+        )
         for channel in channels:
             logger.info(f"Analyzing channel: {channel.name} (ID: {channel.id})")
-            channel_prompt = get_context_system_prompt(session=session,
-                                                       server_id=server.id,
-                                                       category_id=channel.category_id,
-                                                       channel_id=channel.id)
-            analysis_tasks.append(
-                analyze_object(
-                    session=session,
-                    server_id=server.id,
-                    server_name=server.name,
-                    object_id=channel.id,
-                    object_name=channel.name,
-                    object_type="channel",
-                    category_id=channel.category_id,
-                    category_name=channel.category_name,
-                    channel_id=channel.id,
-                    channel_name=channel.name,
-                    system_prompt=channel_prompt
-                )
-            )
+            context_route.category_id = channel.category_id
+            context_route.category_name = channel.category_name
+            context_route.channel_id = channel.id
+            context_route.channel_name = channel.name
 
-        # Run analysis on threads
-        threads = session.exec(select(Thread).join(Channel).where(Channel.server_id == server.id)).all()
-        logger.info(f"Analyzing {len(threads)} threads")
-        for thread in threads:
-            logger.info(f"Analyzing thread: {thread.name} (ID: {thread.id})")
-            channel = session.exec(select(Channel).where(Channel.id == thread.channel_id)).first()
-            analysis_tasks.append(
-                analyze_object(
-                    session=session,
-                    server_id=server.id,
-                    server_name=server.name,
-                    object_id=thread.id,
-                    object_name=thread.name,
-                    object_type="thread",
-                    category_id=channel.category_id,
-                    category_name=channel.category_name,
-                    channel_id=channel.id,
-                    channel_name=channel.name,
-                    thread_id=thread.id,
-                    thread_name=thread.name,
-                    system_prompt=channel_prompt
-                )
-            )
+            # Run analysis on threads
+            threads = session.exec(select(Thread).join(Channel).where(Channel.id == channel.id)).all()
+            logger.info(f"Analyzing {len(threads)} threads in channel {channel.name} (ID: {channel.id})")
+            for thread in threads:
+                context_routes.append(deepcopy(context_route))
+                analysis_tasks.append(asyncio.create_task(analyze_thread(session=session,
+                                                                         context_route=context_route,
+                                                                         thread_id=thread.id,
+                                                                         thread_name=thread.name,
+                                                                         ))
+                                      )
 
         logger.info(f"Starting AI analysis tasks on {len(analysis_tasks)} objects.")
-        await asyncio.gather(*analysis_tasks)
-
+        results = await asyncio.gather(*analysis_tasks)
+        analysis_results = {route: result for route, result in zip(context_routes, results)}
+        store_analysis_results(analysis_results=analysis_results,
+                               session=session)
         logger.info("AI analysis completed!")
 
 
-def get_context_system_prompt(session: Session,
-                              server_id: int,
-                              category_id: int | None = None,
-                              channel_id: int | None = None
-                              ) -> str:
+def get_context_system_prompt(session: Session, context_route: ContextRoute) -> str:
     """Get the system prompt for a server from the ContextSystemPrompt table"""
 
-    context_route = f"{server_id}"
-    if category_id is not None:
-        context_route += f"/{category_id}"
-    if channel_id is not None:
-        if category_id is None:
-            context_route += "/0"
-        context_route += f"/{channel_id}"
     prompt_obj = session.exec(
-        select(ContextSystemPrompt).where(ContextSystemPrompt.context_route == context_route)
+        select(ContextSystemPrompt).where(ContextSystemPrompt.id == context_route.hash_id)
     ).first()
 
     if prompt_obj and prompt_obj.system_prompt:
@@ -147,202 +80,125 @@ def get_context_system_prompt(session: Session,
     return ""
 
 
-async def analyze_object(
-        session: Session,
-        object_id: int,
-        object_name: str,
-        object_type: str,
-        system_prompt: str,
-        server_id: int,
-        server_name: str,
-        category_id: int | None = None,
-        category_name: str | None = None,
-        channel_id: int | None = None,
-        channel_name: str | None = None,
-        thread_id: int | None = None,
-        thread_name: str | None = None) -> None:
+async def analyze_thread(session: Session,
+                         context_route: ContextRoute,
+                         thread_id: int,
+                         thread_name: str,
+                         ) -> tuple[int, str, str, str, TextAnalysisPromptModel] | None:
     """
     Run AI analysis on a server object (server, category, or channel)
     and store the results in the ServerObjectAiAnalysis table.
     """
-    # Get text content based on object type
-    text_to_analyze = get_object_text(session=session,
-                                      object_id=object_id,
-                                      object_type=object_type)
-    if not text_to_analyze:
-        logger.warning(f"No text content found for {object_type} - {object_name} (ID: {object_id})")
-        return
+    channel_prompt = get_context_system_prompt(session=session,
+                                               context_route=context_route)
+    if not channel_prompt:
+        raise ValueError(f"WARNING - No system prompt found for {context_route.names}")
 
-    # Build context route
-    context_route = f"{server_id}"
-    context_route_names = f"{server_name}"
-    if category_id is not None:
-        context_route += f"/{category_id}"
-        if category_name is None:
-            raise ValueError("Category name is required when category_id is provided.")
-        context_route_names += f"/{category_name}"
-    if channel_id is not None:
-        context_route += f"/{channel_id}"
-        if channel_name is None:
-            raise ValueError("Channel name is required when channel_id is provided.")
-        context_route_names += f"/{channel_name}"
-    if thread_id is not None:
-        context_route += f"/{thread_id}"
-        if thread_name is None:
-            raise ValueError("Thread name is required when thread_id is provided.")
-        context_route_names += f"/{thread_name}"
+    # Get text content based on object type
+    thread_text_to_analyze = get_thread_text(session=session,
+                                             thread_id=thread_id,
+                                             )
+    if len(thread_text_to_analyze.split(" ")) > MAX_TOKEN_LENGTH:
+        logger.warning(
+            f"Thread text is too longer than {MAX_TOKEN_LENGTH} tokens, truncating to {MAX_TOKEN_LENGTH} tokens.")
+        thread_text_to_analyze = " ".join(thread_text_to_analyze.split(" ")[:MAX_TOKEN_LENGTH])
+    if not thread_text_to_analyze:
+        logger.warning(f"No text content found for thread `{thread_id}`: {context_route.names}, skipping analysis.")
+        return None
 
     # Enhance system prompt for analysis
-    enhanced_system_prompt = ("You are currently reviewing the chat data from the server extracting the content "
-                              "of the conversations to provide a landscape of the topics that are being discussed. "
-                              f"Provide your output in accordance to the provided JSON schema. Here is the System Prompt that was driving the bot's behavior during the conversation:\n"
-                              f" BEGIN SYSTEM PROMPT\n\n\n"
-                              f"{system_prompt}\n\n\n"
-                              f"END SYSTEM PROMPT\n"
-                              f"Here is the text to analyze:\n\n"
-                              )
+    analysis_prompt = (
+        f"You are currently reviewing the chat data from the {context_route.server_name} Discord server extracting the content "
+        f"of the conversations to provide a landscape of the topics that are being discussed. \n\n"
+        f"You are currently analyzing the text of a chat thread which occurred at this location in the server:\n\n"
+        f"{context_route.as_formatted_text}\n\n"
+        f" Here is the System Prompt that was driving the bot's behavior during the conversation:\n\n"
+        f" BEGIN SYSTEM PROMPT\n\n\n"
+        f"{channel_prompt}\n\n\n"
+        f"END SYSTEM PROMPT\n"
+        f"Here is the text to analyze:\n\n"
+        f"BEGIN TEXT TO ANALYZE\n\n"
+        f"{thread_text_to_analyze}\n\n"
+        f"END TEXT TO ANALYZE\n"
+        f"Carefully consider the content of this conversation in order to provide the output prescribed by the provided JSON schema."
+    )
 
     # Run AI analysis
     try:
-        analysis_result = await analyze_text(text_to_analyze, enhanced_system_prompt)
-
-        # Store analysis in database
-        ServerObjectAiAnalysis.get_create_or_update(
-            db_id=context_route,
-            session=session,
-            flush=True,
-            context_route=context_route,
-            context_route_names=context_route_names,
-            server_id=server_id,
-            server_name=server_name,
-            category_id=category_id,
-            category_name=category_name,
-            channel_id=channel_id,
-            channel_name=channel_name,
-            thread_id=thread_id,
-            thread_name=thread_name,
-            base_text=text_to_analyze,
-            title_slug=analysis_result.title_slug,
-            extremely_short_summary=analysis_result.extremely_short_summary,
-            very_short_summary=analysis_result.very_short_summary,
-            short_summary=analysis_result.short_summary,
-            highlights=analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
-                analysis_result.highlights),
-            detailed_summary=analysis_result.detailed_summary,
-            topic_areas=[TopicArea.get_create_or_update(topic.id) for topic in analysis_result.topic_areas]
-        )
-
-        logger.info(f"Successfully analyzed {object_type} ID: {object_id}")
+        result = await make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
+                                                        system_prompt=analysis_prompt,
+                                                        prompt_model=TextAnalysisPromptModel,
+                                                        llm_model=DEFAULT_LLM
+                                                        )
+        return thread_id, thread_name, thread_text_to_analyze, analysis_prompt, result
     except Exception as e:
-        logger.error(f"Error analyzing {object_type} ID: {object_id}: {str(e)}")
+        logger.error(f"Error analyzing {context_route.names}: {e}")
         raise
 
 
-def get_object_text(session: Session, object_id: int, object_type: str) -> str:
-    """Get all text content for a given object (server, category, or channel)"""
-    if object_type == "server":
-        # Get all messages in the server
-        threads = session.exec(
-            select(Thread).join(Channel).where(Channel.server_id == object_id)
-        ).all()
-    elif object_type == "category":
-        # Get all messages in channels belonging to the category
-        threads = session.exec(
-            select(Thread).join(Channel).where(Channel.category_id == object_id)
-        ).all()
-    elif object_type == "channel":
-        # Get all messages in the channel
-        threads = session.exec(
-            select(Thread).where(Thread.channel_id == object_id)
-        ).all()
-    elif object_type == "thread":
-        # Get all messages in the thread
-        threads = session.exec(
-            select(Thread).where(Thread.id == object_id)
-        ).all()
-    else:
-        logger.error(f"Unknown object type: {object_type}")
-        return ""
+def store_analysis_results(analysis_results: dict[ContextRoute, tuple[int, str, str, str, TextAnalysisPromptModel]],
+                           session: Session) -> None:
+    """Store the analysis results in the database"""
+    try:
+        for route, text_result in analysis_results.items():
+            thread_id, thread_name, analyzed_text, analysis_prompt, analysis_result = text_result
+            # Store analysis in database
+            ServerObjectAiAnalysis.get_create_or_update(
+                db_id=route.hash_id,
+                session=session,
+                flush=True,
+                context_route_ids=route.ids,
+                context_route_names=route.names,
+                server_id=route.server_id,
+                server_name=route.server_name,
+                category_id=route.category_id,
+                category_name=route.category_name,
+                channel_id=route.channel_id,
+                channel_name=route.channel_name,
+                thread_id=thread_id,
+                thread_name=thread_name,
+                base_text=analyzed_text,
+                analysis_prompt=analysis_prompt,
+                title_slug=analysis_result.title_slug,
+                extremely_short_summary=analysis_result.extremely_short_summary,
+                very_short_summary=analysis_result.very_short_summary,
+                short_summary=analysis_result.short_summary,
+                highlights=analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
+                    analysis_result.highlights),
+                detailed_summary=analysis_result.detailed_summary,
+                topic_areas=[TopicArea.from_prompt_model(topic) for topic in analysis_result.topic_areas]
+            )
+            session.commit()
+    except Exception as e:
+        logger.error(f"Error storing analysis results: {e}")
+        session.rollback()
+
+
+
+
+def get_thread_text(session: Session, thread_id: int) -> str:
+    # Get all messages in the thread
+    thread = session.exec(select(Thread).where(Thread.id == thread_id)).first()
 
     # Format messages as text
     thread_texts = []
-    for thread in threads:
-        messages = session.exec(
-            select(Message).where(Message.thread_id == object_id)
-        ).all()
-        # ensure sorting by timestamp
-        messages.sort(key=lambda x: x.timestamp)
-        if not messages:
-            logger.warning(f"Thread {thread.name} (id: {thread.id}) has no messages, skipping analysis.")
-            continue
-        if thread.name == ".":
-            if len(messages) < MIN_MESSAGE_LIMIT:
-                logger.warning(f"Thread {thread.name} has less than {MIN_MESSAGE_LIMIT} messages, skipping analysis.")
-                continue
-        thread_text = f"Thread: {thread.name} (id: {thread.id})\n\nurl: {messages[0].jump_url}\n\n"
-        for msg in messages:
-            if msg.is_bot:
-                author_name = "- **BOT**"
-            else:
-                author_name = "- **HUMAN**"
-            thread_text += f"{author_name}: {msg.content}\n\n"
-            if msg.attachments:
-                thread_text += "\n\nBEGIN MESSAGE ATTACHMENTS\n\n"
-                for attachment in msg.attachments:
-                    thread_text += f"\n\nAttachment: {attachment}"
-                thread_text += "\n\nEND MESSAGE ATTACHMENTS\n\n"
-        thread_texts.append(thread_text)
-    return "\n\n_______________\n\n_______________\n\n".join(thread_texts)
-
-
-async def analyze_text(text_to_analyze: str, system_prompt: str) -> TextAnalysisPromptModel:
-    """Run the AI analysis on the text content"""
-    text_chunks = chunk_string_by_max_tokens(
-        text_to_analyze,
-        max_tokens=int(MAX_TOKEN_LENGTH * 0.8),
-        llm_model=DEFAULT_LLM
-    )
-
-    analysis_result = None
-    chunk_based_message = ""
-
-    if len(text_chunks) > 1:
-        logger.info(f"Text is too long, chunking into {len(text_chunks)} parts")
-        system_prompt += ("\nThe text you are analyzing is too long to analyze in one go. "
-                          "You will need to analyze it in chunks.")
-        chunk_based_message = f"Here is chunk #1 out of {len(text_chunks)}:"
-
-    for chunk_number, text_chunk in enumerate(text_chunks):
-        modified_system_prompt = system_prompt + chunk_based_message
-
-        analysis_result = await make_openai_json_mode_ai_request(
-            client=OPENAI_CLIENT,
-            system_prompt=modified_system_prompt,
-            user_input=text_chunk,
-            prompt_model=TextAnalysisPromptModel,
-            llm_model=DEFAULT_LLM
-        )
-
-
-        # Update message for subsequent chunks
-        if chunk_number < len(text_chunks) - 1:
-            chunk_based_message = (
-                f"Here is chunk #{chunk_number + 2} out of {len(text_chunks)}. "
-                f"Here is the running AI analysis of the previous chunk(s):"
-                f"BEGIN RUNNING ANALYSIS MODEL OUTPUT\n"
-                f"{analysis_result.model_dump_json(indent=2)}\n\n"
-                f"BEGIN RUNNING ANALYSIS MODEL OUTPUT\n"
-        
-                f"Use the previous results in conjunction with the new text to continue the analysis."
-            )
-
-    return analysis_result
-
-
-
-
-
+    messages = session.exec(select(Message).where(Message.thread_id == thread_id)).all()
+    # ensure sorting by timestamp
+    messages.sort(key=lambda x: x.timestamp)
+    if not messages:
+        logger.warning(f"Thread {thread.name} (id: {thread.id}) has no messages, skipping analysis.")
+        return ""
+    if thread.name == ".":
+        if len(messages) < MIN_MESSAGE_LIMIT:
+            logger.warning(f"Thread {thread.name} has less than {MIN_MESSAGE_LIMIT} messages, skipping analysis.")
+            return ""
+    thread_text = f"Thread: {thread.name} (id: {thread.id})\n\nurl: {messages[0].jump_url}\n\n"
+    for msg in messages:
+        thread_text += f"{msg.as_full_text(with_names=True)}\n\n"
+    thread_text += "\n\n_______________\n\n"
+    thread_texts.append(thread_text)
+    return "\n".join(thread_texts)
 
 
 if __name__ == "__main__":
-    asyncio.run(db_analyze_server_data())
+    asyncio.run(db_analyze_server_threads())

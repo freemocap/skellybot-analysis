@@ -7,5 +7,5 @@ class UserProfileTopicArea(SQLModel, table=True):
 
 
 class ServerAnalysisTopicArea(SQLModel, table=True):
-    serverobjectaianalysis_context_route: str = Field(foreign_key="serverobjectaianalysis.context_route", primary_key=True)
+    serverobjectaianalysis_context_route: str = Field(foreign_key="serverobjectaianalysis.id", primary_key=True)
     topicarea_id: str = Field(foreign_key="topicarea.id", primary_key=True)

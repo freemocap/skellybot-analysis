@@ -10,7 +10,8 @@ from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_
 from skellybot_analysis.ai.db_analyze_server_data import get_context_system_prompt
 from skellybot_analysis.models.server_db_models import UserThread, Thread
 from skellybot_analysis.models.user_db_models import User, UserProfile
-from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis, TextAnalysisPromptModel
+from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis
+from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
 from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 from skellybot_analysis.utilities.load_env_variables import TARGET_SERVER_ID

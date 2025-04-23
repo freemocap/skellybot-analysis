@@ -7,6 +7,7 @@ from sqlalchemy import Column, Index, JSON, Text
 from sqlmodel import SQLModel, Field, Relationship, Session
 
 from skellybot_analysis.models.base_sql_model import BaseSQLModel
+from skellybot_analysis.models.context_route import ContextRoute
 
 
 class Server(BaseSQLModel, table=True):
@@ -61,7 +62,8 @@ class UserThread(SQLModel, table=True):
     thread_name: Optional[str] = Field(index=True)
 
     @classmethod
-    def get_create_or_update(cls,session: Session, user_id: int, thread_id: int, user_name: str | None = None, thread_name: str | None = None) -> "UserThread":
+    def get_create_or_update(cls, session: Session, user_id: int, thread_id: int, user_name: str | None = None,
+                             thread_name: str | None = None) -> "UserThread":
         """
         Get or create a UserThread instance.
         """
@@ -106,8 +108,6 @@ class Thread(BaseSQLModel, table=True):
     )
 
 
-
-
 class Message(BaseSQLModel, table=True):
     """Represents a message in a  channel or thread."""
     content: str = Field(sa_column=Column(Text))
@@ -148,7 +148,7 @@ class Message(BaseSQLModel, table=True):
     @classmethod
     async def from_discord_message(cls,
                                    discord_message: discord.Message,
-                                   session: Session|None = None,):
+                                   session: Session | None = None, ):
 
         attachments = await cls.extract_attachments(discord_message.attachments)
 
@@ -192,24 +192,30 @@ class Message(BaseSQLModel, table=True):
                 attachment_texts.append(attachment_string)
         return attachment_texts
 
-    def as_full_text(self) -> str:
+    def as_full_text(self, with_names: bool = False) -> str:
         """
         Get the full text of the message.
         """
-        full_text = f"{self.content}\n\n"
+        content = ""
+        if with_names:
+            if self.is_bot:
+                content += "- **BOT**: "
+            else:
+                content += "- **HUMAN**: "
+            content += f"{self.content}\n\n"
         if self.attachments:
-            full_text += "\n\nBEGIN ATTACHMENTS:\n\n"
-            full_text += "\n\n".join(self.attachments)
-            full_text += "\n\nEND ATTACHMENTS\n\n"
-        return full_text
+            content += "\n\nBEGIN ATTACHMENTS:\n\n"
+            content += "\n\n".join(self.attachments)
+            content += "\n\nEND ATTACHMENTS\n\n"
+        return content
 
 
-class ContextSystemPrompt(SQLModel, table=True):
+class ContextSystemPrompt(BaseSQLModel, table=True):
     """Represents a prompt for a given context"""
 
     system_prompt: str = Field(sa_column=Column(Text))
 
-    context_route: str = Field(primary_key=True, index=True)  # `server_id`/`category_id`/`channel_id`
+    context_route_ids: str = Field(index=True)  # `server_id`/`category_id`/`channel_id`
     context_route_names: str = Field(index=True)  # `server_name`/`category_name`/`channel_name`
     server_id: int = Field(foreign_key="server.id")
     server_name: str = Field(index=True)
@@ -231,59 +237,36 @@ class ContextSystemPrompt(SQLModel, table=True):
     def from_context(cls,
                      session: Session,
                      system_prompt: str,
-                     server_id: int,
-                     server_name: str,
-                     category_id: int | None = None,
-                     category_name: str | None = None,
-                     channel_name: str | None = None,
-                     channel_id: int | None = None,
+                     context_route: ContextRoute,
                      ):
         """
         Create a ContextSystemPrompt from a context.
         """
-
-        context_route = f"{server_id}"
-        context_route_names = f"{server_name}"
-        if category_id is not None:
-            if category_name is None:
-                raise ValueError("category_name must be provided if category_id is provided")
-            context_route += f"/{category_id}"
-            context_route_names += f"/{category_name}"
-        if channel_id is not None:
-            if channel_name is None:
-                raise ValueError("channel_name must be provided if channel_id is provided")
-            context_route += f"/{channel_id}"
-            context_route_names += f"/{channel_name}"
-
-        instance = session.get(cls, context_route)
-
-        if not instance:
-            instance = cls(context_route=context_route,
-                           context_route_names=context_route_names,
-                           server_id=server_id,
-                           category_id=category_id,
-                           channel_id=channel_id,
-                           server_name=server_name,
-                           category_name=category_name,
-                           channel_name=channel_name,
-                           system_prompt=system_prompt)
-            # Create new instance if it doesn't exist
-            session.add(instance)
-            session.flush()
-            return instance
-
-        # Update the system prompt if it has changed
-        if instance.system_prompt != system_prompt:
-            instance.system_prompt = system_prompt
-            # Note - names may change, id's will not
-            instance.server_name = server_name
-            instance.category_name = category_name
-            instance.channel_name = channel_name
-            instance.context_route_names = context_route_names
-            session.add(instance)
-            session.flush()
-
-        return instance
+        return cls.get_create_or_update(session=session,
+                                        db_id=context_route.hash_id,
+                                        context_route_ids=context_route.ids,
+                                        context_route_names=context_route.names,
+                                        server_id=context_route.server_id,
+                                        category_id=context_route.category_id,
+                                        channel_id=context_route.channel_id,
+                                        server_name=context_route.server_name,
+                                        category_name=context_route.category_name,
+                                        channel_name=context_route.channel_name,
+                                        system_prompt=system_prompt)
 
 
 
+class User(BaseSQLModel, table=True):
+    """Represents a  user."""
+    is_bot: bool
+
+    # Relationships
+    messages: list[Message] = Relationship(back_populates="author")
+    threads: list[Thread] = Relationship(
+        back_populates="users",
+        link_model=UserThread
+    )
+    profile: Optional["UserProfile"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False}
+    )
