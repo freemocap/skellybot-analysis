@@ -92,7 +92,7 @@ async def analyze_thread(session: Session,
     channel_prompt = get_context_system_prompt(session=session,
                                                context_route=context_route)
     if not channel_prompt:
-        raise ValueError(f"WARNING - No system prompt found for {context_route.names}")
+        raise ValueError(f"WARNING - No system prompt found for {context_route.names} with hash_id {context_route.hash_id}.")
 
     # Get text content based on object type
     thread_text_to_analyze = get_thread_text(session=session,
@@ -139,10 +139,14 @@ async def analyze_thread(session: Session,
 def store_analysis_results(analysis_results: dict[ContextRoute, tuple[int, str, str, str, TextAnalysisPromptModel]],
                            session: Session) -> None:
     """Store the analysis results in the database"""
+    stored = 0
     try:
         for route, text_result in analysis_results.items():
             thread_id, thread_name, analyzed_text, analysis_prompt, analysis_result = text_result
             # Store analysis in database
+            if not analysis_result:
+                logger.warning(f"No analysis result for {route.names}, skipping storage.")
+                continue
             ServerObjectAiAnalysis.get_create_or_update(
                 db_id=route.hash_id,
                 session=session,
@@ -169,6 +173,9 @@ def store_analysis_results(analysis_results: dict[ContextRoute, tuple[int, str, 
                 topic_areas=[TopicArea.from_prompt_model(topic) for topic in analysis_result.topic_areas]
             )
             session.commit()
+            stored += 1
+
+        logger.info(f"Analysis results stored successfully - stored {stored} results out of {len(analysis_results)}.")
     except Exception as e:
         logger.error(f"Error storing analysis results: {e}")
         session.rollback()

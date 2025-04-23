@@ -20,7 +20,7 @@ class BaseSQLModel(SQLModel):
 
     @classmethod
     def get_create_or_update(cls: Type[BaseSQLModelType],
-                             db_id: int | str,
+                             db_id: int,
                              flush: bool = True,
                              session: Session|None= None,
                              **kwargs) -> BaseSQLModelType:
