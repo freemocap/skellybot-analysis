@@ -10,50 +10,6 @@ from skellybot_analysis.models.base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route import ContextRoute
 
 
-class Server(BaseSQLModel, table=True):
-    """Represents a  server (guild)."""
-    categories: list["Category"] = Relationship(
-        back_populates="server",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
-    channels: list["Channel"] = Relationship(
-        back_populates="server",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
-
-
-class Category(BaseSQLModel, table=True):
-    """Represents a category in a  server."""
-    server_id: int = Field(foreign_key="server.id", index=True)
-    server_name: str = Field(index=True)
-    # Relationships
-    server: Server = Relationship(back_populates="categories")
-    channels: list["Channel"] = Relationship(
-        back_populates="category",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
-
-
-class Channel(BaseSQLModel, table=True):
-    """Represents a text channel in a  server."""
-    server_id: int = Field(foreign_key="server.id", index=True)
-    server_name: str = Field(index=True)
-    category_id: int = Field(foreign_key="category.id", index=True)
-    category_name: str = Field(index=True)
-
-    # Relationships
-    server: Server = Relationship(back_populates="channels")
-    category: Category = Relationship(back_populates="channels")
-    threads: list["Thread"] = Relationship(
-        back_populates="channel",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
-    messages: list["Message"] = Relationship(
-        back_populates="channel",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
-
-
 class UserThread(SQLModel, table=True):
     """Association table for the many-to-many relationship between users and threads."""
     user_id: int = Field(foreign_key="user.id", primary_key=True)
@@ -92,12 +48,15 @@ class UserThread(SQLModel, table=True):
 
 class Thread(BaseSQLModel, table=True):
     """Represents a thread in a  channel."""
-    channel_id: int = Field(foreign_key="channel.id", index=True)
+    server_id: int = Field( index=True)
+    server_name: str = Field(index=True)
+    category_id: Optional[int] = Field( index=True, default=None)
+    category_name: Optional[str] = Field(index=True, default=None)
+    channel_id: int = Field( index=True)
     channel_name: str = Field(index=True)
     owner_id: int = Field(foreign_key="user.id", index=True)
     owner_name: str = Field(index=True)
     # Relationships
-    channel: Channel = Relationship(back_populates="threads")
     messages: list["Message"] = Relationship(
         back_populates="thread",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"}
@@ -126,12 +85,11 @@ class Message(BaseSQLModel, table=True):
         foreign_key="message.id",
         sa_column_kwargs={"name": "parent_message_id"}
     )
-    thread_id: Optional[int] = Field(default=None, foreign_key="thread.id", index=True)
-    channel_id: Optional[int] = Field(default=None, foreign_key="channel.id", index=True)
+    thread_id: Optional[int] = Field(default=None, index=True, foreign_key="thread.id")
+    channel_id: Optional[int] = Field(default=None, index=True)
 
     # Relationships
     thread: Optional["Thread"] = Relationship(back_populates="messages")
-    channel: Optional["Channel"] = Relationship(back_populates="messages")
     author: "User" = Relationship(back_populates="messages")
     parent_message: Optional["Message"] = Relationship(
         sa_relationship_kwargs={
@@ -217,13 +175,13 @@ class ContextSystemPrompt(BaseSQLModel, table=True):
 
     context_route_ids: str = Field(index=True)  # `server_id`/`category_id`/`channel_id`
     context_route_names: str = Field(index=True)  # `server_name`/`category_name`/`channel_name`
-    server_id: int = Field(foreign_key="server.id")
+    server_id: int = Field(index=True)
     server_name: str = Field(index=True)
 
-    category_id: Optional[int] = Field(foreign_key="category.id")
+    category_id: Optional[int] = Field(default=None, index=True)
     category_name: Optional[str] = Field(default=None, index=True)
 
-    channel_id: Optional[int] = Field(foreign_key="channel.id")
+    channel_id: Optional[int] = Field(default=None, index=True)
     channel_name: Optional[str] = Field(default=None, index=True)
 
     created_at: datetime = Field(default_factory=datetime.now)

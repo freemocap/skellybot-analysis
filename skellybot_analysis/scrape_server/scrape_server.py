@@ -1,95 +1,47 @@
 import logging
-from copy import copy
 
 import discord
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from skellybot_analysis.models.context_route import ContextRoute
-from skellybot_analysis.models.server_db_models import Thread, Message, UserThread, Server, \
-    ContextSystemPrompt, Channel, Category, User
+from skellybot_analysis.models.server_db_models import Thread, Message, UserThread, ContextSystemPrompt, User
 from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel, \
     MINIMUM_THREAD_MESSAGE_COUNT
 
 logger = logging.getLogger(__name__)
 
 
-async def scrape_server(target_server: discord.Guild,
-                        db_engine: Engine) -> None:
+async def scrape_server(target_server: discord.Guild, db_engine: Engine) -> None:
     logger.info(f'Successfully connected to the guild: {target_server.name} (ID: {target_server.id})')
-    all_discord_threads = []
+
+    all_channels = await target_server.fetch_channels()
+    text_channels = [channel for channel in all_channels if isinstance(channel, discord.TextChannel)]
+    all_discord_threads: list[discord.Thread] = []
+    for channel in text_channels:
+        all_discord_threads.extend(await get_channel_threads(channel))
+
     with Session(db_engine) as session:
         try:
-            db_server, server_prompt_messages = await db_process_server(session=session,
-                                                                        target_server=target_server)
-            if not db_server:
-                logger.error(
-                    f"Failed to process server: {target_server.name} (ID: {target_server.id}) - server not found")
-                raise ValueError("Server not found in the database")
+            server_prompt = await get_server_prompt(session=session,
+                                                    target_server=target_server,
+                                                    text_channels=text_channels)
+            category_prompt_messages = await get_category_prompts(server_prompt=server_prompt,
+                                                                  session=session,
+                                                                  target_server=target_server,
+                                                                  text_channels=text_channels)
+            _ = await get_channel_prompts(session=session,
+                                          text_channels=text_channels,
+                                          server_prompt=server_prompt,
+                                          category_prompt_messages=category_prompt_messages)
 
-            # Process categories
-            channels = await target_server.fetch_channels()
-            for category in [channel for channel in channels if isinstance(channel, discord.CategoryChannel)]:
-                if not category.text_channels:
-                    logger.info(f"Skipping empty category: {category.name} (ID: {category.id})")
-                    continue
-                try:
-                    db_category, category_prompts = await db_process_category(session=session,
-                                                                              category=category,
-                                                                              server_prompt_messages=server_prompt_messages,
-                                                                              target_server=target_server)
-                    if not db_category:
-                        logger.error(
-                            f"Failed to process category: {category.name} (ID: {category.id}) - category not found")
-                        raise ValueError("Category not found in the database")
-                    db_server.categories.append(db_category)
-                except discord.errors.Forbidden as e:
-                    logger.warning(
-                        f"Failed to access category {category.name} (ID: {category.id}): {str(e)} - skipping")
-                    continue
+            for thread in all_discord_threads:
+                await db_process_thread(session=session,
+                                        thread=thread)
 
-                logger.info(f"✅ Added category: {db_category.name} (ID: {db_category.id})")
-
-                for channel in category.text_channels:
-                    if not isinstance(channel, discord.TextChannel):
-                        continue
-                    channel_threads = await get_channel_threads(channel=channel)
-                    if not channel_threads:
-                        logger.info(f"No chat threads found in: {channel.name} (ID: {channel.id}) - skipping")
-                        continue
-                    try:
-                        db_channel, channel_prompts = await db_process_channel(session=session,
-                                                                               context_prompts=category_prompts,
-                                                                               channel=channel,
-                                                                               )
-                        if not db_channel:
-                            logger.error(
-                                f"Failed to process channel: {channel.name} (ID: {channel.id}) - channel not found")
-                            raise ValueError("Channel not found in the database")
-                        channel_threads = await get_channel_threads(channel=channel)
-                        db_category.channels.append(db_channel)
-                        logger.info(f"✅ Added channel: {db_channel.name} (ID: {db_channel.id})")
-
-                    except discord.errors.Forbidden as e:
-                        logger.warning(
-                            f"Failed to access channel {channel.name} (ID: {channel.id}): {str(e)} - skipping")
-                        continue
-
-
-
-                    for thread in channel_threads:
-                        all_discord_threads.append(thread)
-                        db_thread = await db_process_thread(session=session,
-                                                            thread=thread)
-                        if not db_thread:
-                            logger.info(f"Skipping thread {thread.name} (ID: {thread.id}) for being empty or too short.")
-                            continue
-                        db_channel.threads.append(db_thread)
             session.commit()
-            for discord_thread in all_discord_threads:
-                await create_user_thread_associations(session=session,
-                                                      thread=discord_thread)
-
+            for thread in all_discord_threads:
+                await create_user_thread_associations(session=session, thread=thread)
         except Exception as e:
             session.rollback()
             logger.error(f"Critical error during scraping: {str(e)}", exc_info=True)
@@ -97,6 +49,84 @@ async def scrape_server(target_server: discord.Guild,
         # Final commit to ensure everything is saved
         session.commit()
         logger.info("✅ All data has been committed to the database")
+
+
+async def get_channel_prompts(session: Session,
+                              text_channels: list[discord.TextChannel],
+                              server_prompt: str,
+                              category_prompt_messages: dict[int, str]) -> dict[int, str]:
+    channel_prompts: dict[int, str] = {}
+    for channel in text_channels:
+        if not isinstance(channel, discord.TextChannel):
+            continue
+        channel_threads = await get_channel_threads(channel=channel)
+        if not channel_threads:
+            logger.info(f"No chat threads found in: {channel.name} (ID: {channel.id}) - skipping")
+            continue
+        base_prompt = category_prompt_messages.get(channel.category_id, server_prompt)
+        channel_prompt = base_prompt + "\n".join(await get_prompts_from_channel(channel=channel))
+        channel_prompts[channel.id] = channel_prompt
+        ContextSystemPrompt.from_context(session=session,
+                                         system_prompt=channel_prompt,
+                                         context_route=ContextRoute(server_id=channel.guild.id,
+                                                                    server_name=channel.guild.name,
+                                                                    category_id=channel.category.id if channel.category else None,
+                                                                    category_name=channel.category.name if channel.category else None,
+                                                                    channel_id=channel.id,
+                                                                    channel_name=channel.name,
+                                                                    )
+                                         )
+        logger.info(f"✅ Added channel system prompt for channel: {channel.name} (ID: {channel.id})")
+
+    return channel_prompts
+
+
+async def get_category_prompts(server_prompt: str,
+                               session: Session,
+                               target_server: discord.Guild,
+                               text_channels: list[discord.TextChannel]) -> dict[int, str]:
+    category_prompt_messages: dict[int, str] = {}
+    for channel in text_channels:
+        if not channel.category:
+            continue
+        if "bot" in channel.name or "prompt" in channel.name or "instructions" in channel.name:
+            logger.info(f"Extracting server-level prompts from channel: {channel.name}")
+            category_prompt_messages[channel.category_id] = server_prompt + "\n".join(
+                await get_prompts_from_channel(channel=channel, prompt_tag_emoji="🤖"))
+            ContextSystemPrompt.from_context(
+                session=session,
+                system_prompt=category_prompt_messages[channel.category_id],
+                context_route=ContextRoute(server_id=target_server.id,
+                                           server_name=target_server.name,
+                                           category_id=channel.category_id,
+                                           category_name=channel.category.name,
+                                           )
+            )
+            logger.info(
+                f"✅ Added category system prompt for category: {channel.category.name} (ID: {channel.category.id})")
+    return category_prompt_messages
+
+
+async def get_server_prompt(session: Session,
+                            target_server: discord.Guild,
+                            text_channels: list[discord.TextChannel]) -> str:
+    server_prompt = ""
+    for channel in text_channels:
+        if channel.category:
+            continue
+        if "bot" in channel.name or "prompt" in channel.name or "instructions" in channel.name:
+            logger.info(f"Extracting server-level prompts from channel: {channel.name}")
+            server_prompt += "\n".join(await get_prompts_from_channel(channel=channel, prompt_tag_emoji="🤖"))
+    if server_prompt:
+        ContextSystemPrompt.from_context(
+            session=session,
+            system_prompt=server_prompt,
+            context_route=ContextRoute(server_id=target_server.id,
+                                       server_name=target_server.name,
+                                       )
+        )
+        logger.info(f"✅ Added server-level system prompt")
+    return server_prompt
 
 
 async def get_channel_threads(channel: discord.TextChannel) -> list[discord.Thread]:
@@ -107,103 +137,8 @@ async def get_channel_threads(channel: discord.TextChannel) -> list[discord.Thre
     return channel_threads
 
 
-async def db_process_server(session: Session,
-                            target_server: discord.Guild) -> tuple[Server, list[str]]:
-    server_prompt_messages: list[str] = []
-    db_server = Server.get_create_or_update(session=session,
-                                            db_id=target_server.id,
-                                            name=target_server.name,
-                                            categories=[],
-                                            channels=[], )
-    session.flush()
-    logger.info(f"✅ Added server record: {target_server.name} (ID: {target_server.id})")
-
-    # Process server-level prompts/channels first
-    channels = await target_server.fetch_channels()
-    for channel in channels:
-        if not isinstance(channel, discord.TextChannel):
-            continue
-        if not channel.category:
-            if "bot" in channel.name or "prompt" in channel.name:
-                logger.info(f"Extracting server-level prompts from channel: {channel.name}")
-                server_prompt_messages.extend(
-                    await get_prompts_from_channel(channel=channel, prompt_tag_emoji="🤖"))
-
-            await db_process_channel(session=session,
-                                     context_prompts=server_prompt_messages,
-                                     channel=channel,
-                                     )
-    if server_prompt_messages:
-        ContextSystemPrompt.from_context(session=session,
-                                         system_prompt="\n".join(server_prompt_messages),
-                                         context_route=ContextRoute(server_id=target_server.id,
-                                                                    server_name=target_server.name, )
-                                         )
-        logger.info(f"✅ Added server-level system prompt")
-    return db_server, server_prompt_messages
-
-
-async def db_process_category(session: Session,
-                              category: discord.CategoryChannel,
-                              server_prompt_messages: list[str],
-                              target_server: discord.Guild) -> tuple[Category, list[str]]:
-    category_prompts: list[str] = copy(server_prompt_messages)
-
-    # Process category-level prompts
-    for channel in category.text_channels:
-        if 'bot' in channel.name or 'prompt' in channel.name:
-            category_prompts.extend(
-                await get_prompts_from_channel(channel=channel, prompt_tag_emoji="🤖"))
-
-    db_category = Category.get_create_or_update(session=session,
-                                                db_id=category.id,
-                                                name=category.name,
-                                                server_name=target_server.name,
-                                                server_id=target_server.id,
-                                                channels=[]
-                                                )
-    ContextSystemPrompt.from_context(session=session,
-                                     system_prompt="\n".join(category_prompts),
-                                     context_route=ContextRoute(server_id=target_server.id,
-                                                                server_name=target_server.name,
-                                                                category_id=category.id,
-                                                                category_name=category.name, )
-                                     )
-    return db_category, category_prompts
-
-
-async def db_process_channel(session: Session,
-                             context_prompts: list[str],
-                             channel: discord.TextChannel,
-                             ) -> tuple[Channel, list[str]] :
-    channel_prompts = copy(context_prompts)
-    channel_prompts.extend(await get_prompts_from_channel(channel=channel))
-
-    db_channel = Channel.get_create_or_update(session=session,
-                                              db_id=channel.id,
-                                              name=channel.name,
-                                              server_name=channel.guild.name,
-                                              server_id=channel.guild.id,
-                                              category_name=channel.category.name if channel.category else 'top-level',
-                                              category_id=channel.category.id if channel.category else 0,
-                                              threads=[]
-                                              )
-    ContextSystemPrompt.from_context(session=session,
-                                     system_prompt="\n".join(channel_prompts),
-                                     context_route=ContextRoute(server_id=channel.guild.id,
-                                                                server_name=channel.guild.name,
-                                                                category_id=channel.category.id if channel.category else 0,
-                                                                category_name=channel.category.name if channel.category else 'top-level',
-                                                                channel_id=channel.id,
-                                                                channel_name=channel.name, )
-                                     )
-    return db_channel, channel_prompts
-
-
 async def db_process_thread(session: Session,
                             thread: discord.Thread) -> Thread | None:
-
-
     message_count = 0
     thread_messages: list[discord.Message] = []
     async for message in thread.history(limit=None, oldest_first=True):
@@ -223,6 +158,10 @@ async def db_process_thread(session: Session,
     db_thread = Thread.get_create_or_update(session=session,
                                             db_id=thread.id,
                                             name=thread.name,
+                                            server_id=thread.guild.id,
+                                            server_name=thread.guild.name,
+                                            category_id=thread.parent.category.id if thread.parent.category else None,
+                                            category_name=thread.parent.category.name if thread.parent.category else None,
                                             channel_name=thread.parent.name,
                                             channel_id=thread.parent.id,
                                             owner_id=thread.owner_id,

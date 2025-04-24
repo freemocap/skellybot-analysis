@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlmodel import Session, select
 
-from skellybot_analysis.models.server_db_models import Server, Category, Channel, Thread, Message,User
+from skellybot_analysis.models.server_db_models import  Thread, Message,User
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 import  logging
@@ -14,9 +14,6 @@ async def print_server_db_stats(db_path: str|None=None):
 
     engine = create_engine(f"sqlite:///{db_path}", echo=False)
     with Session(engine) as session:
-        server_count = session.query(Server).count()
-        category_count = session.query(Category).count()
-        channel_count = session.query(Channel).count()
         thread_count = session.query(Thread).count()
         message_count = session.query(Message).count()
         user_count = session.query(User).count()-2 # subtract 2 users, bot + me
@@ -34,9 +31,6 @@ async def print_server_db_stats(db_path: str|None=None):
             else:
                 human_word_count += len(message.content.split())
         logger.info(f"Database validation results:")
-        logger.info(f"  - Servers: {server_count}")
-        logger.info(f"  - Categories: {category_count}")
-        logger.info(f"  - Channels: {channel_count}")
         logger.info(f"  - Threads: {thread_count}")
         logger.info(f"  - Messages: {message_count}")
         logger.info(f"  - Users: {user_count}")
@@ -46,7 +40,6 @@ async def print_server_db_stats(db_path: str|None=None):
         logger.info(f"Mean word count per user: {total_word_count / user_count-2 if user_count > 0 else 0:,}") #subtract 2 users, bot + me
 
 
-        return server_count > 0 and message_count > 0
 
 
 if __name__ == "__main__":

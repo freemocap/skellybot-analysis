@@ -11,8 +11,7 @@ from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_
 from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis, TopicArea
 from skellybot_analysis.models.context_route import ContextRoute
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
-from skellybot_analysis.models.server_db_models import Server, Channel, Thread, \
-    ContextSystemPrompt, Message
+from skellybot_analysis.models.server_db_models import  Thread, ContextSystemPrompt, Message
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 
 MIN_MESSAGE_LIMIT = 4
@@ -27,38 +26,24 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
     context_routes = []
     thread_ids = []
     with Session(db_engine) as session:
-        # Get the server from the DB
-        server = session.exec(select(Server)).first()
-        if not server:
-            logger.error("No server found in database")
-            return
 
-        logger.info(f"Analyzing server: {server.name} (ID: {server.id})")
-
-        channels = session.exec(select(Channel).where(Channel.server_id == server.id)).all()
-        logger.info(f"Analyzing {len(channels)} channels")
-        context_route = ContextRoute(
-            server_id=server.id,
-            server_name=server.name
-        )
-        for channel in channels:
-            logger.info(f"Analyzing channel: {channel.name} (ID: {channel.id})")
-            context_route.category_id = channel.category_id
-            context_route.category_name = channel.category_name
-            context_route.channel_id = channel.id
-            context_route.channel_name = channel.name
-
-            # Run analysis on threads
-            threads = session.exec(select(Thread).join(Channel).where(Channel.id == channel.id)).all()
-            logger.info(f"Analyzing {len(threads)} threads in channel {channel.name} (ID: {channel.id})")
-            for thread in threads:
-                context_routes.append(deepcopy(context_route))
-                analysis_tasks.append(asyncio.create_task(analyze_thread(session=session,
-                                                                         context_route=context_route,
-                                                                         thread_id=thread.id,
-                                                                         thread_name=thread.name,
-                                                                         ))
-                                      )
+        # Run analysis on threads
+        threads = session.exec(select(Thread)).all()
+        logger.info(f"Analyzing {len(threads)} threads from server: {threads[0].server_name} ")
+        for thread in threads:
+            analysis_tasks.append(asyncio.create_task(analyze_thread(session=session,
+                                                                     context_route=ContextRoute(
+                                                                            server_id=thread.server_id,
+                                                                            server_name=thread.server_name,
+                                                                            category_id=thread.category_id,
+                                                                            category_name=thread.category_name,
+                                                                            channel_id=thread.channel_id,
+                                                                            channel_name=thread.channel_name,
+                                                                     ),
+                                                                     thread_id=thread.id,
+                                                                     thread_name=thread.name,
+                                                                     ))
+                                  )
 
         logger.info(f"Starting AI analysis tasks on {len(analysis_tasks)} objects.")
         results = await asyncio.gather(*analysis_tasks)

@@ -9,7 +9,7 @@ from skellybot_analysis.models.base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route import ContextRoute
 from skellybot_analysis.models.db_association_tables import ServerAnalysisTopicArea, UserProfileTopicArea
 from skellybot_analysis.models.prompt_models import TopicAreaPromptModel
-from skellybot_analysis.models.server_db_models import Message, Thread, UserThread, User
+from skellybot_analysis.models.server_db_models import User
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
@@ -74,11 +74,10 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
     context_route_ids: str = Field(index=True)  # `server_id`/`category_id`/`channel_id`/`thread_id`
     context_route_names: str = Field(index=True)  # `server_name`/`category_name`/`channel_name`/`thread_name`
 
-    server_id: int = Field(foreign_key="server.id")
-    category_id: Optional[int] = Field(default=None, foreign_key="category.id")
-    channel_id: Optional[int] = Field(default=None, foreign_key="channel.id")
-    thread_id: Optional[int] = Field(default=None, foreign_key="thread.id")
-
+    server_id: int = Field(index=True)
+    category_id: Optional[int] = Field(default=None, index=True)
+    channel_id: Optional[int] = Field(default=None,  index=True)
+    thread_id: Optional[int] = Field(default=None,   index=True)
     server_name: str
     category_name: Optional[str] = Field(default=None)
     channel_name: Optional[str] = Field(default=None)
