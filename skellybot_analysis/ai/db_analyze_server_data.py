@@ -13,11 +13,18 @@ from skellybot_analysis.models.context_route import ContextRoute
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
 from skellybot_analysis.models.server_db_models import  Thread, ContextSystemPrompt, Message
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
-
+from pydantic import  BaseModel
 MIN_MESSAGE_LIMIT = 4
 
 logger = logging.getLogger(__name__)
 
+class AnalyzedThreadResult(BaseModel):
+    analysis_result: TextAnalysisPromptModel
+    context_route: ContextRoute
+    thread_id: int
+    thread_name: str
+    thread_text: str
+    analysis_prompt: str
 
 async def db_analyze_server_threads(db_path: str | None = None) -> None:
     """Run AI analysis on server data stored in the SQLite database"""
@@ -47,8 +54,7 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
 
         logger.info(f"Starting AI analysis tasks on {len(analysis_tasks)} objects.")
         results = await asyncio.gather(*analysis_tasks)
-        analysis_results = {route: result for route, result in zip(context_routes, results)}
-        store_analysis_results(analysis_results=analysis_results,
+        store_analysis_results(analysis_results=results,
                                session=session)
         logger.info("AI analysis completed!")
 
@@ -57,7 +63,7 @@ def get_context_system_prompt(session: Session, context_route: ContextRoute) -> 
     """Get the system prompt for a server from the ContextSystemPrompt table"""
 
     prompt_obj = session.exec(
-        select(ContextSystemPrompt).where(ContextSystemPrompt.id == context_route.hash_id)
+        select(ContextSystemPrompt).where(ContextSystemPrompt.id == context_route.id)
     ).first()
 
     if prompt_obj and prompt_obj.system_prompt:
@@ -69,7 +75,7 @@ async def analyze_thread(session: Session,
                          context_route: ContextRoute,
                          thread_id: int,
                          thread_name: str,
-                         ) -> tuple[int, str, str, str, TextAnalysisPromptModel] | None:
+                         ) ->AnalyzedThreadResult | None:
     """
     Run AI analysis on a server object (server, category, or channel)
     and store the results in the ServerObjectAiAnalysis table.
@@ -77,7 +83,7 @@ async def analyze_thread(session: Session,
     channel_prompt = get_context_system_prompt(session=session,
                                                context_route=context_route)
     if not channel_prompt:
-        raise ValueError(f"WARNING - No system prompt found for {context_route.names} with hash_id {context_route.hash_id}.")
+        raise ValueError(f"WARNING - No system prompt found for {context_route.names} with id {context_route.id}.")
 
     # Get text content based on object type
     thread_text_to_analyze = get_thread_text(session=session,
@@ -115,25 +121,30 @@ async def analyze_thread(session: Session,
                                                         prompt_model=TextAnalysisPromptModel,
                                                         llm_model=DEFAULT_LLM
                                                         )
-        return thread_id, thread_name, thread_text_to_analyze, analysis_prompt, result
+        return AnalyzedThreadResult(
+            analysis_result=result,
+            context_route=context_route,
+            thread_id=thread_id,
+            thread_name=thread_name,
+            thread_text=thread_text_to_analyze,
+            analysis_prompt=analysis_prompt
+        )
     except Exception as e:
         logger.error(f"Error analyzing {context_route.names}: {e}")
         raise
 
 
-def store_analysis_results(analysis_results: dict[ContextRoute, tuple[int, str, str, str, TextAnalysisPromptModel]],
+def store_analysis_results(analysis_results: list[AnalyzedThreadResult],
                            session: Session) -> None:
     """Store the analysis results in the database"""
     stored = 0
     try:
-        for route, text_result in analysis_results.items():
-            thread_id, thread_name, analyzed_text, analysis_prompt, analysis_result = text_result
+        for result in analysis_results:
+
             # Store analysis in database
-            if not analysis_result:
-                logger.warning(f"No analysis result for {route.names}, skipping storage.")
-                continue
+            route = result.context_route
             ServerObjectAiAnalysis.get_create_or_update(
-                db_id=route.hash_id,
+                db_id=hash((route.id, result.thread_id)),
                 session=session,
                 flush=True,
                 context_route_ids=route.ids,
@@ -144,18 +155,18 @@ def store_analysis_results(analysis_results: dict[ContextRoute, tuple[int, str, 
                 category_name=route.category_name,
                 channel_id=route.channel_id,
                 channel_name=route.channel_name,
-                thread_id=thread_id,
-                thread_name=thread_name,
-                base_text=analyzed_text,
-                analysis_prompt=analysis_prompt,
-                title_slug=analysis_result.title_slug,
-                extremely_short_summary=analysis_result.extremely_short_summary,
-                very_short_summary=analysis_result.very_short_summary,
-                short_summary=analysis_result.short_summary,
-                highlights=analysis_result.highlights if isinstance(analysis_result.highlights, str) else "\n".join(
-                    analysis_result.highlights),
-                detailed_summary=analysis_result.detailed_summary,
-                topic_areas=[TopicArea.from_prompt_model(topic) for topic in analysis_result.topic_areas]
+                thread_id=result.thread_id,
+                thread_name=result.thread_name,
+                base_text=result.thread_text,
+                analysis_prompt=result.analysis_prompt,
+                title_slug=result.analysis_result.title_slug,
+                extremely_short_summary=result.analysis_result.extremely_short_summary,
+                very_short_summary=result.analysis_result.very_short_summary,
+                short_summary=result.analysis_result.short_summary,
+                highlights=result.analysis_result.highlights if isinstance(result.analysis_result.highlights, str) else "\n".join(
+                    result.analysis_result.highlights),
+                detailed_summary=result.analysis_result.detailed_summary,
+                topic_areas=[TopicArea.from_prompt_model(topic) for topic in result.analysis_result.topic_areas]
             )
             session.commit()
             stored += 1
@@ -170,7 +181,7 @@ def store_analysis_results(analysis_results: dict[ContextRoute, tuple[int, str, 
 
 def get_thread_text(session: Session, thread_id: int) -> str:
     # Get all messages in the thread
-    thread = session.exec(select(Thread).where(Thread.id == thread_id)).first()
+    thread:Thread = session.exec(select(Thread).where(Thread.id == thread_id)).first()
 
     # Format messages as text
     thread_texts = []

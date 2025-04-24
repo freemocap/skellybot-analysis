@@ -168,6 +168,7 @@ async def db_process_thread(session: Session,
                                             owner_name=thread.owner.name,
                                             messages=[]
                                             )
+    session.commit()
     for discord_message in thread_messages:
         if not discord_message.content and len(discord_message.attachments) == 0:
             continue

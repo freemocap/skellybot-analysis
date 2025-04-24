@@ -10,9 +10,16 @@ class ContextRoute(BaseModel):
     category_name: str|None=None
     channel_id: int|None=None
     channel_name: str|None=None
+
     @property
-    def hash_id(self):
-        return hash(tuple(self.ids.split("/")))
+    def id(self):
+        ids = [self.server_id]
+        if self.category_id:
+            ids.append(self.category_id)
+        if self.channel_id:
+            ids.append(self.channel_id)
+        return hash(tuple(ids))
+
 
     @property
     def safe_context_route(self) -> str:

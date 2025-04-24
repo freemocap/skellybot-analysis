@@ -201,7 +201,7 @@ class ContextSystemPrompt(BaseSQLModel, table=True):
         Create a ContextSystemPrompt from a context.
         """
         return cls.get_create_or_update(session=session,
-                                        db_id=context_route.hash_id,
+                                        db_id=context_route.id,
                                         context_route_ids=context_route.ids,
                                         context_route_names=context_route.names,
                                         server_id=context_route.server_id,
