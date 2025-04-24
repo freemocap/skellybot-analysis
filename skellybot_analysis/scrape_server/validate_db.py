@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlmodel import Session, select
 
-from skellybot_analysis.models.server_db_models import  Thread, Message,User
+from skellybot_analysis.models.db_models.db_server_models import  Thread, Message,User
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 import  logging

@@ -6,8 +6,8 @@ import discord
 from sqlalchemy import Column, Index, JSON, Text
 from sqlmodel import SQLModel, Field, Relationship, Session
 
-from skellybot_analysis.models.base_sql_model import BaseSQLModel
-from skellybot_analysis.models.context_route import ContextRoute
+from skellybot_analysis.models.db_models.db_base_sql_model import BaseSQLModel
+from skellybot_analysis.models.context_route_model import ContextRoute
 
 
 class UserThread(SQLModel, table=True):

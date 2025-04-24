@@ -8,9 +8,9 @@ from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_reques
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.ai.db_analyze_server_data import get_context_system_prompt
-from skellybot_analysis.models.server_db_models import UserThread, Thread
+from skellybot_analysis.models.db_server_models import UserThread, Thread
 from skellybot_analysis.models.user_db_models import User, UserProfile
-from skellybot_analysis.models.ai_analysis_db import ServerObjectAiAnalysis
+from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
 from skellybot_analysis.utilities.chunk_text_to_max_token_length import chunk_string_by_max_tokens
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine

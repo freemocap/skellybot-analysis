@@ -4,8 +4,8 @@ import discord
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from skellybot_analysis.models.context_route import ContextRoute
-from skellybot_analysis.models.server_db_models import Thread, Message, UserThread, ContextSystemPrompt, User
+from skellybot_analysis.models.context_route_model import ContextRoute
+from skellybot_analysis.models.db_models.db_server_models import Thread, Message, UserThread, ContextSystemPrompt, User
 from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel, \
     MINIMUM_THREAD_MESSAGE_COUNT
 
