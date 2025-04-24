@@ -3,10 +3,10 @@ from pathlib import Path
 
 import discord
 
+from skellybot_analysis.db.db_utilities import initialize_database_engine
 from skellybot_analysis.scrape_server.scrape_server import scrape_server
 from skellybot_analysis.scrape_server.validate_db import print_server_db_stats
 from skellybot_analysis.utilities.get_most_recent_db_location import persist_most_recent_db_location
-from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 logger = logging.getLogger(__name__)

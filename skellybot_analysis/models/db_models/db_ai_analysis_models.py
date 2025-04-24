@@ -81,8 +81,10 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
     category_name: Optional[str] = Field(default=None)
     channel_id: Optional[int] = Field(default=None,  index=True)
     channel_name: Optional[str] = Field(default=None)
-    thread_id: Optional[int] = Field(default=None,   index=True)
+    thread_id: Optional[int] = Field(default=None,   index=True, foreign_key="thread.id")
     thread_name: Optional[str] = Field(default=None)
+    thread_owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    thread_owner_name: Optional[str] = Field(default=None, foreign_key="user.name")
 
     base_text: str = Field(description="The text this analysis is based on", sa_column=Column(Text))
     analysis_prompt: str = Field(description="The prompt used to generate this analysis (includes base_text)", sa_column=Column(Text))
@@ -102,7 +104,7 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
     )
 
 
-    # Relationships
+
     def save_as_markdown(self, base_folder: str):
         save_path = Path(base_folder) / self.context_route.safe_context_route
         save_path.mkdir(parents=True, exist_ok=True)
@@ -172,6 +174,9 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
             bl.append(thing)
         return "\n".join(bl)
 
+    @property
+    def full_text_no_base_text(self) -> str:
+        return self.full_text.split("## Full Content Text")[0]
 
     @property
     def full_text(self):

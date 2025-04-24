@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import pickle
 from asyncio import Task
 
 from pydantic import BaseModel
@@ -10,13 +9,11 @@ from sqlmodel import Session, select
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
-from skellybot_analysis.ai.embeddings_stuff.calculate_embeddings_and_tsne import create_embedding_and_tsne_clusters, \
-    EmbeddingAndTsneXYZ
+from skellybot_analysis.db.db_utilities import initialize_database_engine
 from skellybot_analysis.models.context_route_model import ContextRoute
 from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
 from skellybot_analysis.models.db_models.db_server_models import Thread, ContextSystemPrompt, Message
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
-from skellybot_analysis.utilities.initialize_database import initialize_database_engine
 
 MIN_MESSAGE_LIMIT = 4
 
@@ -28,6 +25,8 @@ class AnalyzedThreadResult(BaseModel):
     context_route: ContextRoute
     thread_id: int
     thread_name: str
+    thread_owner_id: int
+    thread_owner_name: str
     thread_text: str
     analysis_prompt: str
 
@@ -52,6 +51,8 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
                                                                      ),
                                                                      thread_id=thread.id,
                                                                      thread_name=thread.name,
+                                                                     thread_owner_id=thread.owner_id,
+                                                                     thread_owner_name=thread.owner_name,
                                                                      ))
                                   )
 
@@ -63,14 +64,6 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
                                                  session=session)
 
         logger.info("AI analysis completed!")
-
-
-async def add_embeddings_and_tsne_xyz(thread_analyses: list[ServerObjectAiAnalysis]) -> list[EmbeddingAndTsneXYZ]:
-    logger.info(f"Adding embeddings and t-SNE XYZ coordinates to {len(thread_analyses)} analyses....")
-    texts = [analysis.full_text for analysis in thread_analyses]
-    embeddings_and_tsnes = await create_embedding_and_tsne_clusters(texts)
-    logger.info(f"Embeddings and t-SNE XYZ calculation completed for {len(thread_analyses)} analyses.")
-    return embeddings_and_tsnes
 
 
 def get_context_system_prompt(session: Session, context_route: ContextRoute) -> str:
@@ -89,6 +82,8 @@ async def analyze_thread(session: Session,
                          context_route: ContextRoute,
                          thread_id: int,
                          thread_name: str,
+                         thread_owner_id: int,
+                         thread_owner_name: str,
                          ) -> AnalyzedThreadResult | None:
     """
     Run AI analysis on a server object (server, category, or channel)
@@ -140,6 +135,8 @@ async def analyze_thread(session: Session,
             context_route=context_route,
             thread_id=thread_id,
             thread_name=thread_name,
+            thread_owner_id=thread_owner_id,
+            thread_owner_name=thread_owner_name,
             thread_text=thread_text_to_analyze,
             analysis_prompt=analysis_prompt
         )

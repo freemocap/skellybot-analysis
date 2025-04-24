@@ -17,6 +17,8 @@ class BaseSQLModel(SQLModel):
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
         }
+        load_instance = True
+
 
     @classmethod
     def get_create_or_update(cls: Type[BaseSQLModelType],

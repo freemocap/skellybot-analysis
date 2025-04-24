@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
+from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
 from skellybot_analysis.models.xyz_data_model import XYZData
 
 logger = logging.getLogger(__name__)
@@ -42,3 +43,4 @@ async def create_embedding_and_tsne_clusters(texts_to_embed: list[str],
         ))
 
     return results
+

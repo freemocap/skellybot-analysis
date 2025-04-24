@@ -36,6 +36,7 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(db_analyze_server_threads())
     # asyncio.run(db_extract_user_profiles(server_id=TARGET_SERVER_ID))
+
     save_server_db_as_markdown_directory()
     print("Done!")
 

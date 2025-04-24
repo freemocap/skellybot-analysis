@@ -1,4 +1,3 @@
-import json
 import logging
 from pathlib import Path
 
@@ -8,7 +7,10 @@ import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
 
-from skellybot_analysis.utilities.get_most_recent_scrape_data import get_server_data
+from skellybot_analysis.ai.embeddings_stuff.calculate_embeddings_and_tsne import  EmbeddingAndTsneXYZ, create_embedding_and_tsne_clusters
+from skellybot_analysis.db.db_utilities import get_db_session
+from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
+from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +26,10 @@ def normalize_rows(arr: np.ndarray) -> np.ndarray:
     return normalized_array
 
 
-
-def create_dash_app(dfs: dict[str, dict[str, pd.DataFrame]],
+def create_dash_app(df: pd.DataFrame,
                     save_html_path: str) -> Dash:
     logger.info("Creating Dash app for 3D visualization")
     app = Dash(__name__)
-    df = dfs['by_chats']['normalized']
     fig = go.Figure()
 
     # Create sphere coordinates
@@ -41,13 +41,20 @@ def create_dash_app(dfs: dict[str, dict[str, pd.DataFrame]],
     z = np.outer(np.ones(np.size(u)) * .95, np.cos(v))
 
     fig.add_trace(go.Scatter3d(
-        x=df['Dimension 1'],
-        y=df['Dimension 2'],
-        z=df['Dimension 3'],
-        color=df['channel_name'],
-        symbol=df['category_name'],
-        hover_name=df['thread_name'],
-        custom_data=df['text_contents']
+        x=df['x'],
+        y=df['y'],
+        z=df['z'],
+        mode='markers',
+        marker=dict(
+            size=5,
+            color=df['channel_name'].astype('category').cat.codes,  # Use channel name for color
+            colorscale='Viridis',
+            opacity=0.8
+        ),
+        text=df['thread_name'] + '<br>' + df['category_name'],
+        hoverinfo='text',
+        customdata=df['text_contents'].values,
+        name='Threads'
     ))
 
     # Add sphere to the figure
@@ -103,42 +110,70 @@ def create_dash_app(dfs: dict[str, dict[str, pd.DataFrame]],
             return "Hover over a point to see details here."
 
         point_data = hoverData['points'][0]
-        text_contents = point_data['customdata'][0]
-        return f"Text Contents:\n{text_contents}"
+        text_contents = point_data['customdata']
+        thread_name = point_data['text'].split('<br>')[0]
+        return html.Div([
+            html.H3(thread_name),
+            html.Pre(text_contents)
+        ])
 
     return app
 
 
-def save_dataframes_to_json(dfs: dict[str, dict[str, pd.DataFrame]], file_path: str) -> None:
-    # Convert each DataFrame to a JSON string
-    json_data = {key: {norm_type: df.to_json() for norm_type, df in norm_dict.items()} for key, norm_dict in
-                 dfs.items()}
+async def create_dataframes_from_analyses(db_path:str|None=None) -> pd.DataFrame:
+    """
+    Create dataframes from thread analyses and their embeddings/TSNE coordinates
 
-    # Save the JSON string to a file
-    with open(file_path, 'w') as f:
-        json.dump(json_data, f)
+    Args:
+        thread_analyses_df: DataFrame of ServerObjectAiAnalysis objects
 
+    Returns:
+        DataFrame with thread information and TSNE coordinates
+    """
+    with get_db_session(db_path=db_path) as session:
+        thread_analyses = session.query(ServerObjectAiAnalysis).all()
+        logger.info(f"Creating dataframes from {len(thread_analyses)} analyses")
+        text_to_embed = [analysis.full_text for analysis in thread_analyses]
+        # Calculate embeddings and TSNE coordinates
+        embeddings_and_tsnes: list[EmbeddingAndTsneXYZ] = await create_embedding_and_tsne_clusters(text_to_embed,
+                                                                                                   perplexity=10)
 
-def load_dataframes_from_json(file_path: str) -> dict[str, dict[str, pd.DataFrame]]:
-    # Load the JSON string from the file
-    with open(file_path, 'r') as f:
-        json_data = json.load(f)
+        # Create main dataframe with thread information and TSNE coordinates
+        data = []
+        for i, (analysis, embedding_tsne) in enumerate(zip(thread_analyses, embeddings_and_tsnes)):
+            data.append({
+                'thread_id': analysis.thread_id,
+                'thread_name': analysis.thread_name,
+                'server_name': analysis.server_name,
+                'category_name': analysis.category_name,
+                'channel_name': analysis.channel_name,
+                'text_contents': analysis.full_text,
+                'title': analysis.title,
+                'x': embedding_tsne.tsne_xyz.x,
+                'y': embedding_tsne.tsne_xyz.y,
+                'z': embedding_tsne.tsne_xyz.z,
+            })
 
-    # Convert the JSON string back to DataFrames
-    dfs = {key: {norm_type: pd.read_json(df_json) for norm_type, df_json in norm_dict.items()} for key, norm_dict in
-           json_data.items()}
-
-    return dfs
-
+    df = pd.DataFrame(data)
+    logger.info(f"Created dataframe with {len(df)} rows")
+    return df
 
 
 if __name__ == "__main__":
-    _server_data, _json_path = get_server_data()
-    outer_output_path = Path(_json_path).parent
-    html_file_name = Path(_json_path).stem + '_3d_cluster_data_viz.html'
+    import asyncio
+    _db_path = get_most_recent_db_location()
+
+
+    # Create visualization dataframe
+    _df = asyncio.run(create_dataframes_from_analyses(db_path=_db_path))
+
+    # Setup output paths
+    outer_output_path = Path(_db_path).parent
+    html_file_name = Path(_db_path).stem + '_3d_cluster_data_viz.html'
     html_file_path = outer_output_path / html_file_name
 
-    app = create_dash_app(_dfs, save_html_path=str(html_file_path))
+    # Create and run the Dash app
+    app = create_dash_app(_df, save_html_path=str(html_file_path))
     logger.info(f"Running Dash app server...")
     app.run_server(debug=True, port=8050)
     logger.info(f"Dash app server stopped.")

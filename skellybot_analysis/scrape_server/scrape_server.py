@@ -40,8 +40,8 @@ async def scrape_server(target_server: discord.Guild, db_engine: Engine) -> None
                                         thread=thread)
 
             session.commit()
-            for thread in all_discord_threads:
-                await create_user_thread_associations(session=session, thread=thread)
+            # for thread in all_discord_threads:
+            #     await create_user_thread_associations(session=session, thread=thread)
         except Exception as e:
             session.rollback()
             logger.error(f"Critical error during scraping: {str(e)}", exc_info=True)

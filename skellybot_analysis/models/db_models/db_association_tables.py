@@ -17,3 +17,7 @@ class ServerAnalysisContextPrompt(SQLModel, table=True):
 class ThreadContextPrompt(SQLModel, table=True):
     thread_id: int = Field(foreign_key="thread.id", primary_key=True)
     contextsystemprompt_id: int = Field(foreign_key="contextsystemprompt.id", primary_key=True)
+
+class UserServerAnalysis(SQLModel, table=True):
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    serverobjectaianalysis_id: str = Field(foreign_key="serverobjectaianalysis.id", primary_key=True)
