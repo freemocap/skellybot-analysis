@@ -130,10 +130,14 @@ async def get_server_prompt(session: Session,
 
 
 async def get_channel_threads(channel: discord.TextChannel) -> list[discord.Thread]:
-    channel_threads = channel.threads
-    # get archived (i.e. 'timed out'/'inactive') threads
-    async for thread in channel.archived_threads(limit=None):
-        channel_threads.append(thread)
+    try:
+        channel_threads = channel.threads
+        # get archived (i.e. 'timed out'/'inactive') threads
+        async for thread in channel.archived_threads(limit=None):
+            channel_threads.append(thread)
+    except discord.Forbidden as e:
+        logger.warning(f"Cannot access threads for channel {channel.name} (ID: {channel.id})")
+        return []
     return channel_threads
 
 

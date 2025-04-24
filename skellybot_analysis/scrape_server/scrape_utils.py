@@ -33,9 +33,12 @@ async def get_pinned_message_contents(channel: discord.TextChannel):
 
 async def get_prompts_from_channel(channel: discord.TextChannel, prompt_tag_emoji: str | None = None) -> list[str]:
     prompt_messages = []
-    if hasattr(channel,"topic") and channel.topic:
-        prompt_messages.append(channel.topic)
-    if prompt_tag_emoji is not None:
-        prompt_messages.extend(await get_reaction_tagged_messages(channel=channel, target_emoji=prompt_tag_emoji))
-    prompt_messages.extend(await get_pinned_message_contents(channel=channel))
+    try:
+        if hasattr(channel,"topic") and channel.topic:
+            prompt_messages.append(channel.topic)
+        if prompt_tag_emoji is not None:
+            prompt_messages.extend(await get_reaction_tagged_messages(channel=channel, target_emoji=prompt_tag_emoji))
+        prompt_messages.extend(await get_pinned_message_contents(channel=channel))
+    except discord.Forbidden:
+        logger.warning(f"Permission denied to access prompt messages in channel: {channel.name}")
     return prompt_messages
