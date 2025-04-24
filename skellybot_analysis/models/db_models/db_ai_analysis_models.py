@@ -75,12 +75,13 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
     context_route_names: str = Field(index=True)  # `server_name`/`category_name`/`channel_name`/`thread_name`
 
     server_id: int = Field(index=True)
-    category_id: Optional[int] = Field(default=None, index=True)
-    channel_id: Optional[int] = Field(default=None,  index=True)
-    thread_id: Optional[int] = Field(default=None,   index=True)
     server_name: str
+
+    category_id: Optional[int] = Field(default=None, index=True)
     category_name: Optional[str] = Field(default=None)
+    channel_id: Optional[int] = Field(default=None,  index=True)
     channel_name: Optional[str] = Field(default=None)
+    thread_id: Optional[int] = Field(default=None,   index=True)
     thread_name: Optional[str] = Field(default=None)
 
     base_text: str = Field(description="The text this analysis is based on", sa_column=Column(Text))
@@ -99,6 +100,9 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
         back_populates="server_analyses",
         link_model=ServerAnalysisTopicArea,
     )
+
+
+    # Relationships
     def save_as_markdown(self, base_folder: str):
         save_path = Path(base_folder) / self.context_route.safe_context_route
         save_path.mkdir(parents=True, exist_ok=True)

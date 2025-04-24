@@ -1,20 +1,30 @@
 import logging
-from pathlib import Path
 
 import numpy as np
+from pydantic import BaseModel
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
 from skellybot_analysis.models.xyz_data_model import XYZData
 
-
 logger = logging.getLogger(__name__)
 
 
-async def create_embedding_and_tsne_clusters(texts_to_embed: list[str]):
-    logger.info(f"Creating embeddings and t-SNE clusters for {len(texts_to_embed)} texts.")
+class EmbeddingAndTsneXYZ(BaseModel):
+    embedding: list[float]
+    tsne_xyz: XYZData
 
-    tsne = TSNE(n_components=3, random_state=2, perplexity=5)
+
+async def create_embedding_and_tsne_clusters(texts_to_embed: list[str],
+                                             n_components: int = 3,
+                                             random_state: int = 2,
+                                             perplexity: int = 5) -> list[EmbeddingAndTsneXYZ]:
+    logger.info(f"Creating embeddings and t-SNE clusters for {len(texts_to_embed)} texts.")
+    if perplexity >= len(texts_to_embed):
+        logger.error(f"Perplexity {perplexity} is greater than the number of texts {len(texts_to_embed)}. "
+                     f"Setting perplexity to {len(texts_to_embed) - 1}.")
+        perplexity = len(texts_to_embed) - 1
+    tsne = TSNE(n_components=n_components, random_state=random_state, perplexity=perplexity)
 
     embedding_vectors = await calculate_ollama_embeddings(texts_to_embed)
 
@@ -24,14 +34,11 @@ async def create_embedding_and_tsne_clusters(texts_to_embed: list[str]):
     embeddings_npy = np.array(embedding_vectors)
 
     embeddings_3d = tsne.fit_transform(embeddings_npy)
-    tsne_xyzs = []
+    results = []
     for index, data_object in enumerate(texts_to_embed):
-        tsne_xyzs.append(XYZData.from_vector(embeddings_3d[index, :]))
+        results.append(EmbeddingAndTsneXYZ(
+            embedding=embedding_vectors[index],
+            tsne_xyz=XYZData.from_vector(embeddings_3d[index, :])
+        ))
 
-
-if __name__ == "__main__":
-    import asyncio
-    from skellybot_analysis.utilities.get_most_recent_scrape_data import get_server_data
-    _server_data, server_data_json_path = get_server_data()
-    asyncio.run(create_embedding_and_tsne_clusters(_server_data))
-    Path(server_data_json_path).write_text(_server_data.model_dump_json(indent=2), encoding="utf-8")
+    return results

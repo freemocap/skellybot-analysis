@@ -1,21 +1,27 @@
 import asyncio
 import logging
+import pickle
+from asyncio import Task
 
+from pydantic import BaseModel
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
 
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
-from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
+from skellybot_analysis.ai.embeddings_stuff.calculate_embeddings_and_tsne import create_embedding_and_tsne_clusters, \
+    EmbeddingAndTsneXYZ
 from skellybot_analysis.models.context_route_model import ContextRoute
+from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
+from skellybot_analysis.models.db_models.db_server_models import Thread, ContextSystemPrompt, Message
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
-from skellybot_analysis.models.db_models.db_server_models import  Thread, ContextSystemPrompt, Message
 from skellybot_analysis.utilities.initialize_database import initialize_database_engine
-from pydantic import  BaseModel
+
 MIN_MESSAGE_LIMIT = 4
 
 logger = logging.getLogger(__name__)
+
 
 class AnalyzedThreadResult(BaseModel):
     analysis_result: TextAnalysisPromptModel
@@ -25,26 +31,24 @@ class AnalyzedThreadResult(BaseModel):
     thread_text: str
     analysis_prompt: str
 
+
 async def db_analyze_server_threads(db_path: str | None = None) -> None:
     """Run AI analysis on server data stored in the SQLite database"""
     db_engine: Engine = initialize_database_engine(db_path=db_path)
-    analysis_tasks = []
-    context_routes = []
-    thread_ids = []
+    analysis_tasks: list[Task[AnalyzedThreadResult]] = []
     with Session(db_engine) as session:
-
         # Run analysis on threads
         threads = session.exec(select(Thread)).all()
         logger.info(f"Analyzing {len(threads)} threads from server: {threads[0].server_name} ")
         for thread in threads:
             analysis_tasks.append(asyncio.create_task(analyze_thread(session=session,
                                                                      context_route=ContextRoute(
-                                                                            server_id=thread.server_id,
-                                                                            server_name=thread.server_name,
-                                                                            category_id=thread.category_id,
-                                                                            category_name=thread.category_name,
-                                                                            channel_id=thread.channel_id,
-                                                                            channel_name=thread.channel_name,
+                                                                         server_id=thread.server_id,
+                                                                         server_name=thread.server_name,
+                                                                         category_id=thread.category_id,
+                                                                         category_name=thread.category_name,
+                                                                         channel_id=thread.channel_id,
+                                                                         channel_name=thread.channel_name,
                                                                      ),
                                                                      thread_id=thread.id,
                                                                      thread_name=thread.name,
@@ -53,9 +57,20 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
 
         logger.info(f"Starting AI analysis tasks on {len(analysis_tasks)} objects.")
         results = await asyncio.gather(*analysis_tasks)
-        store_analysis_results(analysis_results=results,
-                               session=session)
+        logger.info(f"AI analysis tasks completed for {len(results)} objects.")
+
+        thread_analyses = store_analysis_results(analysis_results=results,
+                                                 session=session)
+
         logger.info("AI analysis completed!")
+
+
+async def add_embeddings_and_tsne_xyz(thread_analyses: list[ServerObjectAiAnalysis]) -> list[EmbeddingAndTsneXYZ]:
+    logger.info(f"Adding embeddings and t-SNE XYZ coordinates to {len(thread_analyses)} analyses....")
+    texts = [analysis.full_text for analysis in thread_analyses]
+    embeddings_and_tsnes = await create_embedding_and_tsne_clusters(texts)
+    logger.info(f"Embeddings and t-SNE XYZ calculation completed for {len(thread_analyses)} analyses.")
+    return embeddings_and_tsnes
 
 
 def get_context_system_prompt(session: Session, context_route: ContextRoute) -> str:
@@ -74,7 +89,7 @@ async def analyze_thread(session: Session,
                          context_route: ContextRoute,
                          thread_id: int,
                          thread_name: str,
-                         ) ->AnalyzedThreadResult | None:
+                         ) -> AnalyzedThreadResult | None:
     """
     Run AI analysis on a server object (server, category, or channel)
     and store the results in the ServerObjectAiAnalysis table.
@@ -134,15 +149,15 @@ async def analyze_thread(session: Session,
 
 
 def store_analysis_results(analysis_results: list[AnalyzedThreadResult],
-                           session: Session) -> None:
+                           session: Session) -> list[ServerObjectAiAnalysis]:
     """Store the analysis results in the database"""
-    stored = 0
+    logger.info("Storing analysis results in the database...")
+    thread_analyses: list[ServerObjectAiAnalysis] = []
     try:
         for result in analysis_results:
-
             # Store analysis in database
             route = result.context_route
-            ServerObjectAiAnalysis.get_create_or_update(
+            thread_analyses.append(ServerObjectAiAnalysis.get_create_or_update(
                 db_id=hash((route.id, result.thread_id)),
                 session=session,
                 flush=True,
@@ -162,25 +177,26 @@ def store_analysis_results(analysis_results: list[AnalyzedThreadResult],
                 extremely_short_summary=result.analysis_result.extremely_short_summary,
                 very_short_summary=result.analysis_result.very_short_summary,
                 short_summary=result.analysis_result.short_summary,
-                highlights=result.analysis_result.highlights if isinstance(result.analysis_result.highlights, str) else "\n".join(
+                highlights=result.analysis_result.highlights if isinstance(result.analysis_result.highlights,
+                                                                           str) else "\n".join(
                     result.analysis_result.highlights),
                 detailed_summary=result.analysis_result.detailed_summary,
                 topic_areas=[TopicArea.from_prompt_model(topic) for topic in result.analysis_result.topic_areas]
-            )
-            session.commit()
-            stored += 1
+            ))
+        session.commit()
 
-        logger.info(f"Analysis results stored successfully - stored {stored} results out of {len(analysis_results)}.")
+        logger.info(
+            f"Analysis results stored successfully - stored {len(thread_analyses)} results out of {len(analysis_results)}.")
+        return thread_analyses
     except Exception as e:
         logger.error(f"Error storing analysis results: {e}")
         session.rollback()
-
-
+        raise
 
 
 def get_thread_text(session: Session, thread_id: int) -> str:
     # Get all messages in the thread
-    thread:Thread = session.exec(select(Thread).where(Thread.id == thread_id)).first()
+    thread: Thread = session.exec(select(Thread).where(Thread.id == thread_id)).first()
 
     # Format messages as text
     thread_texts = []
