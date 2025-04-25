@@ -3,9 +3,9 @@ from typing import List, Optional, Dict, Any
 from pydantic import Field, BaseModel, computed_field
 from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfile
 
-from skellybot_analysis.models.db_models.data_object_model import DataObjectModel
-from skellybot_analysis.models.db_models.server_data.server_data_object_types_enum import ServerDataObjectTypes
-from skellybot_analysis.models.db_models.tag_models import TagModel
+from skellybot_analysis.db.db_models import DataObjectModel
+from skellybot_analysis.db.db_models import ServerDataObjectTypes
+from skellybot_analysis.db.db_models import TagModel
 
 
 class DescriptiveStatistics(BaseModel):

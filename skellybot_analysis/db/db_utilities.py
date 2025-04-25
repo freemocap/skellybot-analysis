@@ -2,13 +2,12 @@ from contextlib import contextmanager
 from typing import Generator
 
 import pandas as pd
-from sqlalchemy import Engine, create_engine
-from sqlmodel import SQLModel
-from sqlmodel import Session, select
-from sqlalchemy.orm import joinedload
 
-from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
-from skellybot_analysis.models.db_models.db_server_models import User, Thread, Message
+from sqlalchemy import Engine, create_engine
+
+from sqlmodel import SQLModel
+from sqlmodel import Session
+
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 
@@ -40,13 +39,4 @@ def get_db_session(db_path: str | None = None) -> Generator[Session, None, None]
         raise
     finally:
         session.close()
-
-
-def get_thread_ai_analyses(session: Session | None = None) -> pd.DataFrame:
-    """
-    Get all thread AI analyses from the database.
-
-    Returns:
-        list
-    """
 

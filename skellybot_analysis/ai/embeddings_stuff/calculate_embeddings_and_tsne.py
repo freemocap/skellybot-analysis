@@ -5,15 +5,14 @@ from pydantic import BaseModel
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
-from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
 from skellybot_analysis.models.xyz_data_model import XYZData
 
 logger = logging.getLogger(__name__)
 
-
+PerplexityInt = int # Type alias for perplexity integer parameter for t-SNE
 class EmbeddingAndTsneXYZ(BaseModel):
     embedding: list[float]
-    tsne_xyz: XYZData
+    tsne_xyz:XYZData
 
 
 async def create_embedding_and_tsne_clusters(texts_to_embed: list[str],
@@ -25,7 +24,6 @@ async def create_embedding_and_tsne_clusters(texts_to_embed: list[str],
         logger.error(f"Perplexity {perplexity} is greater than the number of texts {len(texts_to_embed)}. "
                      f"Setting perplexity to {len(texts_to_embed) - 1}.")
         perplexity = len(texts_to_embed) - 1
-    tsne = TSNE(n_components=n_components, random_state=random_state, perplexity=perplexity)
 
     embedding_vectors = await calculate_ollama_embeddings(texts_to_embed)
 
@@ -34,6 +32,7 @@ async def create_embedding_and_tsne_clusters(texts_to_embed: list[str],
         raise ValueError(f"No embeddings found!. Skipping t-SNE.")
     embeddings_npy = np.array(embedding_vectors)
 
+    tsne = TSNE(n_components=n_components, random_state=random_state, perplexity=perplexity)
     embeddings_3d = tsne.fit_transform(embeddings_npy)
     results = []
     for index, data_object in enumerate(texts_to_embed):

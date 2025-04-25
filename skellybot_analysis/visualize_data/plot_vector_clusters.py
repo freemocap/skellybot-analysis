@@ -7,9 +7,7 @@ import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
 
-from skellybot_analysis.ai.embeddings_stuff.calculate_embeddings_and_tsne import  EmbeddingAndTsneXYZ, create_embedding_and_tsne_clusters
-from skellybot_analysis.db.db_utilities import get_db_session
-from skellybot_analysis.models.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
+from skellybot_analysis.analysis_scripts.save_to_db_to_csv import save_db_as_dataframes
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 logger = logging.getLogger(__name__)
@@ -120,43 +118,6 @@ def create_dash_app(df: pd.DataFrame,
     return app
 
 
-async def create_dataframes_from_analyses(db_path:str|None=None) -> pd.DataFrame:
-    """
-    Create dataframes from thread analyses and their embeddings/TSNE coordinates
-
-    Args:
-        thread_analyses_df: DataFrame of ServerObjectAiAnalysis objects
-
-    Returns:
-        DataFrame with thread information and TSNE coordinates
-    """
-    with get_db_session(db_path=db_path) as session:
-        thread_analyses = session.query(ServerObjectAiAnalysis).all()
-        logger.info(f"Creating dataframes from {len(thread_analyses)} analyses")
-        text_to_embed = [analysis.full_text for analysis in thread_analyses]
-        # Calculate embeddings and TSNE coordinates
-        embeddings_and_tsnes: list[EmbeddingAndTsneXYZ] = await create_embedding_and_tsne_clusters(text_to_embed,
-                                                                                                   perplexity=10)
-
-        # Create main dataframe with thread information and TSNE coordinates
-        data = []
-        for i, (analysis, embedding_tsne) in enumerate(zip(thread_analyses, embeddings_and_tsnes)):
-            data.append({
-                'thread_id': analysis.thread_id,
-                'thread_name': analysis.thread_name,
-                'server_name': analysis.server_name,
-                'category_name': analysis.category_name,
-                'channel_name': analysis.channel_name,
-                'text_contents': analysis.full_text,
-                'title': analysis.title,
-                'x': embedding_tsne.tsne_xyz.x,
-                'y': embedding_tsne.tsne_xyz.y,
-                'z': embedding_tsne.tsne_xyz.z,
-            })
-
-    df = pd.DataFrame(data)
-    logger.info(f"Created dataframe with {len(df)} rows")
-    return df
 
 
 if __name__ == "__main__":
@@ -165,7 +126,7 @@ if __name__ == "__main__":
 
 
     # Create visualization dataframe
-    _df = asyncio.run(create_dataframes_from_analyses(db_path=_db_path))
+    _df = asyncio.run(save_db_as_dataframes(db_path=_db_path))
 
     # Setup output paths
     outer_output_path = Path(_db_path).parent

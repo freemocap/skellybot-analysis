@@ -1,6 +1,6 @@
 import asyncio
 
-from skellybot_analysis.models.db_models.graph_data_models import GraphData
+from skellybot_analysis.db.db_models import GraphData
 from skellybot_analysis.utilities.json_datatime_encoder import JSONDateTimeEncoder
 
 if __name__ == "__main__":

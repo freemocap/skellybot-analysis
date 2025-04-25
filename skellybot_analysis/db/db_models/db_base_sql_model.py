@@ -62,6 +62,6 @@ class BaseSQLModel(SQLModel):
             session.add(instance)
             if flush:
                 session.flush()
-                session.commit()
+            session.commit()
 
         return instance

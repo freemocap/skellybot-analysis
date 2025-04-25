@@ -46,12 +46,12 @@ if __name__ == "__main__":
     outer_user_input = "The quick brown fox jumps over the lazy dog. Foxes are mammals. The mammallian nervous system is includes the basal ganglia, the cerebellum, and the cerebral cortex, among other structures. Fox fur is often red or orange. Foxes are omnivores. "
 
     results = []
-    response = asyncio.run(make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
+    _response = asyncio.run(make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
                                                             system_prompt=_system_prompt,
                                                             user_input=outer_user_input,
                                                             prompt_model=TextAnalysisPromptModel,
                                                             llm_model=DEFAULT_LLM,
                                                             results_list=results
                                                             ))
-    print(response)
+    print(_response)
     print(f"len(results)={len(results)}")

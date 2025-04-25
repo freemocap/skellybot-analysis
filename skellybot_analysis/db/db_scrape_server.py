@@ -5,8 +5,8 @@ from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.models.db_models.db_server_models import Thread, Message, UserThread, ContextSystemPrompt, User
-from skellybot_analysis.scrape_server.scrape_utils import update_latest_message_datetime, get_prompts_from_channel, \
+from skellybot_analysis.db.db_models import Thread, Message, UserThread, ContextSystemPrompt, User
+from skellybot_analysis.db.scrape_server import update_latest_message_datetime, get_prompts_from_channel, \
     MINIMUM_THREAD_MESSAGE_COUNT
 
 logger = logging.getLogger(__name__)
@@ -23,17 +23,7 @@ async def scrape_server(target_server: discord.Guild, db_engine: Engine) -> None
 
     with Session(db_engine) as session:
         try:
-            server_prompt = await get_server_prompt(session=session,
-                                                    target_server=target_server,
-                                                    text_channels=text_channels)
-            category_prompt_messages = await get_category_prompts(server_prompt=server_prompt,
-                                                                  session=session,
-                                                                  target_server=target_server,
-                                                                  text_channels=text_channels)
-            _ = await get_channel_prompts(session=session,
-                                          text_channels=text_channels,
-                                          server_prompt=server_prompt,
-                                          category_prompt_messages=category_prompt_messages)
+            await grab_context_prompts(session, target_server, text_channels)
 
             for thread in all_discord_threads:
                 await db_process_thread(session=session,
@@ -49,6 +39,22 @@ async def scrape_server(target_server: discord.Guild, db_engine: Engine) -> None
         # Final commit to ensure everything is saved
         session.commit()
         logger.info("✅ All data has been committed to the database")
+
+
+async def grab_context_prompts(session:Session,
+                               target_server: discord.Guild,
+                               text_channels: list[discord.TextChannel]) -> None:
+    server_prompt = await get_server_prompt(session=session,
+                                            target_server=target_server,
+                                            text_channels=text_channels)
+    category_prompt_messages = await get_category_prompts(server_prompt=server_prompt,
+                                                          session=session,
+                                                          target_server=target_server,
+                                                          text_channels=text_channels)
+    _ = await get_channel_prompts(session=session,
+                                  text_channels=text_channels,
+                                  server_prompt=server_prompt,
+                                  category_prompt_messages=category_prompt_messages)
 
 
 async def get_channel_prompts(session: Session,
@@ -155,10 +161,12 @@ async def db_process_thread(session: Session,
     if len(thread_messages) < MINIMUM_THREAD_MESSAGE_COUNT:
         logger.info(f"Thread {thread.name} (ID: {thread.id}) has fewer than {MINIMUM_THREAD_MESSAGE_COUNT} messages.")
         return None
+
     User.get_create_or_update(session=session,
                               db_id=thread.owner.id,
                               name=thread.owner.name,
                               is_bot=thread.owner.bot)
+
     db_thread = Thread.get_create_or_update(session=session,
                                             db_id=thread.id,
                                             name=thread.name,
@@ -179,6 +187,7 @@ async def db_process_thread(session: Session,
         if discord_message.content.startswith('~'):
             continue
         update_latest_message_datetime(discord_message.created_at)
+
         User.get_create_or_update(session=session,
                                   db_id=discord_message.author.id,
                                   name=discord_message.author.name,

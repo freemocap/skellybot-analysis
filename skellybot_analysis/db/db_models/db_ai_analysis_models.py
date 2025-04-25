@@ -5,11 +5,11 @@ from typing import Optional
 from sqlalchemy import Column, Text, JSON
 from sqlmodel import Relationship, Field
 
-from skellybot_analysis.models.db_models.db_base_sql_model import BaseSQLModel
+from skellybot_analysis.db.db_models.db_base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.models.db_models.db_association_tables import ServerAnalysisTopicArea, UserProfileTopicArea
+from skellybot_analysis.db.db_models.db_association_tables import ServerAnalysisTopicArea, UserProfileTopicArea
 from skellybot_analysis.models.prompt_models import TopicAreaPromptModel
-from skellybot_analysis.models.db_models.db_server_models import User
+from skellybot_analysis.db.db_models.db_server_models import User
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 

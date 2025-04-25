@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 
 import aiohttp
@@ -6,7 +5,7 @@ import discord
 from sqlalchemy import Column, Index, JSON, Text
 from sqlmodel import SQLModel, Field, Relationship, Session
 
-from skellybot_analysis.models.db_models.db_base_sql_model import BaseSQLModel
+from skellybot_analysis.db.db_models.db_base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route_model import ContextRoute
 
 
@@ -184,12 +183,6 @@ class ContextSystemPrompt(BaseSQLModel, table=True):
     channel_id: Optional[int] = Field(default=None, index=True)
     channel_name: Optional[str] = Field(default=None, index=True)
 
-    created_at: datetime = Field(default_factory=datetime.now)
-
-    class Config:
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
 
     @classmethod
     def from_context(cls,

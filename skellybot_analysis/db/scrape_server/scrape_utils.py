@@ -2,7 +2,7 @@ import logging
 
 import discord
 
-from skellybot_analysis.models.db_models.db_server_models import Message
+from skellybot_analysis.db.db_models import Message
 
 logger = logging.getLogger(__name__)
 
