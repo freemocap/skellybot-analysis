@@ -75,7 +75,7 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
     context_route_ids: str = Field(index=True)  # `server_id`/`category_id`/`channel_id`/`thread_id`
     context_route_names: str = Field(index=True)  # `server_name`/`category_name`/`channel_name`/`thread_name`
 
-    server_id: int = Field(index=True)
+    server_id: str = Field(index=True)
     server_name: str
 
     category_id: Optional[int] = Field(default=None, index=True)
@@ -215,7 +215,7 @@ __
 
 class UserProfile(BaseSQLModel, table=True):
     """Represents a user's profile with interests and recommendations."""
-    user_id: int = Field(foreign_key="user.id")
+    user_id: str = Field(foreign_key="user.id")
     broad_summary: str = Field(sa_column=Column(Text),
                                description="An overall summary of the user's interactions, interests, and background. Should include everything we know or can reliably infer about the user.")
     terse_summary: str = Field(

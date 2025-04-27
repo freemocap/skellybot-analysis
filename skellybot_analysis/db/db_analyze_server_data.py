@@ -23,9 +23,9 @@ logger = logging.getLogger(__name__)
 class AnalyzedThreadResult(BaseModel):
     analysis_result: TextAnalysisPromptModel
     context_route: ContextRoute
-    thread_id: int
+    thread_id: str
     thread_name: str
-    thread_owner_id: int
+    thread_owner_id: str
     thread_text: str
     analysis_prompt: str
 
@@ -49,7 +49,7 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
                                                        channel_id=thread.channel_id,
                                                        channel_name=thread.channel_name,
                                                    ),
-                                                   thread_id=thread.id,
+                                                   thread_id=str(thread.id),
                                                    thread_name=thread.name,
                                                    thread_owner_id=thread.owner_id,
                                                    )
@@ -80,9 +80,9 @@ def get_context_system_prompt(session: Session, context_route: ContextRoute) -> 
 
 async def analyze_thread(session: Session,
                          context_route: ContextRoute,
-                         thread_id: int,
+                         thread_id: str,
                          thread_name: str,
-                         thread_owner_id: int,
+                         thread_owner_id: str,
                          ) -> AnalyzedThreadResult | None:
     """
     Run AI analysis on a server object (server, category, or channel)
@@ -189,7 +189,7 @@ def store_analysis_results(analysis_results: list[AnalyzedThreadResult],
         raise
 
 
-def get_thread_text(session: Session, thread_id: int) -> str:
+def get_thread_text(session: Session, thread_id: str) -> str:
     # Get all messages in the thread
     thread: Thread = session.exec(select(Thread).where(Thread.id == thread_id)).first()
 

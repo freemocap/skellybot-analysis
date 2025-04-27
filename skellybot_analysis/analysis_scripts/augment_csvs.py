@@ -61,7 +61,7 @@ for index, row in human_messages_df.iterrows():
     if bot_response.empty:
         print(f"Human message {row['id']} has no bot response!!")
         # raise ValueError(f"Human message {row['id']} has no bot response")
-        raise ValueError(f"Human message {row['id']} has no bot response") if bot_response.empty else None
+        # raise ValueError(f"Human message {row['id']} has no bot response") if bot_response.empty else None
 
 
 # merge the bot response that are split across mutliple messages by finding the bot messages that share a parent message, sorting by timestamp, and then concatenating the content
@@ -103,8 +103,8 @@ cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != skellybo
 cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != prof_id] # remove prof messages from cumulative counts
 
 # %% Calculate embeddings and projections
-from add_embedding_xyz import calculate_embeddings_and_projections
-embeddings_df = asyncio.run(calculate_embeddings_and_projections(messages_df=messages_df, thread_analyses_df=analyses_df))
+# from add_embedding_xyz import calculate_embeddings_and_projections
+# embeddings_df = asyncio.run(calculate_embeddings_and_projections(messages_df=messages_df, thread_analyses_df=analyses_df))
 
 # %% save dataframes to csvs (add `_augmented` to the filename)
 # Save the augmented DataFrames to new CSV files
@@ -113,7 +113,7 @@ messages_df.to_csv(messages_path.with_stem(f"{base_name}_messages_augmented"), i
 human_messages_df.to_csv(messages_path.with_stem(f"{base_name}_human_messages"), index=False)
 threads_df.to_csv(threads_path.with_stem(f"{base_name}_threads_augmented"), index=False)
 cumulative_counts.to_csv(analyses_path.with_stem(f"{base_name}_cumulative_counts"), index=False)
-embeddings_df.to_csv(analyses_path.with_stem(f"{base_name}_embeddings"), index=False)
+# embeddings_df.to_csv(analyses_path.with_stem(f"{base_name}_embeddings"), index=False)
 
 
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_server_scraper(discord_client: discord.Client,
-                             target_server_id: int,
+                             target_server_id: str,
                              output_directory: str
                              ):
     target_server = discord.utils.get(discord_client.guilds, id=int(target_server_id))

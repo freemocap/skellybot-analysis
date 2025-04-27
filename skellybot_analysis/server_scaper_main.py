@@ -5,6 +5,7 @@ from discord.ext import commands
 
 from skellybot_analysis.db.db_analyze_server_data import db_analyze_server_threads
 from skellybot_analysis.db.db_save_to_markdown_directory import save_server_db_as_markdown_directory
+from skellybot_analysis.db.save_db_to_csv import save_db_as_dataframes
 from skellybot_analysis.db.scrape_server.run_server_scraper import run_server_scraper
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
 from skellybot_analysis.utilities.load_env_variables import DISCORD_DEV_BOT_ID, DISCORD_DEV_BOT_TOKEN, OUTPUT_DIRECTORY, \
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     import asyncio
     asyncio.run(db_analyze_server_threads())
     # asyncio.run(db_extract_user_profiles(server_id=TARGET_SERVER_ID))
-
+    save_db_as_dataframes()
     save_server_db_as_markdown_directory()
     print("Done!")
 

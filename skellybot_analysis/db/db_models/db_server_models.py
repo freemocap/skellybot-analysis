@@ -11,13 +11,13 @@ from skellybot_analysis.models.context_route_model import ContextRoute
 
 class UserThread(SQLModel, table=True):
     """Association table for the many-to-many relationship between users and threads."""
-    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    user_id: str = Field(foreign_key="user.id", primary_key=True)
     user_name: Optional[str] = Field(index=True)
-    thread_id: int = Field(foreign_key="thread.id", primary_key=True)
+    thread_id: str = Field(foreign_key="thread.id", primary_key=True)
     thread_name: Optional[str] = Field(index=True)
 
     @classmethod
-    def get_create_or_update(cls, session: Session, user_id: int, thread_id: int, user_name: str | None = None,
+    def get_create_or_update(cls, session: Session, user_id: str, thread_id: str, user_name: str | None = None,
                              thread_name: str | None = None) -> "UserThread":
         """
         Get or create a UserThread instance.
@@ -47,13 +47,13 @@ class UserThread(SQLModel, table=True):
 
 class Thread(BaseSQLModel, table=True):
     """Represents a thread in a  channel."""
-    server_id: int = Field(index=True)
+    server_id: str = Field(index=True)
     server_name: str = Field(index=True)
     category_id: Optional[int] = Field(index=True, default=None)
     category_name: Optional[str] = Field(index=True, default=None)
-    channel_id: int = Field(index=True)
+    channel_id: str = Field(index=True)
     channel_name: str = Field(index=True)
-    owner_id: int = Field(foreign_key="user.id", index=True)
+    owner_id: str = Field(foreign_key="user.id", index=True)
     # owner_name: str = Field(index=True)
     # Relationships
     messages: list["Message"] = Relationship(
@@ -78,9 +78,9 @@ class Message(BaseSQLModel, table=True):
     reactions: list[str] = Field(default_factory=list, sa_column=Column(JSON))
 
     # Foreign keys
-    author_id: int = Field(foreign_key="user.id", index=True)
+    author_id: str = Field(foreign_key="user.id", index=True)
     parent_message_id: Optional[int] = Field(
-        default=None,
+        default=-1,
         foreign_key="message.id",
     )
     thread_id: Optional[int] = Field(default=None, index=True, foreign_key="thread.id")
@@ -107,6 +107,7 @@ class Message(BaseSQLModel, table=True):
                              discord_message: discord.Message,
                              session: Session | None = None, ):
         attachments = await cls.extract_attachments(discord_message.attachments)
+
         return cls.get_create_or_update(session=session,
                                         db_id=discord_message.id,
                                         name=f"message-{discord_message.id}",
@@ -174,7 +175,7 @@ class ContextSystemPrompt(BaseSQLModel, table=True):
 
     context_route_ids: str = Field(index=True)  # `server_id`/`category_id`/`channel_id`
     context_route_names: str = Field(index=True)  # `server_name`/`category_name`/`channel_name`
-    server_id: int = Field(index=True)
+    server_id: str = Field(index=True)
     server_name: str = Field(index=True)
 
     category_id: Optional[int] = Field(default=None, index=True)
