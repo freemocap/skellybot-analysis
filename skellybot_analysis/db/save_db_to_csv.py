@@ -2,12 +2,17 @@ import logging
 from pathlib import Path
 
 import pandas as pd
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 
 from skellybot_analysis import configure_logging
 from skellybot_analysis.db.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
 from skellybot_analysis.db.db_models.db_server_models import Thread, User, Message
 from skellybot_analysis.db.db_utilities import get_db_session
 from skellybot_analysis.utilities.load_env_variables import DISCORD_BOT_ID, PROF_USER_ID
+
 
 logger = logging.getLogger(__name__)
 
@@ -79,11 +84,11 @@ async def save_db_as_dataframes(db_path: str | None=None) -> pd.DataFrame:
         # de-id users
         users_df.drop(columns=['name'], inplace=True)
 
-        # Replace IDs with last 6 digits for anonymization
-        anonymize_id(users_df, 'id')
-        anonymize_id(threads_df, 'owner_id')
-        anonymize_id(messages_df, 'author_id')
-        anonymize_id(analyses_df, 'thread_owner_id')
+        # # Replace IDs with last 6 digits for anonymization
+        # anonymize_id(users_df, 'id')
+        # anonymize_id(threads_df, 'owner_id')
+        # anonymize_id(messages_df, 'author_id')
+        # anonymize_id(analyses_df, 'thread_owner_id')
 
         # deidentify_message_content(message_df)
 
@@ -100,7 +105,7 @@ async def save_db_as_dataframes(db_path: str | None=None) -> pd.DataFrame:
         messages_df.to_csv(message_path, index=False)
 
 
-        logger.info(f"Dataframes saved to: \n {Path(db_path)/f'_{db_name}_analyses.csv'}, \n {Path(db_path)/f'_{db_name}_threads.csv'}, \n {Path(db_path)/f'_{db_name}_users.csv'}, \n {Path(db_path)/f'_{db_name}_messages.csv'}")
+        logger.info(f"Dataframes saved to: \n {analysis_path}, \n {thread_path}, \n {user_path}, \n {message_path}")
 
 
 if __name__ == "__main__":

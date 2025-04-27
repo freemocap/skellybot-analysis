@@ -61,7 +61,6 @@ bot_messages_df = messages_df[messages_df['is_bot'] == True].copy()
 for index, row in human_messages_df.iterrows():
     # get the bot message that is a response to this human message
     bot_response = bot_messages_df[bot_messages_df['parent_message_id'] == row['id']]
-    # if there is no bot response, drop the human message
     if bot_response.empty:
         print(f"Human message {row['id']} has no bot response!!")
 
@@ -73,20 +72,21 @@ human_messages_df['bot_response'] = human_messages_df['id'].map(
 human_messages_df['message_and_response'] = human_messages_df['content'] + '\n\n' + human_messages_df['bot_response']
 
 # %% Count total messages per user
-messages_by_user = messages_df.groupby('author_id') 
+messages_by_user = human_messages_df.groupby('author_id') 
 message_counts_by_user = messages_by_user.size().reset_index(name='total_messages_sent')
 users_df = users_df.merge(message_counts_by_user, how='left', left_on='id', right_on='author_id')
+# Remove the now redundant 'author_id' column from users_df
 if 'author_id' in users_df.columns:
     users_df = users_df.drop('author_id', axis=1)
 
 # Count unique threads per user
-thread_counts_by_user = messages_df.groupby('author_id')['thread_id'].nunique().reset_index(name='threads_participated')
+thread_counts_by_user = human_messages_df.groupby('author_id')['thread_id'].nunique().reset_index(name='threads_participated')
 users_df = users_df.merge(thread_counts_by_user, how='left', left_on='id', right_on='author_id')
 if 'author_id' in users_df.columns:
     users_df = users_df.drop('author_id', axis=1)
 
 # Count total words per user
-words_sent_by_user = messages_df.groupby('author_id')['word_count'].sum().reset_index(name='total_words_sent')
+words_sent_by_user = human_messages_df.groupby('author_id')['word_count'].sum().reset_index(name='total_words_sent')
 users_df = users_df.merge(words_sent_by_user, how='left', left_on='id', right_on='author_id')
 if 'author_id' in users_df.columns:
     users_df = users_df.drop('author_id', axis=1)
@@ -98,11 +98,9 @@ users_df['id'].rename('user_id', inplace=True) # rename id to user_id
 
 # %% Calculate running cumulative message count per user
 # Calculate running cumulative count for each user
-cumulative_counts = messages_df[messages_df['is_bot']==False].groupby(['author_id', 'timestamp']).size().groupby(level=0).cumsum().reset_index()
+cumulative_counts = human_messages_df.groupby(['author_id', 'timestamp']).size().groupby(level=0).cumsum().reset_index()
 cumulative_counts.columns = ['author_id', 'timestamp', 'cumulative_message_count']
 
-cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != skellybot_id] # remove bot messages from cumulative counts
-cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != prof_id] # remove prof messages from cumulative counts
 
 # %% Calculate embeddings and projections
 from add_embedding_xyz import calculate_embeddings_and_projections
