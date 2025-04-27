@@ -4,6 +4,7 @@ from typing import Optional
 
 from sqlalchemy import Column, Text, JSON
 from sqlmodel import Relationship, Field
+from pydantic import computed_field
 
 from skellybot_analysis.db.db_models.db_base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route_model import ContextRoute
@@ -45,8 +46,8 @@ class TopicArea(BaseSQLModel, table=True):
         link_model=ServerAnalysisTopicArea  # Change this to use ServerAnalysisTopicArea
     )
 
-    @property
-    def as_string(self):
+    @computed_field
+    def as_string(self) -> str:
         """
         Convert the TopicArea instance to a string representation.
         """
@@ -84,7 +85,7 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
     thread_id: Optional[int] = Field(default=None,   index=True, foreign_key="thread.id")
     thread_name: Optional[str] = Field(default=None)
     thread_owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
-    thread_owner_name: Optional[str] = Field(default=None, foreign_key="user.name")
+    # thread_owner_name: Optional[str] = Field(default=None, foreign_key="user.name")
 
     base_text: str = Field(description="The text this analysis is based on", sa_column=Column(Text))
     analysis_prompt: str = Field(description="The prompt used to generate this analysis (includes base_text)", sa_column=Column(Text))
@@ -127,9 +128,10 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
             channel_name=self.channel_name,
         )
 
-    @property
-    def title(self):
+    @computed_field
+    def title(self) -> str:
         return self.title_slug.replace("-", " ").title()
+
     @property
     def filename(self, extension="md"):
         if not extension.startswith("."):
@@ -174,7 +176,7 @@ class ServerObjectAiAnalysis(BaseSQLModel, table=True):
             bl.append(thing)
         return "\n".join(bl)
 
-    @property
+    @computed_field
     def full_text_no_base_text(self) -> str:
         return self.full_text.split("## Full Content Text")[0]
 

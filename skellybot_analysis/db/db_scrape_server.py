@@ -4,10 +4,10 @@ import discord
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
+from skellybot_analysis.db.db_models.db_server_models import ContextSystemPrompt, Thread, User, Message
+from skellybot_analysis.db.scrape_server.scrape_utils import get_prompts_from_channel, MINIMUM_THREAD_MESSAGE_COUNT, \
+    update_latest_message_datetime
 from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.db.db_models import Thread, Message, UserThread, ContextSystemPrompt, User
-from skellybot_analysis.db.scrape_server import update_latest_message_datetime, get_prompts_from_channel, \
-    MINIMUM_THREAD_MESSAGE_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -201,41 +201,3 @@ async def db_process_thread(session: Session,
         f"✅ Added thread: {db_thread.name} (ID: {db_thread.id}) with {message_count} messages")
 
     return db_thread
-
-
-async def create_user_thread_associations(session: Session, thread: discord.Thread):
-    try:
-        # Get the thread members
-
-        members = await thread.fetch_members()
-        members = set([thread.owner] + members)
-        if len(members) == 0:
-            logger.warning(f"No members found for thread {thread.name} (ID: {thread.id})")
-
-        for member in members:
-            # Get or create the user
-            discord_user = await thread.guild.fetch_member(member.id)
-            user = User.get_create_or_update(session=session,
-                                             db_id=discord_user.id,
-                                             name=discord_user.name,
-                                             is_bot=discord_user.bot,
-                                             )
-
-            # Create the association between user and thread
-            user_thread = UserThread.get_create_or_update(session=session,
-                                                          user_id=user.id,
-                                                          user_name=user.name,
-                                                          thread_id=thread.id,
-                                                          thread_name=thread.name,
-                                                          )
-
-            # Add the association to the session
-            session.add(user_thread)
-            logger.info(
-                f"✅ Added user-thread associations for thread: {thread.name} (ID: {thread.id}) and user: {user.name} (ID: {user.id})")
-        session.commit()
-    except discord.errors.Forbidden:
-        logger.warning(f"Cannot access members for thread {thread.name} (ID: {thread.id})")
-    except Exception as e:
-        logger.error(f"Error getting members for thread {thread.name}: {str(e)}")
-        raise

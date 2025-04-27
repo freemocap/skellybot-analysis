@@ -7,7 +7,7 @@ import plotly.graph_objs as go
 from dash import Dash, dcc, html, Input, Output
 from plotly.io import write_html
 
-from skellybot_analysis.analysis_scripts.save_to_db_to_csv import save_db_as_dataframes
+from skellybot_analysis.analysis_scripts.save_db_to_csv import save_db_as_dataframes
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 logger = logging.getLogger(__name__)

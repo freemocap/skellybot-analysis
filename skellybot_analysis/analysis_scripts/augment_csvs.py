@@ -1,44 +1,34 @@
 # %% Import stuff 
 from pathlib import Path
 import pandas as pd
-import numpy as np
-from datetime import datetime
-import os
+import asyncio
+
 
 # %% Set data folder
 data_folder = "C:/Users/jonma/Sync/skellybot-data/H_M_N_2_5_data"
 base_name = Path(data_folder).stem.replace('_data', '')
+skellybot_id = 1186697433674166293
+prof_id = 362711467104927744
 
-skellybot_id  = 1186697433674166293 # DISCORD_BOT_ID
-prof_id = 362711467104927744 
 # %% create csv paths
-users_path = Path(data_folder) / f"{base_name}_users.csv"
-messages_path = Path(data_folder) / f"{base_name}_messages.csv"
-threads_path = Path(data_folder) / f"{base_name}_threads.csv"
-analyses_path = Path(data_folder) / f"{base_name}_analyses.csv"
+users_path = Path(data_folder) / f"{base_name}_users_raw.csv"
+messages_path = Path(data_folder) / f"{base_name}_messages_raw.csv"
+threads_path = Path(data_folder) / f"{base_name}_threads_raw.csv"
+analyses_path = Path(data_folder) / f"{base_name}_analyses_raw.csv"
 for thing in [users_path, messages_path, threads_path, analyses_path]:
     if not thing.exists():
         raise FileNotFoundError(f"File not found: {thing}")
 
-# %% Load data
+# %% Load/prep data
 users_df = pd.read_csv(users_path)
 messages_df = pd.read_csv(messages_path)
 threads_df = pd.read_csv(threads_path)
 analyses_df = pd.read_csv(analyses_path)
 
-# remove Bot and Prof from Users df
-users_df = users_df[users_df['id'] != skellybot_id]
-users_df = users_df[users_df['id'] != prof_id]
-
-# drop columns that are not needed
-users_df.drop(columns=['created_at'], inplace=True)
-users_df.drop(columns=['is_bot'], inplace=True)
-messages_df.drop(columns=['created_at'], inplace=True)
-threads_df.drop(columns=['created_at'], inplace=True)
-analyses_df.drop(columns=['created_at'], inplace=True)
-
-users_df.drop(columns=['name'], inplace=True) #drop username to partially de-identify users
-
+# Convert timestamp to datetime
+messages_df['timestamp'] = pd.to_datetime(messages_df['timestamp'], format='ISO8601')
+# Sort messages by timestamp
+messages_df = messages_df.sort_values('timestamp')
 # %% Add word count to messages
 def count_words(text):
     if pd.isna(text):
@@ -58,11 +48,29 @@ threads_df['human_word_count'] = threads_df['id'].map(human_word_counts)
 message_counts = messages_df[messages_df['is_bot']==False].groupby('thread_id').size()
 threads_df['message_count'] = threads_df['id'].map(message_counts)
 
-# %% Group messages by user and calculate word, message, and thread counts
-# Create aggregation by owner_id from threads_df
+# %% Create Human message + bot-response df
+human_messages_df = messages_df[messages_df['is_bot'] == False].copy()
+bot_messages_df = messages_df[messages_df['is_bot'] == True].copy()
+
+# make sure that all human messages have a corresponding bot message (i.e. for every human message, there is a bot message that has a parent_message_id that opints to it)
+
+for index, row in human_messages_df.iterrows():
+    # get the bot message that is a response to this human message
+    bot_response = bot_messages_df[bot_messages_df['parent_message_id'] == row['id']]
+    # if there is no bot response, drop the human message
+    if bot_response.empty:
+        print(f"Human message {row['id']} has no bot response!!")
+        # raise ValueError(f"Human message {row['id']} has no bot response")
+        raise ValueError(f"Human message {row['id']} has no bot response") if bot_response.empty else None
 
 
-# Count total messages per user
+# merge the bot response that are split across mutliple messages by finding the bot messages that share a parent message, sorting by timestamp, and then concatenating the content
+human_messages_df['bot_response'] = human_messages_df['id'].map(
+    bot_messages_df.groupby('parent_message_id')['content'].apply(lambda x: '\n\n\n'.join(x))
+)
+
+
+# %% Count total messages per user
 messages_by_user = messages_df.groupby('author_id') 
 message_counts_by_user = messages_by_user.size().reset_index(name='total_messages_sent')
 users_df = users_df.merge(message_counts_by_user, how='left', left_on='id', right_on='author_id')
@@ -85,4 +93,27 @@ if 'author_id' in users_df.columns:
 users_df['id'] = users_df['id'].astype(str).str[-6:].astype(int) # replace user ids with last 6 digits of their id to de-identify users
 users_df['id'].rename('user_id', inplace=True) # rename id to user_id
 
-# %% 
+
+# %% Calculate running cumulative message count per user
+# Calculate running cumulative count for each user
+cumulative_counts = messages_df[messages_df['is_bot']==False].groupby(['author_id', 'timestamp']).size().groupby(level=0).cumsum().reset_index()
+cumulative_counts.columns = ['author_id', 'timestamp', 'cumulative_message_count']
+
+cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != skellybot_id] # remove bot messages from cumulative counts
+cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != prof_id] # remove prof messages from cumulative counts
+
+# %% Calculate embeddings and projections
+from add_embedding_xyz import calculate_embeddings_and_projections
+embeddings_df = asyncio.run(calculate_embeddings_and_projections(messages_df=messages_df, thread_analyses_df=analyses_df))
+
+# %% save dataframes to csvs (add `_augmented` to the filename)
+# Save the augmented DataFrames to new CSV files
+users_df.to_csv(users_path.with_stem(f"{base_name}_users_augmented"), index=False)
+messages_df.to_csv(messages_path.with_stem(f"{base_name}_messages_augmented"), index=False)
+human_messages_df.to_csv(messages_path.with_stem(f"{base_name}_human_messages"), index=False)
+threads_df.to_csv(threads_path.with_stem(f"{base_name}_threads_augmented"), index=False)
+cumulative_counts.to_csv(analyses_path.with_stem(f"{base_name}_cumulative_counts"), index=False)
+embeddings_df.to_csv(analyses_path.with_stem(f"{base_name}_embeddings"), index=False)
+
+
+

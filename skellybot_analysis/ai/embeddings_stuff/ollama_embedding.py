@@ -10,6 +10,8 @@ async def calculate_ollama_embeddings(texts_to_embed: List[str]) -> List[List[fl
     embeddings = []
 
     for n, text in enumerate(texts_to_embed):
+        if not isinstance(text, str):
+            raise ValueError(f"Expected text to be a string, but got {type(text)}")
         embeddings.append(await ollama_client.embed(model=DEFAULT_OLLAMA_EMBEDDINGS_MODEL,
                                   input=text,
                                   truncate=True,

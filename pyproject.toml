@@ -5,6 +5,7 @@ description = "The analysis backend for Skellybot (github.com/freemocap/skellybo
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "canvasapi>=3.3.0",
     "dash>=2.18.2",
     "discord>=2.3.2",
     "fastapi[standard]>=0.115.5",
@@ -13,6 +14,7 @@ dependencies = [
     "jieba>=0.42.1",
     "matplotlib>=3.10.0",
     "moviepy>=2.1.2",
+    "nbformat>=5.10.4",
     "numpy~=2.1.3",
     "ollama>=0.4.2",
     "openai>=1.52.2",
@@ -29,6 +31,8 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "tiktoken>=0.8.0",
     "tqdm>=4.67.1",
+    "umap-learn>=0.5.7",
+    "umap>=0.1.1",
     "uvicorn>=0.32.1",
     #NOTE - need install via: uv pip install git+https://github.com/openai/whisper.git
     #    "scikit-learn>=1.5.2",

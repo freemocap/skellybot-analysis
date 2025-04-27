@@ -3,7 +3,7 @@ from typing import Optional
 import aiohttp
 import discord
 from sqlalchemy import Column, Index, JSON, Text
-from sqlmodel import SQLModel, Field, Relationship, Session
+from sqlmodel import Field, Relationship, Session, SQLModel
 
 from skellybot_analysis.db.db_models.db_base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route_model import ContextRoute
@@ -47,14 +47,14 @@ class UserThread(SQLModel, table=True):
 
 class Thread(BaseSQLModel, table=True):
     """Represents a thread in a  channel."""
-    server_id: int = Field( index=True)
+    server_id: int = Field(index=True)
     server_name: str = Field(index=True)
-    category_id: Optional[int] = Field( index=True, default=None)
+    category_id: Optional[int] = Field(index=True, default=None)
     category_name: Optional[str] = Field(index=True, default=None)
-    channel_id: int = Field( index=True)
+    channel_id: int = Field(index=True)
     channel_name: str = Field(index=True)
     owner_id: int = Field(foreign_key="user.id", index=True)
-    owner_name: str = Field(index=True)
+    # owner_name: str = Field(index=True)
     # Relationships
     messages: list["Message"] = Relationship(
         back_populates="thread",
@@ -82,7 +82,6 @@ class Message(BaseSQLModel, table=True):
     parent_message_id: Optional[int] = Field(
         default=None,
         foreign_key="message.id",
-        sa_column_kwargs={"name": "parent_message_id"}
     )
     thread_id: Optional[int] = Field(default=None, index=True, foreign_key="thread.id")
     channel_id: Optional[int] = Field(default=None, index=True)
@@ -91,24 +90,23 @@ class Message(BaseSQLModel, table=True):
     thread: Optional["Thread"] = Relationship(back_populates="messages")
     author: "User" = Relationship(back_populates="messages")
     parent_message: Optional["Message"] = Relationship(
-        sa_relationship_kwargs={
-            "remote_side": "Message.id",
-            "foreign_keys": "Message.parent_message_id"
-        }
+    sa_relationship_kwargs = {
+        "remote_side": "Message.id",
+        "foreign_keys": "Message.parent_message_id"
+    }
+
     )
 
     # Add  table constraints for data integrity
     __table_args__ = (
-        Index("idx_message_created_at", "created_at"),
+    Index("idx_message_created_at", "created_at"),
     )
 
     @classmethod
     async def from_discord_message(cls,
-                                   discord_message: discord.Message,
-                                   session: Session | None = None, ):
-
+                             discord_message: discord.Message,
+                             session: Session | None = None, ):
         attachments = await cls.extract_attachments(discord_message.attachments)
-
         return cls.get_create_or_update(session=session,
                                         db_id=discord_message.id,
                                         name=f"message-{discord_message.id}",
@@ -123,8 +121,9 @@ class Message(BaseSQLModel, table=True):
                                         attachments=attachments if not discord_message.author.bot else [],
                                         timestamp=discord_message.created_at.isoformat(),
                                         reactions=[reaction.emoji for reaction in discord_message.reactions],
-                                        parent_message_id=discord_message.reference.message_id if discord_message.reference else None
+                                        parent_message_id=int(discord_message.reference.message_id) if discord_message.reference else None
                                         )
+
 
     @staticmethod
     async def extract_attachments(attachments: list[discord.Attachment] | None) -> list[str]:
@@ -148,6 +147,7 @@ class Message(BaseSQLModel, table=True):
                 attachment_string += f" END [{attachment.filename}]({attachment.url})"
                 attachment_texts.append(attachment_string)
         return attachment_texts
+
 
     def as_full_text(self, with_names: bool = False) -> str:
         """
@@ -183,7 +183,6 @@ class ContextSystemPrompt(BaseSQLModel, table=True):
     channel_id: Optional[int] = Field(default=None, index=True)
     channel_name: Optional[str] = Field(default=None, index=True)
 
-
     @classmethod
     def from_context(cls,
                      session: Session,
@@ -204,7 +203,6 @@ class ContextSystemPrompt(BaseSQLModel, table=True):
                                         category_name=context_route.category_name,
                                         channel_name=context_route.channel_name,
                                         system_prompt=system_prompt)
-
 
 
 class User(BaseSQLModel, table=True):

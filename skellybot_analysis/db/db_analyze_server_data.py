@@ -9,10 +9,10 @@ from sqlmodel import Session, select
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
+from skellybot_analysis.db.db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
+from skellybot_analysis.db.db_models.db_server_models import Thread, ContextSystemPrompt, Message
 from skellybot_analysis.db.db_utilities import initialize_database_engine
 from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.db.db_models import ServerObjectAiAnalysis, TopicArea
-from skellybot_analysis.db.db_models import Thread, ContextSystemPrompt, Message
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
 
 MIN_MESSAGE_LIMIT = 4
@@ -26,7 +26,6 @@ class AnalyzedThreadResult(BaseModel):
     thread_id: int
     thread_name: str
     thread_owner_id: int
-    thread_owner_name: str
     thread_text: str
     analysis_prompt: str
 
@@ -53,7 +52,6 @@ async def db_analyze_server_threads(db_path: str | None = None) -> None:
                                                    thread_id=thread.id,
                                                    thread_name=thread.name,
                                                    thread_owner_id=thread.owner_id,
-                                                   thread_owner_name=thread.owner_name,
                                                    )
                                     )
             )
@@ -85,7 +83,6 @@ async def analyze_thread(session: Session,
                          thread_id: int,
                          thread_name: str,
                          thread_owner_id: int,
-                         thread_owner_name: str,
                          ) -> AnalyzedThreadResult | None:
     """
     Run AI analysis on a server object (server, category, or channel)
@@ -138,7 +135,6 @@ async def analyze_thread(session: Session,
             thread_id=thread_id,
             thread_name=thread_name,
             thread_owner_id=thread_owner_id,
-            thread_owner_name=thread_owner_name,
             thread_text=thread_text_to_analyze,
             analysis_prompt=analysis_prompt
         )
