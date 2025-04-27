@@ -9,11 +9,11 @@ import umap
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
 
 logger = logging.getLogger(__name__)
-
+ 
 RANDOM_SEED = 42
 
-async def calculate_embeddings_and_projections(messages_df: pd.DataFrame,
-                                   thread_analyses_df: pd.DataFrame) -> pd.DataFrame:
+async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
+                                   thread_analyses_df: pd.DataFrame) ->tuple[np.ndarray, pd.DataFrame]:
     """
     Calculate embeddings and various dimensionality reduction techniques (t-SNE, UMAP, PCA)
     for the given messages and thread analyses, with a range of parameters where appropriate.
@@ -21,7 +21,7 @@ async def calculate_embeddings_and_projections(messages_df: pd.DataFrame,
     Returns a tidy dataframe with embeddings and projections.
     """
     logger.info(
-        f"Creating embeddings and projections for {len(messages_df)} messages and {len(thread_analyses_df)} thread analyses")
+        f"Creating embeddings and projections for {len(human_messages_df)} messages and {len(thread_analyses_df)} thread analyses")
 
     # Create a dictionary mapping IDs to their text content
     texts_to_embed = {}
@@ -32,23 +32,9 @@ async def calculate_embeddings_and_projections(messages_df: pd.DataFrame,
         texts_to_embed[analysis['thread_id']] = str(analysis['full_text_no_base_text'])
         id_to_type[analysis['thread_id']] = 'thread_analysis'
 
-    # Add messages
-    human_messages = messages_df[messages_df['is_bot'] == False]
-    bot_messages = messages_df[messages_df['is_bot'] == True]
-    unmatched = 0
-    for _, human_message in human_messages.iterrows():
-        hmn_txt = str(human_message['content'])
-        matched = False
-        for _, bot_message in bot_messages.iterrows():
-            if bot_message['parent_message_id'] == human_message['id']:
-                bot_txt = str(bot_message['content'])
-                texts_to_embed[human_message['id']] = hmn_txt + " " + bot_txt
-                id_to_type[human_message['id']] = 'message'
-                matched = True
-                break
-        if not matched:
-            unmatched +=1
-
+    for _, human_messages_df in human_messages_df.iterrows():
+        texts_to_embed[human_messages_df['id']] = str(human_messages_df['message_and_response'])
+        id_to_type[human_messages_df['id']] = 'message_and_response'
 
     all_ids = list(texts_to_embed.keys())
     
@@ -149,4 +135,4 @@ async def calculate_embeddings_and_projections(messages_df: pd.DataFrame,
     # Final dataframe with all the information
     logger.info(f"Created dataframe with {len(result_df)} rows and {len(result_df.columns)} columns")
     
-    return result_df
+    return embeddings_npy, result_df
