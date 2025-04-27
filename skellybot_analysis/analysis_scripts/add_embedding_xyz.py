@@ -13,12 +13,14 @@ logger = logging.getLogger(__name__)
 RANDOM_SEED = 42
 
 async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
-                                   thread_analyses_df: pd.DataFrame) ->tuple[np.ndarray, pd.DataFrame]:
+                                   thread_analyses_df: pd.DataFrame) ->tuple[np.ndarray, dict[str, pd.DataFrame]]:
     """
     Calculate embeddings and various dimensionality reduction techniques (t-SNE, UMAP, PCA)
     for the given messages and thread analyses, with a range of parameters where appropriate.
     
-    Returns a tidy dataframe with embeddings and projections.
+    Returns a tuple containing:
+    1. numpy array of embeddings
+    2. dictionary with separate dataframes for base data, tsne, umap, and pca projections
     """
     logger.info(
         f"Creating embeddings and projections for {len(human_messages_df)} messages and {len(thread_analyses_df)} thread analyses")
@@ -44,12 +46,18 @@ async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
     embeddings_npy = np.array(embedding_vectors)
     
     # Create base dataframe with IDs and embeddings
-    results_dict = {
+    base_df = pd.DataFrame({
         'id': all_ids,
         'content_type': [id_to_type[id] for id in all_ids],
         'text': [texts_to_embed[id] for id in all_ids],
-    }
+    })
     
+    # Create separate dataframes for different projection types
+    tsne_2d_df = base_df[['id', 'content_type']].copy()
+    tsne_3d_df = base_df[['id', 'content_type']].copy()
+    umap_2d_df = base_df[['id', 'content_type']].copy()
+    umap_3d_df = base_df[['id', 'content_type']].copy()
+    pca_df = base_df[['id', 'content_type']].copy()
     
     # 1. Calculate t-SNE projections for different dimensions and perplexity values
     logger.info("Calculating t-SNE projections...")
@@ -61,8 +69,8 @@ async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
         tsne = TSNE(n_components=2, random_state=RANDOM_SEED, perplexity=perplexity)
         tsne_result = tsne.fit_transform(embeddings_npy)
         
-        results_dict[f'tsne_2d_p{perplexity}_x'] = tsne_result[:, 0]
-        results_dict[f'tsne_2d_p{perplexity}_y'] = tsne_result[:, 1]
+        tsne_2d_df[f'p{perplexity}_x'] = tsne_result[:, 0]
+        tsne_2d_df[f'p{perplexity}_y'] = tsne_result[:, 1]
     
     # 3D t-SNE
     for perplexity in perplexity_values:
@@ -70,9 +78,9 @@ async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
         tsne = TSNE(n_components=3, random_state=RANDOM_SEED, perplexity=perplexity)
         tsne_result = tsne.fit_transform(embeddings_npy)
         
-        results_dict[f'tsne_3d_p{perplexity}_x'] = tsne_result[:, 0]
-        results_dict[f'tsne_3d_p{perplexity}_y'] = tsne_result[:, 1]
-        results_dict[f'tsne_3d_p{perplexity}_z'] = tsne_result[:, 2]
+        tsne_3d_df[f'p{perplexity}_x'] = tsne_result[:, 0]
+        tsne_3d_df[f'p{perplexity}_y'] = tsne_result[:, 1]
+        tsne_3d_df[f'p{perplexity}_z'] = tsne_result[:, 2]
     
     # 2. Calculate UMAP projections with different parameters
     logger.info("Calculating UMAP projections...")
@@ -90,8 +98,8 @@ async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
                                 random_state=42)
             umap_result = reducer.fit_transform(embeddings_npy)
             
-            results_dict[f'umap_2d_n{n_neighbors}_d{min_dist:.1f}_x'] = umap_result[:, 0]
-            results_dict[f'umap_2d_n{n_neighbors}_d{min_dist:.1f}_y'] = umap_result[:, 1]
+            umap_2d_df[f'n{n_neighbors}_d{min_dist:.1f}_x'] = umap_result[:, 0]
+            umap_2d_df[f'n{n_neighbors}_d{min_dist:.1f}_y'] = umap_result[:, 1]
     
     # 3D UMAP
     for n_neighbors in n_neighbors_values:
@@ -103,36 +111,42 @@ async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
                                random_state=42)
             umap_result = reducer.fit_transform(embeddings_npy)
             
-            results_dict[f'umap_3d_n{n_neighbors}_d{min_dist:.1f}_x'] = umap_result[:, 0]
-            results_dict[f'umap_3d_n{n_neighbors}_d{min_dist:.1f}_y'] = umap_result[:, 1]
-            results_dict[f'umap_3d_n{n_neighbors}_d{min_dist:.1f}_z'] = umap_result[:, 2]
+            umap_3d_df[f'n{n_neighbors}_d{min_dist:.1f}_x'] = umap_result[:, 0]
+            umap_3d_df[f'n{n_neighbors}_d{min_dist:.1f}_y'] = umap_result[:, 1]
+            umap_3d_df[f'n{n_neighbors}_d{min_dist:.1f}_z'] = umap_result[:, 2]
     
     # 3. Calculate PCA projections (no parameter sweep needed)
     logger.info("Calculating PCA projections...")
     # 2D PCA
     pca_2d = PCA(n_components=2, random_state=42)
     pca_2d_result = pca_2d.fit_transform(embeddings_npy)
-    results_dict['pca_2d_x'] = pca_2d_result[:, 0]
-    results_dict['pca_2d_y'] = pca_2d_result[:, 1]
+    pca_df['pca_2d_x'] = pca_2d_result[:, 0]
+    pca_df['pca_2d_y'] = pca_2d_result[:, 1]
     
     # 3D PCA
     pca_3d = PCA(n_components=3, random_state=42)
     pca_3d_result = pca_3d.fit_transform(embeddings_npy)
-    results_dict['pca_3d_x'] = pca_3d_result[:, 0]
-    results_dict['pca_3d_y'] = pca_3d_result[:, 1]
-    results_dict['pca_3d_z'] = pca_3d_result[:, 2]
+    pca_df['pca_3d_x'] = pca_3d_result[:, 0]
+    pca_df['pca_3d_y'] = pca_3d_result[:, 1]
+    pca_df['pca_3d_z'] = pca_3d_result[:, 2]
     
     # Add variance explained by each PCA component
     for i, var in enumerate(pca_2d.explained_variance_ratio_):
-        results_dict[f'pca_2d_variance_{i+1}'] = [var] * len(all_ids)
+        pca_df[f'pca_2d_variance_{i+1}'] = var
     
     for i, var in enumerate(pca_3d.explained_variance_ratio_):
-        results_dict[f'pca_3d_variance_{i+1}'] = [var] * len(all_ids)
+        pca_df[f'pca_3d_variance_{i+1}'] = var
     
-    # Create the tidy dataframe
-    result_df = pd.DataFrame(results_dict)
+    # Create dictionary of dataframes
+    result_dfs = {
+        'base': base_df,
+        'tsne_2d': tsne_2d_df,
+        'tsne_3d': tsne_3d_df,
+        'umap_2d': umap_2d_df,
+        'umap_3d': umap_3d_df,
+        'pca': pca_df
+    }
     
-    # Final dataframe with all the information
-    logger.info(f"Created dataframe with {len(result_df)} rows and {len(result_df.columns)} columns")
+    logger.info(f"Created separate dataframes for each projection type")
     
-    return embeddings_npy, result_df
+    return embeddings_npy, result_dfs

@@ -106,7 +106,8 @@ cumulative_counts = cumulative_counts[cumulative_counts['author_id'] != prof_id]
 
 # %% Calculate embeddings and projections
 from add_embedding_xyz import calculate_embeddings_and_projections
-embeddings_npy ,embeddings_df = asyncio.run(calculate_embeddings_and_projections(human_messages_df=human_messages_df, thread_analyses_df=analyses_df))
+embeddings_npy ,embedding_dfs = asyncio.run(calculate_embeddings_and_projections(human_messages_df=human_messages_df, thread_analyses_df=analyses_df))
+
 
 # %% save dataframes to csvs (add `_augmented` to the filename)
 # Save the augmented DataFrames to new CSV files
@@ -115,11 +116,13 @@ messages_df.to_csv(messages_path.with_stem(f"{base_name}_messages_augmented"), i
 human_messages_df.to_csv(messages_path.with_stem(f"{base_name}_human_messages"), index=False)
 threads_df.to_csv(threads_path.with_stem(f"{base_name}_threads_augmented"), index=False)
 cumulative_counts.to_csv(analyses_path.with_stem(f"{base_name}_cumulative_counts"), index=False)
-embeddings_df.to_csv(analyses_path.with_stem(f"{base_name}_embeddings"), index=False)
+
+# Save the embedding and projection dataframes
+for df_name, df in embedding_dfs.items():
+    df.to_csv(analyses_path.with_stem(f"{base_name}_embeddings_{df_name}"), index=False)
 
 # Save the numpy array to a .npy file
 embeddings_npy_path = analyses_path.with_stem(f"{base_name}_embeddings").with_suffix('.npy')
 np.save(embeddings_npy_path, embeddings_npy)
-
 
 #%% Save the augmented DataFrames to new CSV files
