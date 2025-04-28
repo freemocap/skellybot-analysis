@@ -5,7 +5,7 @@ import discord
 from sqlalchemy import Column, Index, JSON, Text
 from sqlmodel import Field, Relationship, Session, SQLModel
 
-from skellybot_analysis.db.db_models.db_base_sql_model import BaseSQLModel
+from skellybot_analysis.db.sql_db.sql_db_models.db_base_sql_model import BaseSQLModel
 from skellybot_analysis.models.context_route_model import ContextRoute
 
 

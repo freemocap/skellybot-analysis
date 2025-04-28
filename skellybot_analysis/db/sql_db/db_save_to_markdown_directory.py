@@ -3,8 +3,8 @@ from pathlib import Path
 
 from sqlmodel import select
 
-from skellybot_analysis.db.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
-from skellybot_analysis.db.db_utilities import get_db_session
+from skellybot_analysis.db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis
+from skellybot_analysis.db.sql_db.db_utilities import get_db_session
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 

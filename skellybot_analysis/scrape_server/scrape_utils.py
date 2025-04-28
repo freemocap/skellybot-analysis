@@ -2,7 +2,7 @@ import logging
 
 import discord
 
-from skellybot_analysis.db.db_models.db_server_models import Message
+from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Message
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +30,7 @@ async def get_pinned_message_contents(channel: discord.TextChannel):
     pinned_messages = [await Message.from_discord_message(msg) for msg in await channel.pins()]
     return [msg.as_full_text() for msg in pinned_messages]
 
-
-async def get_prompts_from_channel(channel: discord.TextChannel, prompt_tag_emoji: str | None = None) -> list[str]:
+async def get_prompts_from_channel(channel: discord.TextChannel, prompt_tag_emoji: str | None = "🤖") -> list[str]:
     prompt_messages = []
     try:
         if hasattr(channel,"topic") and channel.topic:

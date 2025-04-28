@@ -8,9 +8,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 
 from skellybot_analysis import configure_logging
-from skellybot_analysis.db.db_models.db_ai_analysis_models import ServerObjectAiAnalysis
-from skellybot_analysis.db.db_models.db_server_models import Thread, User, Message
-from skellybot_analysis.db.db_utilities import get_db_session
+from skellybot_analysis.db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis
+from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Thread, User, Message
+from skellybot_analysis.db.sql_db.db_utilities import get_db_session
 from skellybot_analysis.utilities.load_env_variables import DISCORD_BOT_ID, PROF_USER_ID
 
 
@@ -84,7 +84,7 @@ async def save_db_as_dataframes(db_path: str | None=None) -> pd.DataFrame:
         # de-id users
         users_df.drop(columns=['name'], inplace=True)
 
-        # # Replace IDs with last 6 digits for anonymization
+        # Replace IDs with last 6 digits for anonymization
         # anonymize_id(users_df, 'id')
         # anonymize_id(threads_df, 'owner_id')
         # anonymize_id(messages_df, 'author_id')

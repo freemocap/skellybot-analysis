@@ -4,19 +4,13 @@ from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
 class ContextRoute(BaseModel):
-    server_id: str
+    server_id: int
     server_name: str
-    category_id: str|None=None
+    category_id: int|None=None
     category_name: str|None=None
-    channel_id: str|None=None
+    channel_id: int|None=None
     channel_name: str|None=None
-    @field_validator('server_id', 'category_id', 'channel_id', mode='before')
-    @classmethod
-    def ensure_str_ids(cls, value):
-        """Ensure all ID fields are strings, even if provided as integers."""
-        if value is not None:
-            return str(value)
-        return value
+
     @property
     def id(self):
         ids = [self.server_id]

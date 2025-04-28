@@ -3,9 +3,7 @@ from pathlib import Path
 
 import discord
 
-from skellybot_analysis.db.db_utilities import initialize_database_engine
-from skellybot_analysis.db.db_scrape_server import scrape_server
-from skellybot_analysis.db.validate_db import print_server_db_stats
+from skellybot_analysis.db.parquet_db.pq_scrape_server import pq_scrape_server
 from skellybot_analysis.utilities.get_most_recent_db_location import persist_most_recent_db_location
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
@@ -26,11 +24,8 @@ async def run_server_scraper(discord_client: discord.Client,
     server_output_directory = Path(output_directory) / f"{server_name}_data"
     server_output_directory.mkdir(parents=True, exist_ok=True)
 
-    db_path = server_output_directory  / f"{server_name}.sqlite.db"
-    db_engine = initialize_database_engine(str(db_path))
 
-    await scrape_server(target_server=target_server, db_engine=db_engine)
+    await pq_scrape_server(target_server=target_server, db_path=str(server_output_directory))
 
-    persist_most_recent_db_location(str(db_path))
-    await print_server_db_stats(str(db_path))
+    persist_most_recent_db_location(str(server_output_directory))
 
