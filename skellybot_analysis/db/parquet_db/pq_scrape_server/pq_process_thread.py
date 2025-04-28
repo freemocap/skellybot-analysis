@@ -2,7 +2,7 @@ import logging
 
 import discord
 
-from skellybot_analysis.db.parquet_db.parquet_server_models import ParquetDiscordUser, ParquetDiscordThread, \
+from skellybot_analysis.db.parquet_db.pq_models.parquet_server_models import ParquetDiscordUser, ParquetDiscordThread, \
     ParquetDiscordMessage, extract_attachments
 from skellybot_analysis.db.parquet_db.parquet_storage import ParquetStorage
 from skellybot_analysis.scrape_server.scrape_utils import MINIMUM_THREAD_MESSAGE_COUNT, update_latest_message_datetime

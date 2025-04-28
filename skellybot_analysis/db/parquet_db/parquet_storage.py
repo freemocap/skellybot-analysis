@@ -5,7 +5,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pydantic import BaseModel
 
-from skellybot_analysis.db.parquet_db.parquet_server_models import ParquetDiscordThread,ParquetDiscordMessage, ParquetDiscordUser, ParquetContextPrompt
+from skellybot_analysis.db.parquet_db.pq_models.parquet_server_models import ParquetDiscordThread,ParquetDiscordMessage, ParquetDiscordUser, ParquetContextPrompt
 
 import logging
 logger = logging.getLogger(__name__)

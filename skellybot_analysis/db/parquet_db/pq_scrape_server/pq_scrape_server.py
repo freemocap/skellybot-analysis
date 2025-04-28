@@ -4,8 +4,8 @@ from pathlib import Path
 import discord
 
 from skellybot_analysis.db.parquet_db.parquet_storage import ParquetStorage
-from skellybot_analysis.db.parquet_db.pq_get_context_prompts import grab_context_prompts
-from skellybot_analysis.db.parquet_db.pq_process_thread import get_channel_threads, pq_process_thread
+from skellybot_analysis.db.parquet_db.pq_scrape_server.pq_get_context_prompts import grab_context_prompts
+from skellybot_analysis.db.parquet_db.pq_scrape_server.pq_process_thread import get_channel_threads, pq_process_thread
 
 logger = logging.getLogger(__name__)
 

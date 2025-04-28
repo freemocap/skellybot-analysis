@@ -2,9 +2,9 @@ import logging
 
 import discord
 
-from skellybot_analysis.db.parquet_db.parquet_server_models import ParquetContextPrompt
+from skellybot_analysis.db.parquet_db.pq_models.parquet_server_models import ParquetContextPrompt
 from skellybot_analysis.db.parquet_db.parquet_storage import ParquetStorage
-from skellybot_analysis.db.parquet_db.pq_process_thread import get_channel_threads
+from skellybot_analysis.db.parquet_db.pq_scrape_server.pq_process_thread import get_channel_threads
 from skellybot_analysis.scrape_server.scrape_utils import get_prompts_from_channel
 
 logger = logging.getLogger(__name__)

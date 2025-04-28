@@ -10,7 +10,7 @@ class ParquetDiscordThread(BaseModel):
     name: str
     server_id: int
     server_name: str
-    category_id: int | None = None
+    category_id: int | float | None = None
     category_name: str | None = None
     channel_id: int
     channel_name: str
@@ -69,11 +69,11 @@ class ParquetDiscordMessage(BaseModel):
     author_id: int
     jump_url: str
 
-    parent_message_id: int | None = None
+    parent_message_id: int | float| None = None
 
     server_id: int
     server_name: str
-    category_id: int | None = None
+    category_id: int | float | None = None
     category_name: str | None = None
     channel_id: int
     channel_name: str
