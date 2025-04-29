@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
@@ -126,9 +127,9 @@ class DataframeHandler(BaseModel):
 
         try:
             df = pd.read_csv(csv_path)
-            records = df.to_dict(orient='records')
+            records = df.replace({np.nan: None}).to_dict(orient='records')
             target_dict.update({
-                int(record[id_field]): model_cls(**record)
+                int(record[id_field]): model_cls.model_validate(record)
                 for record in records
             })
             logger.info(f"Loaded {len(records)} {model_cls.__name__} from {csv_path.name}")
@@ -139,7 +140,7 @@ class DataframeHandler(BaseModel):
 
 
 if __name__ == "__main__":
-    _db_path = r"C:\Users\jonma\Sync\skellybot-data\skb-test_data"
+    _db_path = r"C:\Users\jonma\Sync\skellybot-data\H_M_N_2_5_data"
     df_handler = DataframeHandler.from_db_path(_db_path)
     print(f"Loaded {len(df_handler.messages)} messages")
     print(f"Loaded {len(df_handler.users)} users")
