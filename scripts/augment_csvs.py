@@ -103,7 +103,7 @@ cumulative_counts.columns = ['author_id', 'timestamp', 'cumulative_message_count
 
 
 # %% Calculate embeddings and projections
-from add_embedding_xyz import calculate_embeddings_and_projections
+from skellybot_analysis.ai.calculate_embeddings_and_projections import calculate_embeddings_and_projections
 embeddings_npy ,embedding_dfs = asyncio.run(calculate_embeddings_and_projections(human_messages_df=human_messages_df, thread_analyses_df=analyses_df))
 
 

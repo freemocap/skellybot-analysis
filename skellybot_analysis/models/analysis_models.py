@@ -1,6 +1,7 @@
 from pydantic import BaseModel, computed_field, Field
 
 from skellybot_analysis.models.prompt_models import TopicAreaPromptModel
+from skellybot_analysis.models.server_models import DataframeModel
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
@@ -36,7 +37,7 @@ class TopicAreaModel(BaseModel):
             description=topic.description
         )
 
-class AiThreadAnalysisModel(BaseModel):
+class AiThreadAnalysisModel(DataframeModel):
     server_id: int
     server_name: str
     channel_id: int

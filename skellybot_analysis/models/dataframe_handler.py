@@ -13,6 +13,12 @@ from skellybot_analysis.utilities.get_most_recent_db_location import get_most_re
 logger = logging.getLogger(__name__)
 
 
+def model_list_to_dataframe(data: list[DataframeModel]) -> pd.DataFrame:
+    """Convert a list of DataframeModel instances to a DataFrame"""
+    if not data:
+        return pd.DataFrame()
+    return pd.DataFrame([item.model_dump() for item in data])
+
 class DataframeHandler(BaseModel):
     """Manages batched writes to Parquet with Pydantic validation"""
     db_path: str
@@ -23,6 +29,31 @@ class DataframeHandler(BaseModel):
     prompts: dict[ContextId, ContextPromptModel] = {}
 
     thread_analyses: dict[ThreadId, AiThreadAnalysisModel] = {}
+
+    @property
+    def messages_df(self) -> pd.DataFrame:
+        """Convert messages to DataFrame"""
+        return model_list_to_dataframe(list(self.messages.values()))
+
+    @property
+    def threads_df(self) -> pd.DataFrame:
+        """Convert threads to DataFrame"""
+        return model_list_to_dataframe(list(self.threads.values()))
+
+    @property
+    def users_df(self) -> pd.DataFrame:
+        """Convert users to DataFrame"""
+        return model_list_to_dataframe(list(self.users.values()))
+
+    @property
+    def prompts_df(self) -> pd.DataFrame:
+        """Convert prompts to DataFrame"""
+        return model_list_to_dataframe(list(self.prompts.values()))
+
+    @property
+    def thread_analyses_df(self) -> pd.DataFrame:
+        """Convert thread analyses to DataFrame"""
+        return model_list_to_dataframe(list(self.thread_analyses.values()))
 
     @property
     def base_name(self):
@@ -38,25 +69,23 @@ class DataframeHandler(BaseModel):
             self.users[primary_id] = entity
         elif isinstance(entity, ContextPromptModel):
             self.prompts[primary_id] = entity
+        elif isinstance(entity, AiThreadAnalysisModel):
+            self.thread_analyses[primary_id] = entity
         else:
             raise ValueError(f"Unsupported entity type: {type(entity)}")
 
-    def save_to_csvs(self):
+    def save_raw_csvs(self):
         """Write all buffered data to csv"""
         logger.info("Writing data to csv files...")
 
         # Save and verify users
-        self._write_dataframe_to_csv(list(self.users.values()))
-
-        # Save and verify messages
-        self._write_dataframe_to_csv(list(self.messages.values()))
-
-        # Save and verify threads
-        self._write_dataframe_to_csv(list(self.threads.values()))
-
-        # Save and verify prompts
-        self._write_dataframe_to_csv(list(self.prompts.values()))
-
+        base_save_path = Path(self.db_path) / "raw"
+        base_save_path.mkdir(parents=True, exist_ok=True)
+        self.users_df.to_csv(base_save_path / UserModel.df_filename(), index=False)
+        self.messages_df.to_csv(base_save_path / MessageModel.df_filename(), index=False)
+        self.threads_df.to_csv(base_save_path / ThreadModel.df_filename(), index=False)
+        self.prompts_df.to_csv(base_save_path / ContextPromptModel.df_filename(), index=False)
+        self.thread_analyses_df.to_csv(base_save_path / AiThreadAnalysisModel.df_filename(), index=False)
         self._validate_data()
 
         logger.info("All data written and verified successfully")
@@ -78,20 +107,7 @@ class DataframeHandler(BaseModel):
 
 
 
-    def _write_dataframe_to_csv(self, data: list[DataframeModel]):
-        if not data:
-            return
-        save_path = Path(self.db_path) / f"{data[0].df_filename()}"
 
-        try:
-            data_list = [item.model_dump() for item in data]
-            df = pd.DataFrame(data_list)
-            df.to_csv(str(save_path), index=False)
-        except Exception as e:
-            logger.error(f"Problem saving {save_path} -` {e}`")
-            raise
-
-        logger.info(f"Successfully saved {len(data_list)} rows to `{data[0].df_filename()}`")
 
     @classmethod
     def from_db_path(cls, db_path: str):
@@ -119,7 +135,7 @@ class DataframeHandler(BaseModel):
     def _load_model_data(self, model_cls: type[DataframeModel], target_dict: dict[int, BaseModel],
                          id_field: str) -> pd.DataFrame:
         """Generic loader for any DataFrame-backed model"""
-        csv_path = Path(self.db_path) / model_cls.df_filename()
+        csv_path = Path(self.db_path) /'raw'/ model_cls.df_filename()
 
         if not csv_path.exists():
             logger.warning(f"CSV file {csv_path.name} not found")
@@ -147,4 +163,4 @@ if __name__ == "__main__":
     print(f"Loaded {len(df_handler.threads)} threads")
     print(f"Loaded {len(df_handler.prompts)} prompts")
 
-    df_handler.save_to_csvs()
+    df_handler.save_raw_csvs()
