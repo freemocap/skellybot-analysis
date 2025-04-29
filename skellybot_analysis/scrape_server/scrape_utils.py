@@ -3,6 +3,7 @@ import logging
 import discord
 
 from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Message
+from skellybot_analysis.models.server_models import MessageModel
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +23,13 @@ async def get_reaction_tagged_messages(channel: discord.TextChannel, target_emoj
         if message.reactions:
             for reaction in message.reactions:
                 if reaction.emoji == target_emoji:
-                    tagged_messages.append(await  Message.from_discord_message(message))
-    return [msg.as_full_text() for msg in tagged_messages]
+                    tagged_messages.append(await  MessageModel.from_discord_message(message))
+    return [msg.full_content for msg in tagged_messages]
 
 
 async def get_pinned_message_contents(channel: discord.TextChannel):
-    pinned_messages = [await Message.from_discord_message(msg) for msg in await channel.pins()]
-    return [msg.as_full_text() for msg in pinned_messages]
+    pinned_messages = [await MessageModel.from_discord_message(msg) for msg in await channel.pins()]
+    return [msg.full_content for msg in pinned_messages]
 
 async def get_prompts_from_channel(channel: discord.TextChannel, prompt_tag_emoji: str | None = "🤖") -> list[str]:
     prompt_messages = []

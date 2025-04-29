@@ -12,7 +12,7 @@ from skellybot_analysis.models.context_route_model import ContextRoute
 logger = logging.getLogger(__name__)
 
 
-async def scrape_server(target_server: discord.Guild, db_engine: Engine) -> None:
+async def db_scrape_server(target_server: discord.Guild, db_engine: Engine) -> None:
     logger.info(f'Successfully connected to the guild: {target_server.name} (ID: {target_server.id})')
 
     all_channels = await target_server.fetch_channels()

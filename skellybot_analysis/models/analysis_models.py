@@ -4,7 +4,7 @@ from skellybot_analysis.models.prompt_models import TopicAreaPromptModel
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
-class TopicArea(BaseModel):
+class TopicAreaModel(BaseModel):
     name: str
     category: str
     subject: str
@@ -36,7 +36,7 @@ class TopicArea(BaseModel):
             description=topic.description
         )
 
-class ParquetAiAnalysis(BaseModel):
+class AiThreadAnalysisModel(BaseModel):
     server_id: int
     server_name: str
     channel_id: int
@@ -52,28 +52,8 @@ class ParquetAiAnalysis(BaseModel):
     short_summary: str
     highlights: str
     detailed_summary: str
-    topic_areas: list[TopicArea] = Field(default_factory=list)
+    topic_areas: list[TopicAreaModel] = Field(default_factory=list)
 
-    @classmethod
-    def from_prompt_model(cls, analysis: TopicAreaPromptModel):
-        return cls(
-            server_id=analysis.server_id,
-            server_name=analysis.server_name,
-            channel_id=analysis.channel_id,
-            channel_name=analysis.channel_name,
-            thread_id=analysis.thread_id,
-            thread_name=analysis.thread_name,
-            analysis_text=analysis.analysis_text,
-            base_text=analysis.base_text,
-            analysis_prompt=analysis.analysis_prompt,
-            title_slug=analysis.title_slug,
-            extremely_short_summary=analysis.extremely_short_summary,
-            very_short_summary=analysis.very_short_summary,
-            short_summary=analysis.short_summary,
-            highlights=analysis.highlights,
-            detailed_summary=analysis.detailed_summary,
-            topic_areas_ids=analysis.topic_areas,
-        )
 
     @computed_field
     def title(self) -> str:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import discord
 
-from skellybot_analysis.db.parquet_db.pq_scrape_server import pq_scrape_server
+from skellybot_analysis.scrape_server.scrape_server import scrape_server
 from skellybot_analysis.utilities.get_most_recent_db_location import persist_most_recent_db_location
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
@@ -25,7 +25,7 @@ async def run_server_scraper(discord_client: discord.Client,
     server_output_directory.mkdir(parents=True, exist_ok=True)
 
 
-    await pq_scrape_server(target_server=target_server, db_path=str(server_output_directory))
+    await scrape_server(target_server=target_server, db_path=str(server_output_directory))
 
     persist_most_recent_db_location(str(server_output_directory))
 

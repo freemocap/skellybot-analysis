@@ -5,17 +5,15 @@ from pathlib import Path
 
 import pandas as pd
 from pydantic import BaseModel
-from sqlalchemy.engine import Engine
 from sqlmodel import Session, select
 
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
-from skellybot_analysis.db.parquet_db.parquet_storage import ParquetStorage
-from skellybot_analysis.db.parquet_db.pq_models.parquet_server_models import ParquetDiscordThread
+from skellybot_analysis.models.dataframe_handler import DataframeHandler
+from skellybot_analysis.models.server_models import ParquetDiscordThread
 from skellybot_analysis.db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
 from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Thread, ContextSystemPrompt, Message
-from skellybot_analysis.db.sql_db.db_utilities import initialize_database_engine
 from skellybot_analysis.models.context_route_model import ContextRoute
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
 
@@ -43,27 +41,27 @@ async def pq_analyze_server_threads(db_path: str | None = None) -> None:
         raise ValueError(f"Parquet files not found: {threads_pq_path}, {messages_pq_path}")
     messages_df = pd.read_parquet(messages_pq_path)
     threads_df = pd.read_parquet(threads_pq_path)
-    async with ParquetStorage(str(db_path)) as storage:
-        # Run analysis on threads
-        logger.info(f"Analyzing {len(threads_df)} threads from server: {threads_df[0].server_name} ")
-        for thread in threads_df.itertuples():
-            thread_pq = ParquetDiscordThread(**thread)
-            analysis_tasks.append(
-                asyncio.create_task(analyze_thread(session=session,
-                                                   context_route=ContextRoute(
-                                                       server_id=thread.server_id,
-                                                       server_name=thread.server_name,
-                                                       category_id=thread.category_id,
-                                                       category_name=thread.category_name,
-                                                       channel_id=thread.channel_id,
-                                                       channel_name=thread.channel_name,
-                                                   ),
-                                                   thread_id=str(thread.id),
-                                                   thread_name=thread.name,
-                                                   thread_owner_id=thread.owner_id,
-                                                   )
-                                    )
-            )
+    df_handler = DataframeHandler(db_path=str(db_path))
+    # Run analysis on threads
+    logger.info(f"Analyzing {len(threads_df)} threads from server: {threads_df[0].server_name} ")
+    for thread in threads_df.itertuples():
+        thread_pq = ParquetDiscordThread(**thread)
+        analysis_tasks.append(
+            asyncio.create_task(analyze_thread(session=df_handler,
+                                               context_route=ContextRoute(
+                                                   server_id=thread.server_id,
+                                                   server_name=thread.server_name,
+                                                   category_id=thread.category_id,
+                                                   category_name=thread.category_name,
+                                                   channel_id=thread.channel_id,
+                                                   channel_name=thread.channel_name,
+                                               ),
+                                               thread_id=str(thread.id),
+                                               thread_name=thread.name,
+                                               thread_owner_id=thread.owner_id,
+                                               )
+                                )
+        )
 
         logger.info(f"Starting AI analysis tasks on {len(analysis_tasks)} objects.")
         results: list[AnalyzedThreadResult] = await asyncio.gather(*analysis_tasks)
