@@ -32,7 +32,7 @@ async def scrape_server(target_server: discord.Guild, db_path: str) -> None:
                                     thread=thread)
 
         logger.info("Server data scraped - Saving to csv files...")
-        await df_handler.save_to_csvs()
+        df_handler.save_to_csvs()
     except Exception as e:
         logger.error(f"Critical error during scraping: {str(e)}", exc_info=True)
         raise

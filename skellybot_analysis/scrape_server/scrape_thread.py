@@ -78,7 +78,7 @@ async def scrape_thread(df_handler: DataframeHandler,
         update_latest_message_datetime(discord_message.created_at)
 
         # Save message author USER info
-        df_handler.store(primary_id=discord_message.id,
+        df_handler.store(primary_id=discord_message.author.id,
                          entity=UserModel(
                              user_id=discord_message.author.id,
                              server_id=discord_message.guild.id,
@@ -87,25 +87,7 @@ async def scrape_thread(df_handler: DataframeHandler,
                          ))
 
         df_handler.store(primary_id=discord_message.id,
-                         entity=MessageModel(
-                             message_id=discord_message.id,
-                             bot_message=discord_message.author.bot,
-                             content=discord_message.content,
-                             author_id=discord_message.author.id,
-                             jump_url=discord_message.jump_url,
-                             parent_message_id=discord_message.reference.message_id if discord_message.reference else -1,
-                             server_id=thread.guild.id,
-                             server_name=thread.guild.name,
-                             category_id=thread.parent.category.id if thread.parent.category else -1,
-                             category_name=thread.parent.category.name if thread.parent.category else "none",
-                             channel_id=thread.parent.id,
-                             channel_name=thread.parent.name,
-                             thread_id=thread.id,
-                             thread_name=thread.name,
-                             timestamp=discord_message.created_at,
-                             attachments=await extract_attachments_from_discord_message(discord_message.attachments),
-                             reactions=[reaction.emoji for reaction in discord_message.reactions]
-                         ))
+                         entity=await MessageModel.from_discord_message(discord_message))
 
         message_count += 1
     logger.info(f"✅ Added thread: {thread.name} (ID: {thread.id}) with {message_count} messages.")

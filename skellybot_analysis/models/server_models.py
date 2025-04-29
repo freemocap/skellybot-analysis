@@ -4,6 +4,9 @@ from datetime import datetime
 import discord
 from pydantic import BaseModel, Field
 
+from skellybot_analysis.utilities.extract_attachements_from_discord_message import \
+    extract_attachments_from_discord_message
+
 ServerId = int
 CategoryId = int # using `-1` for None so its saves/loads easier
 ChannelId = int
@@ -76,12 +79,14 @@ class MessageModel(DataframeModel):
     thread_name: str = "none"
 
     timestamp: datetime
-    attachments: list[str] = Field(default_factory=list)
-    reactions: list[str] = Field(default_factory=list)
+    attachments:str = "none"
 
     @property
     def full_content(self):
-        return self.content + "\n" + "\n".join(self.attachments)
+        if self.attachments == "none":
+            return self.content
+
+        return self.content + "\n" + self.attachments
 
     @classmethod
     async def from_discord_message(cls, msg:discord.Message):
@@ -104,4 +109,5 @@ class MessageModel(DataframeModel):
             thread_id=msg.thread.id if msg.thread else -1,
             thread_name=msg.thread.name if msg.thread else "none",
             timestamp=msg.created_at,
+            attachments="\n".join(await extract_attachments_from_discord_message(msg.attachments)) if msg.attachments else "none",
         )
