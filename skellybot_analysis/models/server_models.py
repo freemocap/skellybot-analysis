@@ -1,10 +1,9 @@
-import enum
 from datetime import datetime
 from typing import Any
 
 import discord
 import numpy as np
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, model_validator, computed_field
 
 from skellybot_analysis.utilities.extract_attachements_from_discord_message import \
     extract_attachments_from_discord_message
@@ -99,8 +98,9 @@ class MessageModel(DataframeModel):
     timestamp: datetime
     attachments:str|None = "none"
 
-    @property
-    def full_content(self):
+
+    @computed_field
+    def full_content(self) -> str:
         if not self.attachments or self.attachments == "none":
             if not self.content or self.content == "none":
                 return ""
@@ -112,10 +112,11 @@ class MessageModel(DataframeModel):
 
 
     @classmethod
-    async def from_discord_message(cls, msg:discord.Message):
+    async def from_discord_message(cls, msg:discord.Message, thread:discord.Thread|None=None) -> "MessageModel":
         """
         Create a MessageModel from a discord message.
         """
+
         return cls(
             message_id=msg.id,
             bot_message=msg.author.bot,
@@ -129,8 +130,8 @@ class MessageModel(DataframeModel):
             category_name=msg.channel.category.name if msg.channel.category else "none",
             channel_id=msg.channel.id,
             channel_name=msg.channel.name,
-            thread_id=msg.thread.id if msg.thread else -1,
-            thread_name=msg.thread.name if msg.thread else "none",
+            thread_id=thread.id if thread else -1,
+            thread_name=thread.name if thread else "none",
             timestamp=msg.created_at,
             attachments="\n".join(await extract_attachments_from_discord_message(msg.attachments)) if msg.attachments else "none",
         )

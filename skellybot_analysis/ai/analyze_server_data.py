@@ -32,11 +32,9 @@ class AnalyzedThreadResult(BaseModel):
     analysis_prompt: str
 
 
-async def pq_analyze_server_threads(db_path: str | None = None) -> None:
+async def ai_analyze_threads(threads_df:pd.DataFrame) -> None:
     """Run AI analysis on server data stored in a Parquet database"""
     analysis_tasks: list[Task[AnalyzedThreadResult]] =[]
-    messages_pq_path = Path(db_path).parent / "messages.parquet"
-    threads_pq_path = Path(db_path).parent / "threads.parquet"
     if not threads_pq_path.is_file() or not messages_pq_path.is_file():
         raise ValueError(f"Parquet files not found: {threads_pq_path}, {messages_pq_path}")
     messages_df = pd.read_parquet(messages_pq_path)

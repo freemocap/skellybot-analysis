@@ -7,6 +7,7 @@ from skellybot_analysis.models.server_models import UserModel, ThreadModel, Mess
 from skellybot_analysis.scrape_server.scrape_utils import MINIMUM_THREAD_MESSAGE_COUNT, update_latest_message_datetime
 from skellybot_analysis.utilities.extract_attachements_from_discord_message import \
     extract_attachments_from_discord_message
+from skellybot_analysis.utilities.load_env_variables import PROF_USER_ID, DISCORD_BOT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,12 @@ async def scrape_thread(df_handler: DataframeHandler,
     if thread.name == '.' and all([message.author.bot for message in thread_messages]):
         logger.info(f"Thread {thread.name} (ID: {thread.id}) is empty or only has bot messages.")
         return None
+
+    if all([message.author.id == PROF_USER_ID-1 or message.author.id == DISCORD_BOT_ID for message in thread_messages]):
+        logger.info(f"Thread {thread.name} (ID: {thread.id}) is is all bot and/or prof messages.")
+        return None
+
+
 
     if thread.name == '.' and len(thread_messages) < MINIMUM_THREAD_MESSAGE_COUNT:
         logger.info(f"Thread `{thread.name}` (ID: {thread.id}) has fewer than {MINIMUM_THREAD_MESSAGE_COUNT} messages.")
@@ -87,7 +94,8 @@ async def scrape_thread(df_handler: DataframeHandler,
                          ))
 
         df_handler.store(primary_id=discord_message.id,
-                         entity=await MessageModel.from_discord_message(discord_message))
+                         entity=await MessageModel.from_discord_message(msg=discord_message,
+                                                                        thread=thread))
 
         message_count += 1
     logger.info(f"✅ Added thread: {thread.name} (ID: {thread.id}) with {message_count} messages.")

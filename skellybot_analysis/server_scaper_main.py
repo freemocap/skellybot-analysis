@@ -32,7 +32,7 @@ DISCORD_CLIENT.run(DISCORD_DEV_BOT_TOKEN)
 print("Server Scraper Done!")
 
 if __name__ == "__main__":
-    # asyncio.run(db_analyze_server_threads())
+
     # save_db_as_dataframes()
     # save_server_db_as_markdown_directory()
     print("Done!")

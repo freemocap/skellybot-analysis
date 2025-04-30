@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
 from skellybot_analysis.models.server_models import ThreadModel, MessageModel, UserModel, \
     ContextPromptModel, DataframeModel, ThreadId, MessageId, UserId, ContextId
-from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 
 logger = logging.getLogger(__name__)
 
