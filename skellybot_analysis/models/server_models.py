@@ -50,7 +50,6 @@ class ThreadModel(DataframeModel):
     category_name: str|None = "none"
     channel_id: ChannelId
     channel_name: str
-
     owner_id: UserId
 
     jump_url: str

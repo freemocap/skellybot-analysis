@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from typing import Dict, Tuple, Optional
 
+from skellybot_analysis.ai.analyze_server_data import ai_analyze_threads
 from skellybot_analysis.ai.calculate_embeddings_and_projections import calculate_embeddings_and_projections
 from skellybot_analysis.models.dataframe_handler import DataframeHandler
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
@@ -79,7 +80,8 @@ def augment_messages(messages_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFr
 
     return df, human_messages_df
 
-def augment_threads(threads_df: pd.DataFrame, human_messages_df: pd.DataFrame) -> pd.DataFrame:
+def augment_threads(threads_df: pd.DataFrame,
+                    human_messages_df: pd.DataFrame) -> pd.DataFrame:
     """
     Augment threads with message counts and word counts.
     """
@@ -87,7 +89,13 @@ def augment_threads(threads_df: pd.DataFrame, human_messages_df: pd.DataFrame) -
     
     # Make a copy to avoid modifying the original
     df = threads_df.copy()
-    
+
+    # # Add context prompts to threads
+    # df['context_prompt'] = df.map(
+    #     context_prompts_df.set_index('context_id')['prompt_text']
+    # )
+
+
     # Add total word count to threads
     df['total_word_count'] = df['thread_id'].map(
         human_messages_df.groupby('thread_id')['total_word_count'].sum()
@@ -203,7 +211,8 @@ async def augment_dataframes(dataframe_handler: DataframeHandler)  :
     augmented_messages_df, human_messages_df = augment_messages(dataframe_handler.messages_df)
     
     # Augment threads
-    augmented_threads_df = augment_threads(dataframe_handler.threads_df, human_messages_df)
+    augmented_threads_df = augment_threads(threads_df=dataframe_handler.threads_df,
+                                           human_messages_df=human_messages_df)
     
     # Augment users
     augmented_users_df = augment_users(dataframe_handler.users_df, human_messages_df)

@@ -59,7 +59,6 @@ async def scrape_thread(df_handler: DataframeHandler,
                          is_bot=thread.owner.bot,
                          joined_at=thread.owner.joined_at
                      ))
-
     # Save Thread info
     df_handler.store(primary_id=thread.id,
                      entity=ThreadModel(
@@ -71,7 +70,6 @@ async def scrape_thread(df_handler: DataframeHandler,
                          category_name=thread.parent.category.name if thread.parent.category else "none",
                          channel_name=thread.parent.name,
                          channel_id=thread.parent.id,
-
                          owner_id=thread.owner.id,
                          jump_url=thread.jump_url,
                          created_at=thread.created_at,
@@ -100,3 +98,8 @@ async def scrape_thread(df_handler: DataframeHandler,
         message_count += 1
     logger.info(f"✅ Added thread: {thread.name} (ID: {thread.id}) with {message_count} messages.")
     return None
+
+
+
+
+

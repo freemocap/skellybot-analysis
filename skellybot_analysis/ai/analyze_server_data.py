@@ -11,11 +11,11 @@ from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_reques
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.models.dataframe_handler import DataframeHandler
-from skellybot_analysis.models.server_models import ParquetDiscordThread
 from skellybot_analysis.db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
 from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Thread, ContextSystemPrompt, Message
 from skellybot_analysis.models.context_route_model import ContextRoute
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
+from skellybot_analysis.models.server_models import ThreadModel
 
 MIN_MESSAGE_LIMIT = 4
 
@@ -32,21 +32,14 @@ class AnalyzedThreadResult(BaseModel):
     analysis_prompt: str
 
 
-async def ai_analyze_threads(threads_df:pd.DataFrame) -> None:
+async def ai_analyze_threads(threads:list[ThreadModel]) -> None:
     """Run AI analysis on server data stored in a Parquet database"""
     analysis_tasks: list[Task[AnalyzedThreadResult]] =[]
-    if not threads_pq_path.is_file() or not messages_pq_path.is_file():
-        raise ValueError(f"Parquet files not found: {threads_pq_path}, {messages_pq_path}")
-    messages_df = pd.read_parquet(messages_pq_path)
-    threads_df = pd.read_parquet(threads_pq_path)
-    df_handler = DataframeHandler(db_path=str(db_path))
     # Run analysis on threads
-    logger.info(f"Analyzing {len(threads_df)} threads from server: {threads_df[0].server_name} ")
-    for thread in threads_df.itertuples():
-        thread_pq = ParquetDiscordThread(**thread)
+    logger.info(f"Analyzing {len(threads)} threads from server: {threads[0].server_name} ")
+    for thread in threads:
         analysis_tasks.append(
-            asyncio.create_task(analyze_thread(session=df_handler,
-                                               context_route=ContextRoute(
+            asyncio.create_task(analyze_thread(context_route=ContextRoute(
                                                    server_id=thread.server_id,
                                                    server_name=thread.server_name,
                                                    category_id=thread.category_id,
@@ -83,18 +76,14 @@ def get_context_system_prompt(session: Session, context_route: ContextRoute) -> 
     return ""
 
 
-async def analyze_thread(session: Session,
-                         context_route: ContextRoute,
-                         thread_id: str,
-                         thread_name: str,
-                         thread_owner_id: str,
+async def analyze_thread(context_route: ContextRoute,
+                         thread: ThreadModel
                          ) -> AnalyzedThreadResult | None:
     """
     Run AI analysis on a server object (server, category, or channel)
     and store the results in the ServerObjectAiAnalysis table.
     """
-    channel_prompt = get_context_system_prompt(session=session,
-                                               context_route=context_route)
+    channel_prompt = get_context_system_prompt(context_route=context_route)
     if not channel_prompt:
         raise ValueError(f"WARNING - No system prompt found for {context_route.names} with id {context_route.id}.")
 
