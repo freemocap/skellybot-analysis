@@ -184,26 +184,9 @@ def calculate_cumulative_counts(human_messages_df: pd.DataFrame) -> pd.DataFrame
     
     return cumulative_counts
 
-async def generate_embeddings(human_messages_df: pd.DataFrame, 
-                             analyses_df: Optional[pd.DataFrame] = None) -> Tuple[np.ndarray, Dict[str, pd.DataFrame]]:
-    """
-    Generate embeddings and projections for the human messages.
-    """
-    logger.info("Generating embeddings and projections")
-    
-    if calculate_embeddings_and_projections is None:
-        logger.warning("Embedding calculation is not available - skipping")
-        return np.array([]), {}
-    
-    if analyses_df is None:
-        analyses_df = pd.DataFrame()  # Empty dataframe if not provided
-        
-    embeddings_npy, embedding_dfs = await calculate_embeddings_and_projections(
-        human_messages_df=human_messages_df, 
-        thread_analyses_df=analyses_df
-    )
-    
-    return embeddings_npy, embedding_dfs
+
+
+
 
 async def augment_dataframes(dataframe_handler: DataframeHandler)  :
 
@@ -223,8 +206,7 @@ async def augment_dataframes(dataframe_handler: DataframeHandler)  :
     cumulative_counts_df = calculate_cumulative_counts(human_messages_df)
 
     # Run ai analyses on threads
-    thread_analyses:dict[ThreadId, AiThreadAnalysisModel] = await ai_analyze_threads(threads = list(dataframe_handler.threads.values()),
-                                                                                     messages = list(dataframe_handler.messages.values()))
+    thread_analyses:dict[ThreadId, AiThreadAnalysisModel] = await ai_analyze_threads(dataframe_handler=dataframe_handler)
     [dataframe_handler.store(primary_id=thread_id,
                              entity=analysis) for thread_id, analysis in thread_analyses.items()]
     dataframe_handler.save_raw_csvs()
@@ -237,11 +219,15 @@ async def augment_dataframes(dataframe_handler: DataframeHandler)  :
     augmented_users_df.to_csv(base_path / 'augmented_users.csv', index=False)
     cumulative_counts_df.to_csv(base_path / 'cumulative_counts.csv', index=False)
     
-    # # Generate embeddings if requested
-    # embeddings_npy, embedding_dfs = await generate_embeddings(human_messages_df, dataframe_handler.thread_analyses_df)
-    # for name, df in embedding_dfs.items():
-    #     df.to_csv(base_path / f'embedding_projections_{name}.csv', index=False)
-    #
+    # Generate embeddings if requested
+    embeddings_npy, embedding_dfs = await calculate_embeddings_and_projections(
+        human_messages_df=human_messages_df,
+        thread_analyses=list(dataframe_handler.thread_analyses.values())
+    )
+
+    for name, df in embedding_dfs.items():
+        df.to_csv(base_path / f'embedding_projections_{name}.csv', index=False)
+
     logger.info("Dataframe augmentation completed")
 
 if __name__ == "__main__":

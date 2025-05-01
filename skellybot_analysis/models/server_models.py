@@ -147,7 +147,7 @@ class ThreadModel(DataframeModel):
             channel_id=self.channel_id,
             channel_name=self.channel_name,
         )
-
+    
     def full_text(self, messages: list[MessageModel]) -> str:
         """
         Create a full text representation of the thread.

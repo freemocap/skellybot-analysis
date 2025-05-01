@@ -2,12 +2,14 @@ import asyncio
 import logging
 from asyncio import Task
 
+from openai import LengthFinishReasonError
 import tiktoken
 
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
+from skellybot_analysis.models.dataframe_handler import DataframeHandler
 from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
 from skellybot_analysis.models.server_models import ThreadModel, ThreadId, MessageModel
 
@@ -16,10 +18,10 @@ MIN_MESSAGE_LIMIT = 4
 logger = logging.getLogger(__name__)
 
 
-async def ai_analyze_threads(threads: list[ThreadModel],
-                             messages: list[MessageModel],
-                             ) -> dict[ThreadId, AiThreadAnalysisModel]:
+async def ai_analyze_threads(dataframe_handler:DataframeHandler) -> dict[ThreadId, AiThreadAnalysisModel]:
     """Run AI analysis on server data stored in a Parquet database"""
+    threads:list[ThreadModel] = list(dataframe_handler.threads.values())
+    messages:list[MessageModel] = list(dataframe_handler.messages.values())
     analysis_tasks: list[Task[tuple[ThreadId, AiThreadAnalysisModel]]] = []
     # Run analysis on threads
     logger.info(f"Analyzing {len(threads)} threads")
@@ -77,32 +79,48 @@ async def analyze_thread(thread: ThreadModel,
         f"BEGIN TEXT TO ANALYZE\n\n"
         f"{thread_text_to_analyze}\n\n"
         f"END TEXT TO ANALYZE\n"
+        f"Keep your answers concise and to the point, without sacrificing clarity and coverage. \n\n"
         f"Carefully consider the content of this conversation in order to provide the output prescribed by the provided JSON schema."
     )
 
-    # Run AI analysis
-    try:
-        result: TextAnalysisPromptModel = await make_openai_json_mode_ai_request(client=OPENAI_CLIENT,
-                                                        system_prompt=analysis_prompt,
-                                                        prompt_model=TextAnalysisPromptModel,
-                                                        llm_model=DEFAULT_LLM
-                                                        )
-        logger.info(f"AI analysis completed for Thread {thread.thread_id} ({thread.jump_url}) \n\n- tile: {result.title_slug}, summary: {result.extremely_short_summary}")
-        return thread.thread_id, AiThreadAnalysisModel(
-            server_id=thread.server_id,
-            server_name=thread.server_name,
-            category_id=thread.category_id,
-            category_name=thread.category_name,
-            channel_id=thread.channel_id,
-            channel_name=thread.channel_name,
-            thread_id=thread.thread_id,
-            thread_name=thread.thread_name,
-            analysis_prompt=analysis_prompt,
-            base_text=thread_text_to_analyze,
-            **result.model_dump()
-        )
-    except Exception as e:
-        logger.error(f"Error analyzing Thread {thread.thread_id}: {e} \n\n\n({thread.jump_url})")
-        raise
+        #Run AI analysis
 
+    max_retries = 3
+    attempt = 0
+    length_warning = "\n\nWARNING: The last response exceeded length limits. Please keep your answer SHORTER while still providing complete information."
+
+    while attempt < max_retries:
+        try:
+            result: TextAnalysisPromptModel = await make_openai_json_mode_ai_request(
+                client=OPENAI_CLIENT,
+                system_prompt=analysis_prompt,
+                prompt_model=TextAnalysisPromptModel,
+                llm_model=DEFAULT_LLM
+            )
+            break  # Success - exit loop
+        except LengthFinishReasonError:
+            attempt += 1
+            if attempt >= max_retries:
+                raise
+            logger.warning(f"Length error detected on attempt {attempt} - {thread.thread_id} ({thread.jump_url}) - appending STFU to prompt and retrying")
+            # Append length warning to original prompt
+            analysis_prompt += f" {length_warning} (re-attempt# {attempt} of {max_retries})"
+        except Exception as e:
+            logger.error(f"Error analyzing Thread {thread.thread_id}: {e} \n\n\n({thread.jump_url})")
+            raise
+
+    logger.info(f"AI analysis completed for Thread {thread.thread_id} ({thread.jump_url}) \n\n- tile: {result.title_slug}, summary: {result.extremely_short_summary}")
+    return thread.thread_id, AiThreadAnalysisModel(
+        server_id=thread.server_id,
+        server_name=thread.server_name,
+        category_id=thread.category_id,
+        category_name=thread.category_name,
+        channel_id=thread.channel_id,
+        channel_name=thread.channel_name,
+        thread_id=thread.thread_id,
+        thread_name=thread.thread_name,
+        analysis_prompt=analysis_prompt,
+        base_text=thread_text_to_analyze,
+        **result.model_dump()
+    )
 

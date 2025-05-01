@@ -80,7 +80,7 @@ class DataframeHandler(BaseModel):
 
         # Save and verify users
         self.thread_analyses_df.to_csv(Path(self.db_path) / AiThreadAnalysisModel.df_filename(), index=False)
-        base_save_path = Path(self.db_path) / "raw"
+        base_save_path = Path(self.db_path)
         base_save_path.mkdir(parents=True, exist_ok=True)
         self.users_df.to_csv(base_save_path / UserModel.df_filename(), index=False)
         self.messages_df.to_csv(base_save_path / MessageModel.df_filename(), index=False)
@@ -132,7 +132,7 @@ class DataframeHandler(BaseModel):
     def _load_model_data(self, model_cls: type[DataframeModel], target_dict: dict[int, BaseModel],
                          id_field: str) -> pd.DataFrame:
         """Generic loader for any DataFrame-backed model"""
-        csv_path = Path(self.db_path) /'raw'/ model_cls.df_filename()
+        csv_path = Path(self.db_path) / model_cls.df_filename()
 
         if not csv_path.exists():
             logger.warning(f"CSV file {csv_path.name} not found")
