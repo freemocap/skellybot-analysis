@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 from canvasapi import Canvas
-from canvasapi.user import User as CanvasUser
+from canvasapi.user import User as CanvasUser, User
 from canvasapi.course import Course as CanvasCourse
 
 import os
@@ -16,7 +16,7 @@ load_dotenv()
 CANVAS_API_URL = "https://canvas.instructure.com/"
 CANVAS_API_KEY = os.getenv('CANVAS_API_KEY')
 CANVAS_COURSE_CODE = os.getenv('CANVAS_COURSE_CODE')
-if API_KEY is None:
+if CANVAS_API_KEY is None:
     raise ValueError("Please set the CANVAS_API_KEY environment variable.")
 if CANVAS_COURSE_CODE is None:
     raise ValueError("Please set the CANVAS_COURSE_CODE environment variable.")

@@ -5,6 +5,7 @@ import discord
 import numpy as np
 from pydantic import BaseModel, model_validator, computed_field
 
+from skellybot_analysis.models.context_route_model import ContextRoute
 from skellybot_analysis.utilities.extract_attachements_from_discord_message import \
     extract_attachments_from_discord_message
 
@@ -41,21 +42,6 @@ class DataframeModel(BaseModel):
                         else:
                             data[field_name] = None
         return data
-class ThreadModel(DataframeModel):
-    thread_id: ThreadId
-    thread_name: str
-    server_id: ServerId
-    server_name: str
-    category_id: CategoryId|None = -1
-    category_name: str|None = "none"
-    channel_id: ChannelId
-    channel_name: str
-    owner_id: UserId
-
-    jump_url: str
-
-    created_at: datetime
-
 
 class UserModel(DataframeModel):
     user_id: UserId
@@ -134,3 +120,61 @@ class MessageModel(DataframeModel):
             timestamp=msg.created_at,
             attachments="\n".join(await extract_attachments_from_discord_message(msg.attachments)) if msg.attachments else "none",
         )
+
+
+class ThreadModel(DataframeModel):
+    thread_id: ThreadId
+    thread_name: str
+    server_id: ServerId
+    server_name: str
+    category_id: CategoryId | None = -1
+    category_name: str | None = "none"
+    channel_id: ChannelId
+    channel_name: str
+    owner_id: UserId
+
+    jump_url: str
+
+    created_at: datetime
+
+    @property
+    def context_route(self) -> ContextRoute:
+        return ContextRoute(
+            server_id=self.server_id,
+            server_name=self.server_name,
+            category_id=self.category_id,
+            category_name=self.category_name,
+            channel_id=self.channel_id,
+            channel_name=self.channel_name,
+        )
+
+    def full_text(self, messages: list[MessageModel]) -> str:
+        """
+        Create a full text representation of the thread.
+        """
+        if not all([isinstance(message, MessageModel) for message in messages]):
+            raise ValueError("All messages must be of type MessageModel")
+        if not all([message.thread_id == self.thread_id for message in messages]):
+            raise ValueError("All messages must belong to the same thread")
+        previous_message_timestamp = None
+        for message in messages:
+            if previous_message_timestamp and message.timestamp < previous_message_timestamp:
+                raise ValueError("Messages are not sorted by timestamp")
+            previous_message_timestamp = message.timestamp
+
+        full_text = f"Server Name: {self.server_name}\n"
+        full_text += f"Channel Name: {self.channel_name}\n"
+        full_text += f"Category Name: {self.category_name}\n"
+        full_text += f"Created At: {self.created_at}\n"
+
+        full_text = f"Thread Name: {self.thread_name}\n"
+
+        for message in messages:
+            if message.bot_message:
+                # TODO - incorporate the 'merging bot messages and removing the 'continued from' text from teh df augmenter to this biz
+                full_text+= f"BOT:\n\n{message.content}" # ignore bot attachments for now
+            else:
+                full_text+= f"HUMAN:\n\n"
+            full_text += f"{message.full_content}\n\n"
+
+        return full_text

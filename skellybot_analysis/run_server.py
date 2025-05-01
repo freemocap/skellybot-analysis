@@ -14,7 +14,7 @@ configure_logging(LogLevels.TRACE)
 
 if multiprocessing.current_process().name == "mainprocess":
     print_log_level_messages(logger)
-logger.trace(f"Running {skellybot_analysis.__package_name__} package, version: {skellybot_analysis.__version__}, from file: {__file__}")
+logger.debug(f"Running {skellybot_analysis.__package_name__} package, version: {skellybot_analysis.__version__}, from file: {__file__}")
 
 
 

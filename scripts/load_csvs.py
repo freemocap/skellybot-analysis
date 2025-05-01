@@ -15,4 +15,5 @@ augmented_threads_df = pd.read_csv(db_path /"augmented_threads.csv")
 augmented_users_df = pd.read_csv(db_path /"augmented_users.csv")
 cumulative_counts_df = pd.read_csv(db_path /"cumulative_counts.csv")
 human_messages_df = pd.read_csv(db_path /"human_messages.csv")
+ai_thread_analysis_df = pd.read_csv(db_path /"ai_thread_analyses.csv")
 #%%

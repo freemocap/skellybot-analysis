@@ -7,7 +7,9 @@ from typing import Dict, Tuple, Optional
 
 from skellybot_analysis.ai.analyze_server_data import ai_analyze_threads
 from skellybot_analysis.ai.calculate_embeddings_and_projections import calculate_embeddings_and_projections
+from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
 from skellybot_analysis.models.dataframe_handler import DataframeHandler
+from skellybot_analysis.models.server_models import ThreadId
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 from skellybot_analysis.utilities.load_env_variables import PROF_USER_ID
 
@@ -221,8 +223,12 @@ async def augment_dataframes(dataframe_handler: DataframeHandler)  :
     cumulative_counts_df = calculate_cumulative_counts(human_messages_df)
 
     # Run ai analyses on threads
-    # thread_analysis_df = ai_analyze_threads(augmented_threads_df)
-    
+    thread_analyses:dict[ThreadId, AiThreadAnalysisModel] = await ai_analyze_threads(threads = list(dataframe_handler.threads.values()),
+                                                                                     messages = list(dataframe_handler.messages.values()))
+    [dataframe_handler.store(primary_id=thread_id,
+                             entity=analysis) for thread_id, analysis in thread_analyses.items()]
+    dataframe_handler.save_raw_csvs()
+
     # Store results
     base_path = Path(dataframe_handler.db_path)
     augmented_messages_df.to_csv(base_path / 'augmented_messages.csv', index=False)

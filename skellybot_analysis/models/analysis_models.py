@@ -1,7 +1,8 @@
 from pydantic import BaseModel, computed_field, Field
 
+from skellybot_analysis.models.context_route_model import ContextRoute
 from skellybot_analysis.models.prompt_models import TopicAreaPromptModel
-from skellybot_analysis.models.server_models import DataframeModel
+from skellybot_analysis.models.server_models import DataframeModel, CategoryId
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
@@ -40,11 +41,12 @@ class TopicAreaModel(BaseModel):
 class AiThreadAnalysisModel(DataframeModel):
     server_id: int
     server_name: str
+    category_id: CategoryId | None = -1
+    category_name: str | None = "none"
     channel_id: int
     channel_name: str
     thread_id: int
     thread_name: str
-    analysis_text: str
     base_text: str
     analysis_prompt: str
     title_slug: str
@@ -55,6 +57,9 @@ class AiThreadAnalysisModel(DataframeModel):
     detailed_summary: str
     topic_areas: list[TopicAreaModel] = Field(default_factory=list)
 
+    @classmethod
+    def df_filename(cls) -> str:
+        return "ai_thread_analyses.csv"
 
     @computed_field
     def title(self) -> str:
@@ -108,12 +113,21 @@ class AiThreadAnalysisModel(DataframeModel):
         return self.full_text.split("## Full Content Text")[0]
 
     @property
+    def context_route(self):
+        return ContextRoute(
+            server_id=self.server_id,
+            server_name=self.server_name,
+            category_id=self.category_id,
+            category_name=self.category_name,
+            channel_id=self.channel_id,
+            channel_name=self.channel_name,
+        )
+    @property
     def full_text(self):
         return f"""
     # {self.title}\n\n
     > Context Route
-    > (names): {self.context_route.names}\n\n
-    > (ids): {self.context_route.ids}\n\n
+    > {self.context_route.as_formatted_text}\n\n
     ## Topic Areas\n
     {self.topic_areas_string}\n\n
     ## Tags\n

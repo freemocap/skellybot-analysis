@@ -54,6 +54,7 @@ class DataframeHandler(BaseModel):
         """Convert thread analyses to DataFrame"""
         return model_list_to_dataframe(list(self.thread_analyses.values()))
 
+
     @property
     def base_name(self):
         return self.output_dir.name.replace("_data", "")
@@ -78,13 +79,13 @@ class DataframeHandler(BaseModel):
         logger.info("Writing data to csv files...")
 
         # Save and verify users
+        self.thread_analyses_df.to_csv(Path(self.db_path) / AiThreadAnalysisModel.df_filename(), index=False)
         base_save_path = Path(self.db_path) / "raw"
         base_save_path.mkdir(parents=True, exist_ok=True)
         self.users_df.to_csv(base_save_path / UserModel.df_filename(), index=False)
         self.messages_df.to_csv(base_save_path / MessageModel.df_filename(), index=False)
         self.threads_df.to_csv(base_save_path / ThreadModel.df_filename(), index=False)
         self.prompts_df.to_csv(base_save_path / ContextPromptModel.df_filename(), index=False)
-        self.thread_analyses_df.to_csv(base_save_path / AiThreadAnalysisModel.df_filename(), index=False)
         self._validate_data()
 
         logger.info("All data written and verified successfully")
@@ -103,9 +104,6 @@ class DataframeHandler(BaseModel):
             if loaded_user != self.users[loaded_user_id]:
                 logger.error(f"User {loaded_user_id} data mismatch - {loaded_user} != {self.users[loaded_user_id]}")
                 raise ValueError(f"User {loaded_user_id} data mismatch")
-
-
-
 
 
     @classmethod

@@ -35,6 +35,7 @@ def get_most_recent_db_location() -> str:
 
     if not Path(db_path).exists():
         raise FileNotFoundError(f"Database file not found: {db_path}")
+    logger.info(f"Loaded most recent database path: {db_path}")
     return db_path
 
 
