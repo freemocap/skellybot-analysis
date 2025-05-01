@@ -55,6 +55,8 @@ class DataframeHandler(BaseModel):
         """Convert thread analyses to DataFrame"""
         return model_list_to_dataframe(list(self.thread_analyses.values()))
 
+
+
     @property
     def base_name(self):
         return self.output_dir.name.replace("_data", "")
