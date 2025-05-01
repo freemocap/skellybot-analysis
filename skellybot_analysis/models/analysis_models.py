@@ -1,42 +1,9 @@
-from pydantic import BaseModel, computed_field, Field
+from pydantic import computed_field
 
 from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.models.prompt_models import TopicAreaPromptModel
 from skellybot_analysis.models.server_models import DataframeModel, CategoryId
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
-
-class TopicAreaModel(BaseModel):
-    name: str
-    category: str
-    subject: str
-    topic: str
-    subtopic: str
-    niche: str
-    description: str
-
-    @computed_field
-    def as_string(self) -> str:
-        """
-        Convert the TopicArea instance to a string representation.
-        """
-        return f"{self.name} -> {self.category} -> {self.subject} -> {self.topic} -> {self.subtopic} -> {self.niche}"
-
-    @classmethod
-    def from_prompt_model(cls, topic: TopicAreaPromptModel):
-        """
-        Create a TopicArea instance from a TopicAreaPromptModel instance.
-        """
-        return cls.get_create_or_update(
-            db_id=hash((topic.name, topic.category, topic.subject, topic.topic, topic.subtopic, topic.niche)),
-            name=topic.name,
-            category=topic.category,
-            subject=topic.subject,
-            topic=topic.topic,
-            subtopic=topic.subtopic,
-            niche=topic.niche,
-            description=topic.description
-        )
 
 class AiThreadAnalysisModel(DataframeModel):
     server_id: int
@@ -55,7 +22,7 @@ class AiThreadAnalysisModel(DataframeModel):
     short_summary: str
     highlights: str
     detailed_summary: str
-    topic_areas: list[TopicAreaModel] = Field(default_factory=list)
+    topic_areas: str
 
     @classmethod
     def df_filename(cls) -> str:
@@ -73,11 +40,12 @@ class AiThreadAnalysisModel(DataframeModel):
 
     @property
     def tags(self):
-        tag_list = []
-        for topic in self.topic_areas:
-            tag_list.extend(list(topic.model_dump(exclude={"id", "created_at", "description"}).values()))
+        tags = self.topic_areas.split(" -> ")
+        split_tags = []
+        for tag in tags:
+            split_tags.extend(tag.split(','))
         clean_tags = []
-        for tag in tag_list:
+        for tag in tags:
             tag.strip()
             if not tag.startswith("#"):
                 tag = "#" + tag
@@ -88,13 +56,6 @@ class AiThreadAnalysisModel(DataframeModel):
             if not tag in clean_tags:
                 clean_tags.append(tag)
         return clean_tags
-
-    @property
-    def topic_areas_string(self):
-        topic_areas = ""
-        for topic in self.topic_areas:
-            topic_areas += f"{topic.as_string}\n\n"
-        return topic_areas
 
     @property
     def tags_string(self):
@@ -129,7 +90,7 @@ class AiThreadAnalysisModel(DataframeModel):
     > Context Route
     > {self.context_route.as_formatted_text}\n\n
     ## Topic Areas\n
-    {self.topic_areas_string}\n\n
+    {self.topic_areas}\n\n
     ## Tags\n
     {self.tags_string}\n\n
     ## Extremely Short Summary\n\n

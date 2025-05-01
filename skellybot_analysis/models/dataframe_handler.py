@@ -18,6 +18,7 @@ def model_list_to_dataframe(data: list[DataframeModel]) -> pd.DataFrame:
         return pd.DataFrame()
     return pd.DataFrame([item.model_dump() for item in data])
 
+
 class DataframeHandler(BaseModel):
     """Manages batched writes to Parquet with Pydantic validation"""
     db_path: str
@@ -53,7 +54,6 @@ class DataframeHandler(BaseModel):
     def thread_analyses_df(self) -> pd.DataFrame:
         """Convert thread analyses to DataFrame"""
         return model_list_to_dataframe(list(self.thread_analyses.values()))
-
 
     @property
     def base_name(self):
@@ -105,7 +105,6 @@ class DataframeHandler(BaseModel):
                 logger.error(f"User {loaded_user_id} data mismatch - {loaded_user} != {self.users[loaded_user_id]}")
                 raise ValueError(f"User {loaded_user_id} data mismatch")
 
-
     @classmethod
     def from_db_path(cls, db_path: str):
         """Load all CSV data into model dictionaries"""
@@ -127,6 +126,13 @@ class DataframeHandler(BaseModel):
         instance._load_model_data(model_cls=ContextPromptModel,
                                   target_dict=instance.prompts,
                                   id_field="context_id")
+        try:
+            instance._load_model_data(model_cls=AiThreadAnalysisModel,
+                                      target_dict=instance.thread_analyses,
+                                      id_field="thread_id")
+        except ValueError:
+            logger.warning("No thread analyses found in the database - skipping")
+            instance.thread_analyses = {}
         return instance
 
     def _load_model_data(self, model_cls: type[DataframeModel], target_dict: dict[int, BaseModel],

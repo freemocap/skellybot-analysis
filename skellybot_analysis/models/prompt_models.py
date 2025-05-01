@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class TopicAreaPromptModel(BaseModel):
@@ -17,6 +17,20 @@ class TopicAreaPromptModel(BaseModel):
     description: str = Field(
         description="A brief description of this interest, including any relevant background information, key concepts, notable figures, recent developments, and related topics. This should be a concise summary that provides context and depth to the interest")
 
+    @computed_field
+    def id(self) -> int:
+        """
+        Generate a unique ID for the TopicArea instance based on its attributes.
+        """
+        return hash(self.as_string)
+
+    @computed_field
+    def as_string(self) -> str:
+        """
+        Convert the TopicArea instance to a string representation.
+        """
+        return f"{self.name} -> {self.category} -> {self.subject} -> {self.topic} -> {self.subtopic} -> {self.niche}"
+
 
 class TextAnalysisPromptModel(BaseModel):
     title_slug: str = Field(
@@ -25,12 +39,21 @@ class TextAnalysisPromptModel(BaseModel):
     very_short_summary: str = Field(description="A very short one sentence summary of the text")
     short_summary: str = Field(description="A short (2-3 sentence) summary of the text")
     highlights: str = Field(
-        description="A list of the 5-10 most important points of the text, formatted as a bulleted list")
+        description=" 3-6 of most important points of the text, formatted as a newline separated string list")
     detailed_summary: str = Field(
         description="An exhaustively thorough and detailed summary of the major points of this text in markdown bulleted outline format, like `* point 1\n* point 2\n* point 3` etc. Do not include conversational aspects such as 'the human greets the ai' and the 'ai responds with a greeting', only include the main contentful components of the text.")
     topic_areas: list[TopicAreaPromptModel] = Field(
         description="A list of topic areas that describe the content of the text. These will be used to categorize the text within a larger collection of texts. Ignore conversational aspects (such as 'greetings', 'farewells', 'thanks', etc.).  These should almost always be single word, unless the tag is a multi-word phrase that is commonly used as a single tag, in which case it should be hyphenated. For example, 'machine-learning, python, oculomotor-control,neural-networks, computer-vision', but NEVER things like 'computer-vision-conversation', 'computer-vision-questions', etc.")
 
+    @property
+    def topic_areas_as_string(self) -> str:
+        """
+        Convert the list of topic areas to a string representation.
+        """
+        topic_area_strings = ""
+        for topic_area in self.topic_areas:
+            topic_area_strings += topic_area.as_string + " \n,"
+        return topic_area_strings.strip(", \n")  # Remove trailing comma and newline
 
 class UserProfilePromptModel(BaseModel):
     """Represents a user's profile with interests and recommendations."""

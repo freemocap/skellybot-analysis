@@ -16,8 +16,7 @@ async def calculate_ollama_embeddings(texts_to_embed: List[str]) -> List[List[fl
             raise ValueError(f"Expected text to be a string, but got {type(text)}")
         embeddings.append(asyncio.create_task(ollama_client.embed(model=DEFAULT_OLLAMA_EMBEDDINGS_MODEL,
                                                                   input=text,
-                                                                  truncate=True,
-                                                                  keep_alive=1))  # 'keep_alive' one second for speed?
+                                                                  truncate=True))
                           )
     embeddings = await asyncio.gather(*embeddings)
     print(f"Succesfully calculated embeddings for {len(embeddings)} texts!")

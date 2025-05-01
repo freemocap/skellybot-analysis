@@ -89,38 +89,43 @@ async def analyze_thread(thread: ThreadModel,
     attempt = 0
     length_warning = "\n\nWARNING: The last response exceeded length limits. Please keep your answer SHORTER while still providing complete information."
 
-    while attempt < max_retries:
-        try:
+    try:
+        while attempt < max_retries:
             result: TextAnalysisPromptModel = await make_openai_json_mode_ai_request(
                 client=OPENAI_CLIENT,
                 system_prompt=analysis_prompt,
                 prompt_model=TextAnalysisPromptModel,
                 llm_model=DEFAULT_LLM
             )
-            break  # Success - exit loop
-        except LengthFinishReasonError:
-            attempt += 1
-            if attempt >= max_retries:
-                raise
-            logger.warning(f"Length error detected on attempt {attempt} - {thread.thread_id} ({thread.jump_url}) - appending STFU to prompt and retrying")
-            # Append length warning to original prompt
-            analysis_prompt += f" {length_warning} (re-attempt# {attempt} of {max_retries})"
-        except Exception as e:
-            logger.error(f"Error analyzing Thread {thread.thread_id}: {e} \n\n\n({thread.jump_url})")
+
+            logger.info(f"AI analysis completed for Thread {thread.thread_id} ({thread.jump_url}) \n\n- tile: {result.title_slug}, summary: {result.extremely_short_summary}")
+
+            return thread.thread_id, AiThreadAnalysisModel(
+                server_id=thread.server_id,
+                server_name=thread.server_name,
+                category_id=thread.category_id,
+                category_name=thread.category_name,
+                channel_id=thread.channel_id,
+                channel_name=thread.channel_name,
+                thread_id=thread.thread_id,
+                thread_name=thread.thread_name,
+                analysis_prompt=analysis_prompt,
+                base_text=thread_text_to_analyze,
+                topic_areas= result.topic_areas_as_string,
+                **result.model_dump(exclude={'topic_areas'})
+            )
+        logger.error(f"Max retries exceeded for thread analysis: {thread.thread_id} ({thread.jump_url})")
+        raise ValueError("Max retries exceeded for thread analysis")
+    except LengthFinishReasonError:
+        attempt += 1
+        if attempt >= max_retries:
             raise
+        logger.warning(
+            f"Length error detected on attempt {attempt} - {thread.thread_id} ({thread.jump_url}) - appending STFU to prompt and retrying")
+        # Append length warning to original prompt
+        analysis_prompt += f" {length_warning} (re-attempt# {attempt} of {max_retries})"
+        return None
 
-    logger.info(f"AI analysis completed for Thread {thread.thread_id} ({thread.jump_url}) \n\n- tile: {result.title_slug}, summary: {result.extremely_short_summary}")
-    return thread.thread_id, AiThreadAnalysisModel(
-        server_id=thread.server_id,
-        server_name=thread.server_name,
-        category_id=thread.category_id,
-        category_name=thread.category_name,
-        channel_id=thread.channel_id,
-        channel_name=thread.channel_name,
-        thread_id=thread.thread_id,
-        thread_name=thread.thread_name,
-        analysis_prompt=analysis_prompt,
-        base_text=thread_text_to_analyze,
-        **result.model_dump()
-    )
-
+    except Exception as e:
+        logger.error(f"Error analyzing Thread {thread.thread_id}: {e} \n\n\n({thread.jump_url})")
+        raise
