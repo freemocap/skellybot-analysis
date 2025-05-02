@@ -9,10 +9,10 @@ from dash.dependencies import Input, Output
 from scripts.load_csvs import cumulative_counts_df, augmented_users_df, human_messages_df
 from skellybot_analysis import configure_logging
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
-from skellybot_analysis.visualize_data.create_cumulative_messages_plot import create_cumulative_message_count_by_user, \
+from skellybot_analysis.visualize_data.descriptive_stats.create_cumulative_messages_plot import create_cumulative_message_count_by_user, \
     create_cumulative_word_count_plot
-from skellybot_analysis.visualize_data.create_histogram_subplot import create_histogram_subplot
-from skellybot_analysis.visualize_data.initialize_figure import initialize_figure
+from skellybot_analysis.visualize_data.descriptive_stats.create_histogram_subplot import create_histogram_subplot
+from skellybot_analysis.visualize_data.descriptive_stats.initialize_figure import initialize_figure
 
 configure_logging()
 logger = logging.getLogger(__name__)
