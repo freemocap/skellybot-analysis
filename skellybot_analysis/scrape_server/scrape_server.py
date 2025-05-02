@@ -3,7 +3,7 @@ from pathlib import Path
 
 import discord
 
-from skellybot_analysis.models.dataframe_handler import DataframeHandler
+from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
 from skellybot_analysis.scrape_server.scrape_context_prompts import grab_context_prompts
 from skellybot_analysis.scrape_server.scrape_thread import get_channel_threads, scrape_thread
 

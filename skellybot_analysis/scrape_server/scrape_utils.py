@@ -2,8 +2,8 @@ import logging
 
 import discord
 
-from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Message
-from skellybot_analysis.models.server_models import MessageModel
+from skellybot_analysis.old_db.sql_db.sql_db_models.db_server_models import Message
+from skellybot_analysis.data_models.server_models import MessageModel
 
 logger = logging.getLogger(__name__)
 

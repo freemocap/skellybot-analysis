@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
-from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
+from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from skellybot_analysis.models.dataframe_handler import DataframeHandler
+from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
 from skellybot_analysis.system.logging_configuration.configure_logging import configure_logging
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 

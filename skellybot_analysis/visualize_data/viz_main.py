@@ -1,79 +1,21 @@
 import logging
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+from dash import Dash, html, dcc
+from dash.dependencies import Input, Output
 
-from scripts.load_csvs import cumulative_counts_df, augmented_users_df, human_messages_df, augmented_messages_df, \
-    ai_thread_analysis_df, embedding_projections_tsne_3d_df, embedding_projections_tsne_2d_df
+from scripts.load_csvs import cumulative_counts_df, augmented_users_df, human_messages_df
 from skellybot_analysis import configure_logging
+from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
+from skellybot_analysis.visualize_data.create_cumulative_messages_plot import create_cumulative_message_count_by_user, \
+    create_cumulative_word_count_plot
+from skellybot_analysis.visualize_data.create_histogram_subplot import create_histogram_subplot
+from skellybot_analysis.visualize_data.initialize_figure import initialize_figure
 
 configure_logging()
 logger = logging.getLogger(__name__)
-
-
-def initialize_figure():
-    logger.info("Initializing figure")
-    fig = make_subplots(
-        rows=2, cols=5,
-        specs=[[{"colspan": 3}, None, None, {"colspan": 2}, None],  # Mark 4th column as 3D scene
-               [{}, {}, {}, {}, {}]],
-        subplot_titles=("", "", "", "", "", "", "", "", "", ""),  # Optional: Add titles if needed
-    )
-    fig.update_layout(
-        height=800,
-        width=1200,
-        title_text="Skellybot Analysis",
-        title_x=0.5,
-        showlegend=False,
-        margin=dict(l=20, r=20, t=50, b=20),
-        font=dict(size=12),
-    )
-    return fig
-
-
-# Helper function for histogram subplots with common elements
-def _add_histogram_with_stats(fig: go.Figure, data: pd.Series,
-                              subplot_row: int, subplot_col: int,
-                              x_title: str, color: str, max_bin: float = None):
-    # Calculate statistics
-    mean_val = data.mean()
-    median_val = data.median()
-    hist_bins = max_bin if max_bin else data.max()
-    max_freq = np.histogram(data, bins=30, range=(0, hist_bins))[0].max()
-    logger.info(
-        f"Creating histogram for {x_title} (row {subplot_row}, col {subplot_col}), data size: {len(data)}, max_freq: {max_freq}, mean: {mean_val}, median: {median_val}, max_bin: {max_bin}, hist_bins: {hist_bins}")
-
-    # Add histogram trace
-    fig.add_trace(go.Histogram(
-        x=data,
-        nbinsx=30,
-        marker_color=color,
-        name=x_title
-    ), row=subplot_row, col=subplot_col)
-
-    # Add statistical lines and annotations
-
-    for val, color, text, y_pos in [
-        (mean_val, "red", f"Mean: {mean_val:.1f}", 0.9),
-        (median_val, "green", f"Median: {median_val:.1f}", 0.75)
-    ]:
-        fig.add_vline(
-            x=val, line_dash="dash", line_color=color,
-            row=subplot_row, col=subplot_col
-        )
-        fig.add_annotation(
-            x=val, y=max_freq * y_pos,
-            text=text, showarrow=True,
-            arrowhead=2, font=dict(color=color),
-            row=subplot_row, col=subplot_col
-        )
-
-    # Axis labels
-    fig.update_xaxes(title_text=x_title, row=subplot_row, col=subplot_col)
-    fig.update_yaxes(title_text="Frequency", row=subplot_row, col=subplot_col)
 
 
 def create_embedding_subplot(fig: go.Figure,
@@ -92,7 +34,7 @@ def create_embedding_subplot(fig: go.Figure,
                 color=tsne2d_df['id'],  # Color by entity ID (thread, user, or message)
             ),
         ),
-        row=subplot_row, col=subplot_col
+        row=subplot_row, col=subplot_col,
     )
 
     # Set 3D scene properties
@@ -103,107 +45,158 @@ def create_embedding_subplot(fig: go.Figure,
         row=subplot_row, col=subplot_col
     )
 
-    # Histogram subplot functions using helper
-
-
-
-def create_cumulative_message_count_plot(fig: go.Figure,
-                                         cumulative_counts_df: pd.DataFrame,
-                                         subplot_row: int,
-                                         subplot_col: int):
-    # Add traces for the cumulative message count
-    logger.info(
-        f"Creating cumulative message count plot for {len(cumulative_counts_df['author_id'].unique())} users (row {subplot_row}, col {subplot_col})")
-    for user_id in cumulative_counts_df['author_id'].unique():
-        user_data = cumulative_counts_df[cumulative_counts_df['author_id'] == user_id]
-        fig.add_trace(
-            go.Scatter(
-                x=user_data['timestamp'],
-                y=user_data['cumulative_message_count'],
-                mode='lines+markers',
-                name=f'User {user_id}',
-                line=dict(width=3),
-                marker=dict(size=6)
-            ),
-            row=subplot_row, col=subplot_col
-        )
-
 
 def create_subplots(fig: go.Figure):
+    human_word_color = '#239d1e'
+    bot_word_color = '#AA0880'
 
-    create_cumulative_message_count_plot(fig=fig,
-                                         cumulative_counts_df=cumulative_counts_df,
-                                         subplot_row=1,
-                                         subplot_col=1)
-
-    create_embedding_subplot(fig=fig,
-                             tsne2d_df=embedding_projections_tsne_2d_df,
-                             subplot_row=1,
-                             subplot_col=4
-                             )
-
-    _add_histogram_with_stats(
-        fig=fig,
-        data=augmented_users_df['total_messages_sent'],
-        subplot_row=2,
-        subplot_col=1,
-        x_title='Messages per User',
-        color='#19D3F3'
-    )
+    create_cumulative_message_count_by_user(fig=fig,
+                                            cumulative_counts_df=cumulative_counts_df,
+                                            subplot_row=1,
+                                            subplot_col=1)
+    create_cumulative_word_count_plot(fig=fig,
+                                      cumulative_counts_df=cumulative_counts_df,
+                                      human_word_color=human_word_color,
+                                      bot_word_color=bot_word_color,
+                                      subplot_row=2,
+                                      subplot_col=1)
+    # create_embedding_subplot(fig=fig,
+    #                          tsne2d_df=embedding_projections_tsne_2d_df,
+    #                          subplot_row=1,
+    #                          subplot_col=4
+    #                          )
 
     # create_threads_per_user_histogram_subplot
-    _add_histogram_with_stats(
+    create_histogram_subplot(
         fig=fig,
         data=augmented_users_df['threads_participated'],
-        subplot_row=2,
-        subplot_col=2,
-        x_title='Threads per User',
-        color='#FFA15A'
+        subplot_row=1,
+        subplot_col=4,
+        x_label='Thread Count',
+        color='#FFA15A',
+        units='Threads',
+    )
+
+    # create_messages_per_user_histogram_subplot
+    create_histogram_subplot(
+        fig=fig,
+        data=augmented_users_df['total_messages_sent'],
+        subplot_row=1,
+        subplot_col=5,
+        x_label='Message Count',
+        color='#19D3F3',
+        units='Messages',
     )
 
     # create_words_per_user_histogram_subplot
-    _add_histogram_with_stats(
+    create_histogram_subplot(
         fig=fig,
         data=augmented_users_df['total_words_sent'],
-        subplot_row=2,
-        subplot_col=3,
-        x_title='Words per User',
-        color='#FF6692'
+        subplot_row=1,
+        subplot_col=6,
+        x_label='Word Count',
+        color='#FF6692',
+        units='Words',
+        number_of_bins=50
     )
 
     # create_messages_per_thread_histogram_subplot
-    _add_histogram_with_stats(
+    create_histogram_subplot(
         fig=fig,
         data=human_messages_df.groupby('thread_id').size(),
-        subplot_row=2,
-        subplot_col=4,
-        x_title='Human Messages per Thread',
-        color='#636EFA'
+        subplot_row=1,
+        subplot_col=7,
+        x_label='Message Count',
+        color='#F3AEFA',
+        units='Messages',
     )
 
     # create_words_per_message_histogram_subplot
-    _add_histogram_with_stats(
+    create_histogram_subplot(
         fig=fig,
         data=human_messages_df['human_word_count'],
         subplot_row=2,
-        subplot_col=5,
-        x_title='Words per Message',
-        color='#B6E880',
-        max_bin=300
+        subplot_col=4,
+        x_label='Word Count',
+        color=human_word_color,
+        max_bin=500,
+        min_bin=0,
+        number_of_bins=250,
+        units='Words',
+    )
+    # create_words_per_message_histogram_subplot
+    create_histogram_subplot(
+        fig=fig,
+        data=human_messages_df['bot_word_count'][human_messages_df['bot_word_count'] > 2],
+        subplot_row=2,
+        subplot_col=6,
+        x_label='Word Count',
+        color=bot_word_color,
+        max_bin=500,
+        min_bin=0,
+        number_of_bins=250,
+        units='Words',
     )
 
 
-def viz_main():
-    fig = initialize_figure()
-    create_subplots(fig=fig)
-    
-    # Add explicit renderer configuration
-    fig.show(renderer="browser")  # Force browser rendering
-    
-    # Add cleanup for potential hanging processes
-    import plotly.io as pio
-    pio.kaleido.scope._shutdown_kaleido()  # Cleanup any remaining rendering processes
+# Initialize the Dash app
+app = Dash(
+    __name__,
+    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
+)
+
+# Define the app layout
+app.layout = html.Div([
+    html.Div([
+        # Removed the title div since it's now part of the figure
+        
+        html.Div([
+            dcc.Graph(
+                id='main-graph',
+                className="main-graph-container",
+                config={'displayModeBar': True, 'responsive': True}
+            ),
+        ], style={'margin': '0px 0'}),
+
+        html.Div([
+            dcc.Interval(
+                id='interval-component',
+                interval=10 * 1000,  # in milliseconds (10 seconds)
+                n_intervals=0
+            )
+        ]),
+    ], style={ 'margin': '0 auto', 'padding': '0px'})
+], style={'fontFamily': 'Arial, sans-serif'})
+
+# Define callback to update the graph
+@app.callback(
+    Output('main-graph', 'figure'),
+    [Input('interval-component', 'n_intervals')]
+)
+def update_graph(n):
+    db_directory = Path(get_most_recent_db_location())
+    db_name = db_directory.stem.replace("_data", "")
+    fig = initialize_figure(db_name=db_name)
+    create_subplots(fig)
+    return fig
+
 
 
 if __name__ == "__main__":
-    viz_main()
+    # Generate and save static versions of the visualization
+    logger.info("Generating static visualization files")
+    _db_directory = Path(get_most_recent_db_location())
+    _db_name = _db_directory.stem.replace("_data", "")
+    visualization_name = f"{_db_name}_skellybot_visualization"
+
+    static_fig = initialize_figure(db_name=_db_name)
+    create_subplots(static_fig)
+
+    # Save as HTML
+    html_path = _db_directory / f"{visualization_name}.html"
+    static_fig.write_html(str(html_path))
+    logger.info(f"Saved HTML visualization to {html_path}")
+
+    # Run the Dash app if not in static-only mode
+    logger.info("Starting Dash app...")
+    app.run_server(debug=True)

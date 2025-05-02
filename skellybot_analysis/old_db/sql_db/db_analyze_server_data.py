@@ -9,11 +9,11 @@ from sqlmodel import Session, select
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
-from skellybot_analysis.db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
-from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Thread, ContextSystemPrompt, Message
-from skellybot_analysis.db.sql_db.db_utilities import initialize_database_engine
-from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
+from skellybot_analysis.old_db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis, TopicArea
+from skellybot_analysis.old_db.sql_db.sql_db_models.db_server_models import Thread, ContextSystemPrompt, Message
+from skellybot_analysis.old_db.sql_db.db_utilities import initialize_database_engine
+from skellybot_analysis.data_models.context_route_model import ContextRoute
+from skellybot_analysis.data_models.prompt_models import TextAnalysisPromptModel
 
 MIN_MESSAGE_LIMIT = 4
 

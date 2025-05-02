@@ -8,9 +8,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 
 from skellybot_analysis import configure_logging
-from skellybot_analysis.db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis
-from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import Thread, User, Message
-from skellybot_analysis.db.sql_db.db_utilities import get_db_session
+from skellybot_analysis.old_db.sql_db.sql_db_models.db_ai_analysis_models import ServerObjectAiAnalysis
+from skellybot_analysis.old_db.sql_db.sql_db_models.db_server_models import Thread, User, Message
+from skellybot_analysis.old_db.sql_db.db_utilities import get_db_session
 from skellybot_analysis.utilities.load_env_variables import DISCORD_BOT_ID, PROF_USER_ID
 
 

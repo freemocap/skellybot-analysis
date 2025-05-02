@@ -5,6 +5,7 @@ description = "The analysis backend for Skellybot (github.com/freemocap/skellybo
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "anthropic>=0.50.0",
     "canvasapi>=3.3.0",
     "dash>=2.18.2",
     "discord>=2.3.2",
@@ -13,6 +14,7 @@ dependencies = [
     "ipykernel>=6.29.5",
     "jieba>=0.42.1",
     "matplotlib>=3.10.0",
+    "mcp[cli]>=1.6.0",
     "moviepy>=2.1.2",
     "nbformat>=5.10.4",
     "numpy~=2.1.3",

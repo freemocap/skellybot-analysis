@@ -2,8 +2,8 @@ import logging
 
 import discord
 
-from skellybot_analysis.models.dataframe_handler import DataframeHandler
-from skellybot_analysis.models.server_models import UserModel, ThreadModel, MessageModel
+from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
+from skellybot_analysis.data_models.server_models import UserModel, ThreadModel, MessageModel
 from skellybot_analysis.scrape_server.scrape_utils import MINIMUM_THREAD_MESSAGE_COUNT, update_latest_message_datetime
 from skellybot_analysis.utilities.extract_attachements_from_discord_message import \
     extract_attachments_from_discord_message

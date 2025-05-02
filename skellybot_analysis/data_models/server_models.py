@@ -5,7 +5,7 @@ import discord
 import numpy as np
 from pydantic import BaseModel, model_validator, computed_field
 
-from skellybot_analysis.models.context_route_model import ContextRoute
+from skellybot_analysis.data_models.context_route_model import ContextRoute
 from skellybot_analysis.utilities.extract_attachements_from_discord_message import \
     extract_attachments_from_discord_message
 

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sklearn.manifold import TSNE
 
 from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
-from skellybot_analysis.models.xyz_data_model import XYZData
+from skellybot_analysis.data_models.xyz_data_model import XYZData
 
 logger = logging.getLogger(__name__)
 

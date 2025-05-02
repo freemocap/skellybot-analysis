@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from skellybot_analysis.db.sql_db.sql_db_models import Server
+from skellybot_analysis.old_db.sql_db.sql_db_models import Server
 
 logger = logging.getLogger(__name__)
 RECORD_OF_PATH_TO_FIND_MOST_RECENT_SCRAPE = Path(__file__).parent / "most_recent_scrape_location.txt"

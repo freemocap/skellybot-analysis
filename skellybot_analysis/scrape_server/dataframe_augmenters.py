@@ -7,9 +7,9 @@ from typing import Dict, Tuple, Optional
 
 from skellybot_analysis.ai.analyze_server_data import ai_analyze_threads
 from skellybot_analysis.ai.calculate_embeddings_and_projections import calculate_embeddings_and_projections
-from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
-from skellybot_analysis.models.dataframe_handler import DataframeHandler
-from skellybot_analysis.models.server_models import ThreadId
+from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
+from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
+from skellybot_analysis.data_models.server_models import ThreadId
 from skellybot_analysis.utilities.get_most_recent_db_location import get_most_recent_db_location
 from skellybot_analysis.utilities.load_env_variables import PROF_USER_ID
 
@@ -23,14 +23,48 @@ def count_words(text: str) -> int:
         return 0
     return len(str(text).split())
 
-def combine_bot_messages(message_contents: pd.Series) -> str:
-    """Combine bot messages into a single string."""
-    combine_message_content =  '\n\n'.join(message_contents) if not message_contents.empty else ''
-    cleaned_lines= []
-    for line in combine_message_content.split('\n'):
-        if line.startswith("> continuing from"):
+def combine_bot_messages(messages_df: pd.DataFrame, human_message_id: str) -> str:
+    """
+    Recursively combine all bot messages that are part of a response chain to a human message.
+    
+    Args:
+        messages_df: DataFrame containing all messages
+        human_message_id: The ID of the human message to find responses for
+        
+    Returns:
+        Combined text of all bot responses in the chain
+    """
+    bot_messages = messages_df[messages_df['bot_message']]
+    
+    # Function to recursively collect all bot messages in the response chain
+    def collect_responses(parent_id):
+        # Get direct responses to this message
+        direct_responses = bot_messages[bot_messages['parent_message_id'] == parent_id]
+        
+        if direct_responses.empty:
+            return []
+        
+        all_responses = list(direct_responses['content'])
+        
+        # For each direct response, also collect any responses to it
+        for msg_id in direct_responses['message_id']:
+            all_responses.extend(collect_responses(msg_id))
+            
+        return all_responses
+    
+    # Start collection from the human message
+    response_contents = collect_responses(human_message_id)
+    
+    # Combine all responses
+    combined_content = '\n\n'.join(response_contents) if response_contents else ''
+    
+    # Clean up continuation markers
+    cleaned_lines = []
+    for line in combined_content.split('\n'):
+        if line.strip().startswith("> continuing from"):
             continue
         cleaned_lines.append(line)
+    
     return '\n'.join(cleaned_lines)
 
 def augment_messages(messages_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -60,13 +94,10 @@ def augment_messages(messages_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFr
     
     # Create human and bot message dataframes
     human_messages_df = df[~df['bot_message']].copy()
-    bot_messages_df = df[df['bot_message']].copy()
     
-    # Find bot responses to human messages
-    human_messages_df['bot_response'] = human_messages_df['message_id'].map(
-        bot_messages_df.groupby('parent_message_id')['content'].apply(
-            combine_bot_messages
-        )
+    # Find bot responses to human messages using the improved function
+    human_messages_df['bot_response'] = human_messages_df['message_id'].apply(
+        lambda msg_id: combine_bot_messages(df, msg_id)
     )
     
     # Combine message and response
@@ -168,27 +199,96 @@ def augment_users(users_df: pd.DataFrame, human_messages_df: pd.DataFrame) -> pd
     
     return df
 
+
+
+
 def calculate_cumulative_counts(human_messages_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate running cumulative message count per user.
+    Calculate running cumulative message count per user and total across all users.
+    Also calculate cumulative word counts (total, human, and bot).
     """
-    logger.info("Calculating cumulative message counts")
+    logger.info("Calculating cumulative message counts and word counts")
+    
+    # Sort messages by timestamp
+    sorted_df = human_messages_df.sort_values('timestamp')
     
     # Calculate running cumulative count for each user
-    cumulative_counts = (
-        human_messages_df.groupby(['author_id', 'timestamp']).size()
+    user_cumulative = (
+        sorted_df.groupby(['author_id', 'timestamp']).size()
         .groupby(level=0).cumsum()
         .reset_index()
     )
-    cumulative_counts.columns = ['author_id', 'timestamp', 'cumulative_message_count']
+    user_cumulative.columns = ['author_id', 'timestamp', 'cumulative_message_count']
     
-    return cumulative_counts
+    # Calculate total cumulative count across all users
+    total_cumulative = (
+        sorted_df.groupby('timestamp').size()
+        .cumsum()
+        .reset_index()
+    )
+    total_cumulative.columns = ['timestamp', 'total_cumulative_count']
+    
+    # Calculate cumulative word counts
+    # Total words (human + bot)
+    total_word_cumulative = (
+        sorted_df.groupby('timestamp')['total_word_count'].sum()
+        .cumsum()
+        .reset_index()
+    )
+    total_word_cumulative.columns = ['timestamp', 'cumulative_total_word_count']
+    
+    # Human words only
+    human_word_cumulative = (
+        sorted_df.groupby('timestamp')['human_word_count'].sum()
+        .cumsum()
+        .reset_index()
+    )
+    human_word_cumulative.columns = ['timestamp', 'cumulative_human_word_count']
+    
+    # Bot words only
+    bot_word_cumulative = (
+        sorted_df.groupby('timestamp')['bot_word_count'].sum()
+        .cumsum()
+        .reset_index()
+    )
+    bot_word_cumulative.columns = ['timestamp', 'cumulative_bot_word_count']
+    
+    # Merge all the counts into one dataframe
+    result = pd.merge(
+        user_cumulative, 
+        total_cumulative,
+        on='timestamp',
+        how='left'
+    )
+    
+    result = pd.merge(
+        result,
+        total_word_cumulative,
+        on='timestamp',
+        how='left'
+    )
+    
+    result = pd.merge(
+        result,
+        human_word_cumulative,
+        on='timestamp',
+        how='left'
+    )
+    
+    result = pd.merge(
+        result,
+        bot_word_cumulative,
+        on='timestamp',
+        how='left'
+    )
+    
+    return result
 
 
 
 
 
-async def augment_dataframes(dataframe_handler: DataframeHandler)  :
+async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool = False) -> None:
 
     logger.info("Starting dataframe augmentation")
 
@@ -205,11 +305,7 @@ async def augment_dataframes(dataframe_handler: DataframeHandler)  :
     # Calculate cumulative counts
     cumulative_counts_df = calculate_cumulative_counts(human_messages_df)
 
-    # Run ai analyses on threads
-    thread_analyses:dict[ThreadId, AiThreadAnalysisModel] = await ai_analyze_threads(dataframe_handler=dataframe_handler)
-    [dataframe_handler.store(primary_id=thread_id,
-                             entity=analysis) for thread_id, analysis in thread_analyses.items()]
-    dataframe_handler.save_raw_csvs()
+
 
     # Store results
     base_path = Path(dataframe_handler.db_path)
@@ -218,15 +314,22 @@ async def augment_dataframes(dataframe_handler: DataframeHandler)  :
     augmented_threads_df.to_csv(base_path / 'augmented_threads.csv', index=False)
     augmented_users_df.to_csv(base_path / 'augmented_users.csv', index=False)
     cumulative_counts_df.to_csv(base_path / 'cumulative_counts.csv', index=False)
-    
-    # Generate embeddings if requested
-    embeddings_npy, embedding_dfs = await calculate_embeddings_and_projections(
-        human_messages_df=human_messages_df,
-        thread_analyses=list(dataframe_handler.thread_analyses.values())
-    )
 
-    for name, df in embedding_dfs.items():
-        df.to_csv(base_path / f'embedding_projections_{name}.csv', index=False)
+    if not skip_ai:
+        # Run ai analyses on threads
+        thread_analyses:dict[ThreadId, AiThreadAnalysisModel] = await ai_analyze_threads(dataframe_handler=dataframe_handler)
+        [dataframe_handler.store(primary_id=thread_id,
+                                 entity=analysis) for thread_id, analysis in thread_analyses.items()]
+        dataframe_handler.save_raw_csvs()
+
+        # Generate embeddings if requested
+        embeddings_npy, embedding_dfs = await calculate_embeddings_and_projections(
+            human_messages_df=human_messages_df,
+            thread_analyses=list(dataframe_handler.thread_analyses.values())
+        )
+
+        for name, df in embedding_dfs.items():
+            df.to_csv(base_path / f'embedding_projections_{name}.csv', index=False)
 
     logger.info("Dataframe augmentation completed")
 
@@ -234,5 +337,5 @@ if __name__ == "__main__":
     import asyncio
     _db_path = get_most_recent_db_location()
     df_handler = DataframeHandler.from_db_path(db_path=_db_path)
-    asyncio.run(augment_dataframes(df_handler))
+    asyncio.run(augment_dataframes(dataframe_handler=df_handler, skip_ai=True))
     print("Augmentation Done!")

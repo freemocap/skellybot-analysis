@@ -4,10 +4,10 @@ import discord
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from skellybot_analysis.db.sql_db.sql_db_models.db_server_models import ContextSystemPrompt, Thread, User, Message
+from skellybot_analysis.old_db.sql_db.sql_db_models.db_server_models import ContextSystemPrompt, Thread, User, Message
 from skellybot_analysis.scrape_server.scrape_utils import get_prompts_from_channel, MINIMUM_THREAD_MESSAGE_COUNT, \
     update_latest_message_datetime
-from skellybot_analysis.models.context_route_model import ContextRoute
+from skellybot_analysis.data_models.context_route_model import ContextRoute
 
 logger = logging.getLogger(__name__)
 

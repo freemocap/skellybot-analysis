@@ -8,10 +8,10 @@ import tiktoken
 from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_request import \
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
-from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
-from skellybot_analysis.models.dataframe_handler import DataframeHandler
-from skellybot_analysis.models.prompt_models import TextAnalysisPromptModel
-from skellybot_analysis.models.server_models import ThreadModel, ThreadId, MessageModel
+from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
+from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
+from skellybot_analysis.data_models.prompt_models import TextAnalysisPromptModel
+from skellybot_analysis.data_models.server_models import ThreadModel, ThreadId, MessageModel
 
 MIN_MESSAGE_LIMIT = 4
 

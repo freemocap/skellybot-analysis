@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from skellybot_analysis.models.analysis_models import AiThreadAnalysisModel
-from skellybot_analysis.models.server_models import ThreadModel, MessageModel, UserModel, \
+from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
+from skellybot_analysis.data_models.server_models import ThreadModel, MessageModel, UserModel, \
     ContextPromptModel, DataframeModel, ThreadId, MessageId, UserId, ContextId
 
 logger = logging.getLogger(__name__)

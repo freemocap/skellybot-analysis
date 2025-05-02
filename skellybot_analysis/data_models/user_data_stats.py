@@ -1,11 +1,11 @@
 from typing import List, Optional, Dict, Any
 
 from pydantic import Field, BaseModel, computed_field
-from skellybot_analysis.models.prompt_models.user_profile_prompt_model import UserProfile
+from skellybot_analysis.data_models.prompt_models.user_profile_prompt_model import UserProfile
 
-from skellybot_analysis.db.sql_db.sql_db_models import DataObjectModel
-from skellybot_analysis.db.sql_db.sql_db_models import ServerDataObjectTypes
-from skellybot_analysis.db.sql_db.sql_db_models import TagModel
+from skellybot_analysis.old_db.sql_db.sql_db_models import DataObjectModel
+from skellybot_analysis.old_db.sql_db.sql_db_models import ServerDataObjectTypes
+from skellybot_analysis.old_db.sql_db.sql_db_models import TagModel
 
 
 class DescriptiveStatistics(BaseModel):

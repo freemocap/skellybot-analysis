@@ -1,7 +1,7 @@
 from pydantic import computed_field
 
-from skellybot_analysis.models.context_route_model import ContextRoute
-from skellybot_analysis.models.server_models import DataframeModel, CategoryId
+from skellybot_analysis.data_models.context_route_model import ContextRoute
+from skellybot_analysis.data_models.server_models import DataframeModel, CategoryId
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name
 
 
