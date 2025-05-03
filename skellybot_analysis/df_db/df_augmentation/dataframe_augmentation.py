@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 
+import pandas as pd
+
 from skellybot_analysis.ai.analyze_server_data import ai_analyze_threads
 from skellybot_analysis.ai.calculate_embeddings_and_projections import calculate_embeddings_and_projections, \
     EmbeddableItem
@@ -53,23 +55,25 @@ async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool 
     if not skip_embeddings:
         embeddable_items = []
         # Add messages
-        for index, row in human_messages_df.iterrows():
+        for _, row in human_messages_df.iterrows():
             embeddable_items.append(
-                EmbeddableItem.from_human_message(row, index)
+                EmbeddableItem.from_human_message_row(df_row=row,
+                                                      index=len(embeddable_items))
             )
         # Add thread analyses
-        for index, thread in enumerate(dataframe_handler.thread_analyses):
+        for _, analysis in enumerate(dataframe_handler.thread_analyses.values()):
             embeddable_items.append(
-                EmbeddableItem.from_thread_analysis(thread=thread,
-                                                    index=index,
+                EmbeddableItem.from_thread_analysis(analysis=analysis,
+                                                    index=len(embeddable_items)
                                                     )
             )
-        embeddings_npy, embedding_dfs = await calculate_embeddings_and_projections(
+        embedded_items: list[EmbeddableItem] = await calculate_embeddings_and_projections(
             embeddable_items=embeddable_items,
         )
-
-        for name, df in embedding_dfs.items():
-            df.to_csv(base_path / f'embedding_projections_{name}.csv', index=False)
+        embedding_projections_df: pd.DataFrame  = pd.DataFrame(
+            [item.model_dump() for item in embedded_items]
+        )
+        embedding_projections_df.to_csv(base_path / f'embedding_projections_df.csv', index=False)
 
     logger.info("Dataframe augmentation completed")
 
@@ -77,5 +81,7 @@ if __name__ == "__main__":
     import asyncio
     _db_path = get_most_recent_db_location()
     df_handler = DataframeHandler.from_db_path(db_path=_db_path)
-    asyncio.run(augment_dataframes(dataframe_handler=df_handler, skip_ai=True, skip_embeddings=False))
+    asyncio.run(augment_dataframes(dataframe_handler=df_handler,
+                                   skip_ai=True,
+                                   skip_embeddings=False))
     print("Augmentation Done!")

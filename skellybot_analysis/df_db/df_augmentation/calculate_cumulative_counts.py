@@ -1,7 +1,7 @@
 import pandas as pd
 
-from skellybot_analysis.df_db.df_augmentation.dataframe_augmentation import logger
-
+import logging
+logger = logging.getLogger(__name__)
 
 def calculate_cumulative_counts(human_messages_df: pd.DataFrame) -> pd.DataFrame:
     """

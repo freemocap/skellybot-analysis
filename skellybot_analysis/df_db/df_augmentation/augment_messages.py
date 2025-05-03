@@ -1,10 +1,12 @@
+import logging
 from typing import Tuple
 
 import pandas as pd
 
-from skellybot_analysis.df_db.df_augmentation.dataframe_augmentation import logger
 from skellybot_analysis.df_db.df_augmentation.df_utils import count_words, combine_bot_messages
 from skellybot_analysis.utilities.load_env_variables import PROF_USER_ID
+
+logger = logging.getLogger(__name__)
 
 
 def augment_messages(messages_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -42,8 +44,8 @@ def augment_messages(messages_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFr
 
     # Combine message and response
     human_messages_df['message_and_response'] = (
-        human_messages_df['content'] + '\n\n' +
-        human_messages_df['bot_response'].fillna('')
+            human_messages_df['content'] + '\n\n' +
+            human_messages_df['bot_response'].fillna('')
     )
 
     # add total_word_count, human_word_count, and bot_word_count to human messages

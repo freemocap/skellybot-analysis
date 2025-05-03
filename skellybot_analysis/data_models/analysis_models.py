@@ -72,6 +72,7 @@ class AiThreadAnalysisModel(DataframeModel):
         return "\n".join(bl)
 
     @computed_field
+    @property
     def full_text_no_base_text(self) -> str:
         return self.full_text.split("## Full Content Text")[0]
 

@@ -1,8 +1,10 @@
+import logging
+
 import pandas as pd
 
-from skellybot_analysis.df_db.df_augmentation.dataframe_augmentation import logger
 from skellybot_analysis.utilities.load_env_variables import PROF_USER_ID
 
+logger = logging.getLogger(__name__)
 
 def augment_users(users_df: pd.DataFrame, human_messages_df: pd.DataFrame) -> pd.DataFrame:
     """

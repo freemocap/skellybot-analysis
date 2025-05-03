@@ -78,14 +78,14 @@ class EmbeddableItem(BaseModel):
     umap: dict[UMAPNeighborsValue, dict[UMAPMinDistValue, UMAPProjection]] = {}  # List of UMAP 3D projections
 
     @classmethod
-    def from_message(cls, message: dict, index: int, embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL) -> "EmbeddableItem":
+    def from_human_message_row(cls, df_row: pd.Series, index: int, embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL) -> "EmbeddableItem":
         return cls(
             embedding_index=index,
             content_type=EmbeddableContentType.MESSAGE_AND_RESPONSE.value,
-            embedded_text=message["message_and_response"],
-            message_id=message["message_id"],
-            thread_id=message["thread_id"],
-            user_id=message["author_id"],
+            embedded_text=df_row["message_and_response"],
+            message_id=df_row["message_id"],
+            thread_id=df_row["thread_id"],
+            user_id=df_row["author_id"],
             embedding_method=embedding_method
         )
     
@@ -94,9 +94,9 @@ class EmbeddableItem(BaseModel):
         return cls(
             embedding_index=index,
             content_type=EmbeddableContentType.THREAD_ANALYSIS.value,
-            embedded_text=analysis.analysis_text,
+            embedded_text=analysis.full_text_no_base_text,
             thread_id=analysis.thread_id,
-            user_id=analysis.user_id,
+            user_id=analysis.thread_owner_id,
             jump_url=analysis.jump_url,
             embedding_method=embedding_method
         )
@@ -153,6 +153,8 @@ async def calculate_embeddings_and_projections(embeddable_items:list[EmbeddableI
             reducer = umap.UMAP(n_components=3, n_neighbors=n_neighbors, min_dist=min_dist, random_state=RANDOM_SEED)
             umap_result = reducer.fit_transform(embeddings_npy)
             for item, umap_result in zip(embeddable_items, umap_result):
+                if not item.umap.get(n_neighbors):
+                    item.umap[n_neighbors] = {}
                 item.umap[n_neighbors][min_dist] = UMAPProjection(
                     n_neighbors=n_neighbors,
                     min_dist=min_dist,
