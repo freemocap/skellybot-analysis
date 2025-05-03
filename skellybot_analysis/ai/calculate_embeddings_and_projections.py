@@ -3,14 +3,14 @@ import logging
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
 import umap
+from pydantic import BaseModel
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import DEFAULT_OLLAMA_EMBEDDINGS_MODEL, calculate_ollama_embeddings
+from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import DEFAULT_OLLAMA_EMBEDDINGS_MODEL, \
+    calculate_ollama_embeddings
 from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
-from skellybot_analysis.data_models.server_models import MessageModel
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +109,32 @@ class EmbeddableItem(BaseModel):
             embedded_text=tag,
             embedding_method=embedding_method
         )
+    def model_dump_flattened(self) -> dict:
+        """Flatten projections for CSV storage"""
+        dump = self.model_dump()
+        
+        # Flatten TSNE
+        for perplexity, proj in self.tsne.items():
+            dump[f"tsne_{perplexity}_x"] = proj.x
+            dump[f"tsne_{perplexity}_y"] = proj.y
+            dump[f"tsne_{perplexity}_z"] = proj.z
+            
+        # Flatten UMAP
+        for n_neighbors, dists in self.umap.items():
+            for min_dist, proj in dists.items():
+                key = f"umap_{n_neighbors}_{min_dist:.1f}"
+                dump[f"{key}_x"] = proj.x
+                dump[f"{key}_y"] = proj.y
+                dump[f"{key}_z"] = proj.z
+                
+        # Flatten PCA
+        for comp_num, component in self.pca.items():
+            dump[f"pca_{comp_num}_value"] = component.value
+            dump[f"pca_{comp_num}_var"] = component.variance_explained
+            
+        return dump
 
-async def calculate_embeddings_and_projections(embeddable_items:list[EmbeddableItem]) -> list[EmbeddableItem]:
+async def calculate_embeddings_and_projections(embeddable_items:list[EmbeddableItem]) -> tuple[list[EmbeddableItem], pd.DataFrame]:
 
     logger.info(f"Creating embeddings and projections for {len(embeddable_items)} items...")
 
@@ -178,6 +202,8 @@ async def calculate_embeddings_and_projections(embeddable_items:list[EmbeddableI
             variance_explained=pca.explained_variance_ratio_[0]
         )
 
-
-    return embeddable_items
+    embedding_projections_df: pd.DataFrame  = pd.DataFrame(
+        [item.model_dump_flattened() for item in embeddable_items]
+    )
+    return embeddable_items, embedding_projections_df
     

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Embedding Projection Explorer</title>
+    <style>
+        body { 
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #gui { 
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Loading data...</div>
+
+    <!-- Import libraries using ES modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.18/+esm';
+        import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
+
+        class EmbeddingVisualizer {
+            constructor() {
+                this.params = {
+                    pointSize: 0.05,
+                    colorBy: 'cluster',
+                    showLabels: false,
+                    labelSize: 0.1,
+                    dataFile: 'embeddings.json'
+                };
+                
+                this.initThree();
+                this.initGUI();
+                this.loadData().then(() => this.createPoints());
+                
+                // Animation loop
+                this.animate = () => {
+                    requestAnimationFrame(this.animate);
+                    this.controls.update();
+                    this.renderer.render(this.scene, this.camera);
+                };
+                this.animate();
+
+                // Handle window resize
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            initThree() {
+                // Scene setup
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x111111);
+                document.body.appendChild(this.renderer.domElement);
+
+                // Camera controls
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.camera.position.z = 5;
+
+                // Visual reference
+                this.scene.add(new THREE.AxesHelper(5));
+            }
+
+            initGUI() {
+                this.gui = new GUI();
+                this.gui.add(this.params, 'pointSize', 0.01, 0.2).onChange(() => this.updatePoints());
+                this.gui.add(this.params, 'colorBy', ['cluster', 'random']).onChange(() => this.updateColors());
+                this.gui.add(this.params, 'showLabels').onChange(() => this.toggleLabels());
+                this.gui.add(this.params, 'labelSize', 0.05, 0.3).onChange(() => this.updateLabelSize());
+                this.gui.add(this.params, 'dataFile', ['embeddings.json']).onChange(() => {
+                    this.loadData().then(() => this.createPoints());
+                });
+            }
+
+            async loadData() {
+                try {
+                    const response = await fetch(this.params.dataFile);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    this.data = await response.json();
+                    document.getElementById('info').textContent = `Loaded ${this.data.points.length} points`;
+                } catch (error) {
+                    console.error("Error loading data:", error);
+                    document.getElementById('info').textContent = `Error loading data: ${error.message}`;
+                    // Use sample data for testing
+                    this.data = {
+                        points: Array(100).fill().map(() => ({
+                            vector: [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1],
+                            label: "Sample",
+                            cluster: Math.floor(Math.random() * 5)
+                        }))
+                    };
+                }
+            }
+
+            createPoints() {
+                // Remove existing points if any
+                if (this.pointsObject) {
+                    this.scene.remove(this.pointsObject);
+                }
+                
+                if (!this.data || !this.data.points || this.data.points.length === 0) {
+                    console.error("No data available to visualize");
+                    return;
+                }
+
+                // Create geometry
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(this.data.points.length * 3);
+                
+                // Fill positions
+                this.data.points.forEach((point, i) => {
+                    positions[i * 3] = point.vector[0];
+                    positions[i * 3 + 1] = point.vector[1];
+                    positions[i * 3 + 2] = point.vector[2] || 0; // Default to 0 if z is missing
+                });
+                
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                
+                // Create colors
+                this.updateColors(geometry);
+                
+                // Create material and points
+                const material = new THREE.PointsMaterial({
+                    size: this.params.pointSize,
+                    vertexColors: true,
+                    sizeAttenuation: true
+                });
+                
+                this.pointsObject = new THREE.Points(geometry, material);
+                this.scene.add(this.pointsObject);
+                
+                // Create labels if needed
+                if (this.params.showLabels) {
+                    this.createLabels();
+                }
+            }
+
+            updatePoints() {
+                if (this.pointsObject) {
+                    this.pointsObject.material.size = this.params.pointSize;
+                }
+            }
+
+            updateColors(geometry = null) {
+                const geo = geometry || this.pointsObject?.geometry;
+                if (!geo || !this.data) return;
+                
+                const colors = new Float32Array(this.data.points.length * 3);
+                
+                // Color scheme
+                const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+                
+                this.data.points.forEach((point, i) => {
+                    let color;
+                    if (this.params.colorBy === 'cluster') {
+                        color = new THREE.Color(colorScale(point.cluster || 0));
+                    } else {
+                        color = new THREE.Color(Math.random(), Math.random(), Math.random());
+                    }
+                    
+                    colors[i * 3] = color.r;
+                    colors[i * 3 + 1] = color.g;
+                    colors[i * 3 + 2] = color.b;
+                });
+                
+                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                if (this.pointsObject) {
+                    this.pointsObject.geometry.attributes.color.needsUpdate = true;
+                }
+            }
+
+            createLabels() {
+                // Remove existing labels if any
+                if (this.labels) {
+                    this.labels.forEach(label => this.scene.remove(label));
+                }
+                
+                this.labels = [];
+                
+                // Create text sprites for labels
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 256;
+                canvas.height = 256;
+                
+                this.data.points.forEach((point, i) => {
+                    if (point.label) {
+                        // Clear canvas
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw text
+                        context.font = '24px Arial';
+                        context.fillStyle = 'white';
+                        context.textAlign = 'center';
+                        context.fillText(point.label, canvas.width / 2, canvas.height / 2);
+                        
+                        // Create sprite
+                        const texture = new THREE.CanvasTexture(canvas);
+                        const material = new THREE.SpriteMaterial({ map: texture });
+                        const sprite = new THREE.Sprite(material);
+                        
+                        sprite.position.set(
+                            point.vector[0],
+                            point.vector[1] + 0.1, // Offset slightly above point
+                            point.vector[2] || 0
+                        );
+                        
+                        sprite.scale.set(this.params.labelSize, this.params.labelSize, 1);
+                        
+                        this.scene.add(sprite);
+                        this.labels.push(sprite);
+                    }
+                });
+            }
+
+            toggleLabels() {
+                if (this.params.showLabels) {
+                    this.createLabels();
+                } else if (this.labels) {
+                    this.labels.forEach(label => this.scene.remove(label));
+                    this.labels = [];
+                }
+            }
+
+            updateLabelSize() {
+                if (this.labels) {
+                    this.labels.forEach(label => {
+                        label.scale.set(this.params.labelSize, this.params.labelSize, 1);
+                    });
+                }
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Initialize visualization when ready
+        window.addEventListener('load', () => new EmbeddingVisualizer());
+    </script>
+</body>
+</html>
