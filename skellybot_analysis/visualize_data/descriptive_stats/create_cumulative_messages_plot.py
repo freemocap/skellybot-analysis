@@ -4,6 +4,7 @@ from datetime import timedelta
 import pandas as pd
 from plotly import graph_objects as go
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -13,9 +14,9 @@ def create_cumulative_message_count_by_user(fig: go.Figure,
                                             subplot_col: int):
     """Create a plot of cumulative message counts by user"""
     # Add traces for the cumulative message count
-    logger.info(
-        f"Creating cumulative message count plot for {len(cumulative_counts_df['author_id'].unique())} users (row {subplot_row}, col {subplot_col})")
-    
+    #     logger.info(
+    #         f"Creating cumulative message count plot for {len(cumulative_counts_df['author_id'].unique())} users (row {subplot_row}, col {subplot_col})")
+
     for user_id in cumulative_counts_df['author_id'].unique():
         user_data = cumulative_counts_df[cumulative_counts_df['author_id'] == user_id]
         fig.add_trace(
@@ -33,7 +34,9 @@ def create_cumulative_message_count_by_user(fig: go.Figure,
     fig.update_yaxes(title_text="Message Count", row=subplot_row, col=subplot_col,
                      range=[0, cumulative_counts_df['cumulative_message_count'].max() * 1.05])
     fig.update_xaxes(title_text="Date", row=subplot_row, col=subplot_col,
-                     range=[cumulative_counts_df['timestamp'].min()-timedelta(days=7), cumulative_counts_df['timestamp'].max()+timedelta(days=7)])
+                     range=[cumulative_counts_df['timestamp'].min() - timedelta(days=7),
+                            cumulative_counts_df['timestamp'].max() + timedelta(days=7)])
+
 
 def create_cumulative_word_count_plot(fig: go.Figure,
                                       cumulative_counts_df: pd.DataFrame,
@@ -42,7 +45,7 @@ def create_cumulative_word_count_plot(fig: go.Figure,
                                       subplot_row: int,
                                       subplot_col: int):
     """Create a stacked area plot of cumulative word counts (human and bot)"""
-    logger.info(f"Creating cumulative word count stacked area plot (row {subplot_row}, col {subplot_col})")
+    #     logger.info(f"Creating cumulative word count stacked area plot (row {subplot_row}, col {subplot_col})")
 
     # Get the latest timestamp for each metric to get the final counts
     latest_data = cumulative_counts_df.sort_values('timestamp').drop_duplicates(['timestamp'], keep='last')
@@ -124,7 +127,9 @@ def create_cumulative_word_count_plot(fig: go.Figure,
     )
 
     fig.update_xaxes(title_text="Date", row=subplot_row, col=subplot_col,
-                     range=[cumulative_counts_df['timestamp'].min()-timedelta(days=7), cumulative_counts_df['timestamp'].max()+timedelta(days=7)])
+                     range=[cumulative_counts_df['timestamp'].min() - timedelta(days=7),
+                            cumulative_counts_df['timestamp'].max() + timedelta(days=7)])
+
 
 def _create_lighter_color(color: str, alpha: float = 0.5) -> str:
     """Create a lighter/transparent version of a color for fill areas"""

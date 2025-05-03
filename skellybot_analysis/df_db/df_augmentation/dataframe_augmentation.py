@@ -73,7 +73,7 @@ async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool 
         embedding_projections_df: pd.DataFrame  = pd.DataFrame(
             [item.model_dump() for item in embedded_items]
         )
-        embedding_projections_df.to_csv(base_path / f'embedding_projections_df.csv', index=False)
+        embedding_projections_df.to_csv(base_path / f'embedding_projections.csv', index=False)
 
     logger.info("Dataframe augmentation completed")
 

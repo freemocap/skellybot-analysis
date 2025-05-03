@@ -55,10 +55,10 @@ def create_histogram_subplot(fig: go.Figure,
     max_freq = hist_values.max()
     bin_size = (bin_edges[1] - bin_edges[0])
 
-    logger.info(
-        f"Creating histogram for {x_label} (row {subplot_row}, col {subplot_col}), data size: {len(data)}, "
-        f"max_freq: {max_freq}, mean: {mean_val}, median: {median_val}, mode: {mode_val}, "
-        f"range: {min_val}-{max_val}, bin_size: {bin_size:.2f}")
+    # logger.info(
+    #     f"Creating histogram for {x_label} (row {subplot_row}, col {subplot_col}), data size: {len(data)}, "
+    #     f"max_freq: {max_freq}, mean: {mean_val}, median: {median_val}, mode: {mode_val}, "
+    #     f"range: {min_val}-{max_val}, bin_size: {bin_size:.2f}")
     histogram_args = {
         "x": data,
         "marker_color": color,
