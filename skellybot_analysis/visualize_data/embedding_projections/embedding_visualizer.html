@@ -1,272 +1,1072 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>3D Embedding Projection Explorer</title>
     <style>
-        body { 
-            margin: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        #gui { 
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 100;
-        }
-        #info {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            color: white;
-            background-color: rgba(0,0,0,0.5);
-            padding: 10px;
-            border-radius: 5px;
-        }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      #gui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 100;
+      }
+      #info {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 5px;
+      }
+      #tooltip {
+        position: absolute;
+        display: none;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1000;
+        pointer-events: none;
+        max-width: 300px;
+      }
+      #sidebar {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 350px;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 20px;
+        overflow-y: auto;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+        z-index: 1500;
+      }
+      #sidebar.active {
+        transform: translateX(0);
+      }
+      #sidebar-content {
+        margin-bottom: 15px;
+      }
+      #close-sidebar {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+      }
+      .nearby-label {
+        position: absolute;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 5px;
+        border-radius: 3px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 900;
+        white-space: nowrap;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="info">Loading data...</div>
+    <div id="tooltip"></div>
+    <div id="sidebar">
+      <button id="close-sidebar">×</button>
+      <div id="sidebar-content"></div>
+    </div>
 
     <!-- Import libraries using ES modules -->
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-            }
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
         }
+      }
     </script>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GUI } from 'https://cdn.jsdelivr.net/npm/lil-gui@0.18/+esm';
-        import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import { GUI } from "https://cdn.jsdelivr.net/npm/lil-gui@0.18/+esm";
+      import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
-        class EmbeddingVisualizer {
-            constructor() {
-                this.params = {
-                    pointSize: 0.05,
-                    colorBy: 'cluster',
-                    showLabels: false,
-                    labelSize: 0.1,
-                    dataFile: 'embeddings.json'
-                };
-                
-                this.initThree();
-                this.initGUI();
-                this.loadData().then(() => this.createPoints());
-                
-                // Animation loop
-                this.animate = () => {
-                    requestAnimationFrame(this.animate);
-                    this.controls.update();
-                    this.renderer.render(this.scene, this.camera);
-                };
-                this.animate();
+      class EmbeddingVisualizer {
+        constructor() {
+          console.log("Initializing EmbeddingVisualizer");
+          window.addEventListener("error", (event) => {
+            console.error("Global error caught:", event.error);
+            document.getElementById(
+              "info"
+            ).textContent = `Error: ${event.error.message}`;
+          });
+          this.params = {
+            pointSize: 0.1,
+            colorBy: "content_type", // We'll add "thread_id" as an option
+            showLabels: false,
+            labelSize: 0.1,
+            dataFile: "embedding_projections.csv",
+            projectionType: "umap",
+            umapNeighbors: 15,
+            umapMinDist: 0.1,
+            tsnePerplexity: 30,
+          };
 
-                // Handle window resize
-                window.addEventListener('resize', () => this.onWindowResize());
-            }
+          // Initialize UI elements
+          this.tooltip = document.getElementById("tooltip");
+          this.sidebar = document.getElementById("sidebar");
+          this.sidebarContent = document.getElementById("sidebar-content");
+          document
+            .getElementById("close-sidebar")
+            .addEventListener("click", () => {
+              this.sidebar.classList.remove("active");
+            });
 
-            initThree() {
-                // Scene setup
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.setClearColor(0x111111);
-                document.body.appendChild(this.renderer.domElement);
+          // Initialize interaction variables
+          this.raycaster = new THREE.Raycaster();
+          this.mouse = new THREE.Vector2();
+          this.spheres = [];
+          this.textGeometries = []; // For tag text geometries
+          this.labels = [];
+          this.hoveredSphere = null;
+          this.threadConnections = []; // Store thread connection lines
 
-                // Camera controls
-                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-                this.camera.position.z = 5;
+          this.initThree();
+          this.initGUI();
+          this.setupInteraction();
+          this.loadData().then(() => this.createPoints());
 
-                // Visual reference
-                this.scene.add(new THREE.AxesHelper(5));
-            }
+          // Animation loop
+          this.animate = () => {
+            requestAnimationFrame(this.animate);
+            this.controls.update();
+            this.checkIntersection();
+            this.renderer.render(this.scene, this.camera);
+          };
+          this.animate();
 
-            initGUI() {
-                this.gui = new GUI();
-                this.gui.add(this.params, 'pointSize', 0.01, 0.2).onChange(() => this.updatePoints());
-                this.gui.add(this.params, 'colorBy', ['cluster', 'random']).onChange(() => this.updateColors());
-                this.gui.add(this.params, 'showLabels').onChange(() => this.toggleLabels());
-                this.gui.add(this.params, 'labelSize', 0.05, 0.3).onChange(() => this.updateLabelSize());
-                this.gui.add(this.params, 'dataFile', ['embeddings.json']).onChange(() => {
-                    this.loadData().then(() => this.createPoints());
-                });
-            }
+          // Handle window resize
+          window.addEventListener("resize", () => this.onWindowResize());
 
-            async loadData() {
-                try {
-                    const response = await fetch(this.params.dataFile);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    this.data = await response.json();
-                    document.getElementById('info').textContent = `Loaded ${this.data.points.length} points`;
-                } catch (error) {
-                    console.error("Error loading data:", error);
-                    document.getElementById('info').textContent = `Error loading data: ${error.message}`;
-                    // Use sample data for testing
-                    this.data = {
-                        points: Array(100).fill().map(() => ({
-                            vector: [Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1],
-                            label: "Sample",
-                            cluster: Math.floor(Math.random() * 5)
-                        }))
-                    };
-                }
-            }
-
-            createPoints() {
-                // Remove existing points if any
-                if (this.pointsObject) {
-                    this.scene.remove(this.pointsObject);
-                }
-                
-                if (!this.data || !this.data.points || this.data.points.length === 0) {
-                    console.error("No data available to visualize");
-                    return;
-                }
-
-                // Create geometry
-                const geometry = new THREE.BufferGeometry();
-                const positions = new Float32Array(this.data.points.length * 3);
-                
-                // Fill positions
-                this.data.points.forEach((point, i) => {
-                    positions[i * 3] = point.vector[0];
-                    positions[i * 3 + 1] = point.vector[1];
-                    positions[i * 3 + 2] = point.vector[2] || 0; // Default to 0 if z is missing
-                });
-                
-                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                
-                // Create colors
-                this.updateColors(geometry);
-                
-                // Create material and points
-                const material = new THREE.PointsMaterial({
-                    size: this.params.pointSize,
-                    vertexColors: true,
-                    sizeAttenuation: true
-                });
-                
-                this.pointsObject = new THREE.Points(geometry, material);
-                this.scene.add(this.pointsObject);
-                
-                // Create labels if needed
-                if (this.params.showLabels) {
-                    this.createLabels();
-                }
-            }
-
-            updatePoints() {
-                if (this.pointsObject) {
-                    this.pointsObject.material.size = this.params.pointSize;
-                }
-            }
-
-            updateColors(geometry = null) {
-                const geo = geometry || this.pointsObject?.geometry;
-                if (!geo || !this.data) return;
-                
-                const colors = new Float32Array(this.data.points.length * 3);
-                
-                // Color scheme
-                const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-                
-                this.data.points.forEach((point, i) => {
-                    let color;
-                    if (this.params.colorBy === 'cluster') {
-                        color = new THREE.Color(colorScale(point.cluster || 0));
-                    } else {
-                        color = new THREE.Color(Math.random(), Math.random(), Math.random());
-                    }
-                    
-                    colors[i * 3] = color.r;
-                    colors[i * 3 + 1] = color.g;
-                    colors[i * 3 + 2] = color.b;
-                });
-                
-                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-                if (this.pointsObject) {
-                    this.pointsObject.geometry.attributes.color.needsUpdate = true;
-                }
-            }
-
-            createLabels() {
-                // Remove existing labels if any
-                if (this.labels) {
-                    this.labels.forEach(label => this.scene.remove(label));
-                }
-                
-                this.labels = [];
-                
-                // Create text sprites for labels
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width = 256;
-                canvas.height = 256;
-                
-                this.data.points.forEach((point, i) => {
-                    if (point.label) {
-                        // Clear canvas
-                        context.clearRect(0, 0, canvas.width, canvas.height);
-                        
-                        // Draw text
-                        context.font = '24px Arial';
-                        context.fillStyle = 'white';
-                        context.textAlign = 'center';
-                        context.fillText(point.label, canvas.width / 2, canvas.height / 2);
-                        
-                        // Create sprite
-                        const texture = new THREE.CanvasTexture(canvas);
-                        const material = new THREE.SpriteMaterial({ map: texture });
-                        const sprite = new THREE.Sprite(material);
-                        
-                        sprite.position.set(
-                            point.vector[0],
-                            point.vector[1] + 0.1, // Offset slightly above point
-                            point.vector[2] || 0
-                        );
-                        
-                        sprite.scale.set(this.params.labelSize, this.params.labelSize, 1);
-                        
-                        this.scene.add(sprite);
-                        this.labels.push(sprite);
-                    }
-                });
-            }
-
-            toggleLabels() {
-                if (this.params.showLabels) {
-                    this.createLabels();
-                } else if (this.labels) {
-                    this.labels.forEach(label => this.scene.remove(label));
-                    this.labels = [];
-                }
-            }
-
-            updateLabelSize() {
-                if (this.labels) {
-                    this.labels.forEach(label => {
-                        label.scale.set(this.params.labelSize, this.params.labelSize, 1);
-                    });
-                }
-            }
-
-            onWindowResize() {
-                this.camera.aspect = window.innerWidth / window.innerHeight;
-                this.camera.updateProjectionMatrix();
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-            }
+          console.log("EmbeddingVisualizer initialized");
         }
 
-        // Initialize visualization when ready
-        window.addEventListener('load', () => new EmbeddingVisualizer());
+        initThree() {
+          console.log("Initializing Three.js scene");
+
+          // Scene setup
+          this.scene = new THREE.Scene();
+          this.camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+          );
+          this.renderer = new THREE.WebGLRenderer({ antialias: true });
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+          this.renderer.setClearColor(0x111111);
+          document.body.appendChild(this.renderer.domElement);
+
+          // Camera controls
+          this.controls = new OrbitControls(
+            this.camera,
+            this.renderer.domElement
+          );
+
+          // Start camera farther out
+          this.camera.position.z = 15; // Changed from 5 to 15
+
+          // Add lighting for better sphere appearance
+          const ambientLight = new THREE.AmbientLight(0x404040);
+          this.scene.add(ambientLight);
+
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+          directionalLight.position.set(1, 1, 1);
+          this.scene.add(directionalLight);
+
+          // Visual reference
+          this.scene.add(new THREE.AxesHelper(5));
+
+          console.log("Three.js scene initialized");
+        }
+
+        initGUI() {
+          console.log("Initializing GUI");
+
+          this.gui = new GUI();
+          this.gui
+            .add(this.params, "pointSize", 0.01, 0.2)
+            .name("Sphere Size")
+            .onChange(() => this.updatePoints());
+
+          // Add thread_id as a coloring option
+          this.gui
+            .add(this.params, "colorBy", [
+              "content_type",
+              "thread_id",
+              "random",
+            ])
+            .name("Color By")
+            .onChange(() => this.updateColors());
+
+          this.gui
+            .add(this.params, "showLabels")
+            .name("Show Labels")
+            .onChange(() => this.toggleLabels());
+          this.gui
+            .add(this.params, "labelSize", 0.05, 0.3)
+            .name("Label Size")
+            .onChange(() => this.updateLabelSize());
+
+          // Add glow controls
+          this.params.glowIntensity = 0.5;
+          this.params.glowSize = 2;
+          this.params.nearbyDistance = 0.5;
+          this.gui
+            .add(this.params, "glowIntensity", 0, 2)
+            .name("Glow Intensity")
+            .onChange(() => this.updateGlow());
+          this.gui
+            .add(this.params, "glowSize", 1, 5)
+            .name("Glow Size")
+            .onChange(() => this.updateGlow());
+          this.gui
+            .add(this.params, "nearbyDistance", 0.1, 2)
+            .name("Nearby Label Distance");
+
+          // Projection type selection
+          this.gui
+            .add(this.params, "projectionType", ["umap", "tsne", "pca"])
+            .name("Projection Type")
+            .onChange(() => {
+              this.createPoints();
+            });
+
+          // UMAP parameters
+          const umapFolder = this.gui.addFolder("UMAP Settings");
+          umapFolder
+            .add(
+              this.params,
+              "umapNeighbors",
+              [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+            )
+            .name("Neighbors")
+            .onChange(() => {
+              if (this.params.projectionType === "umap") this.createPoints();
+            });
+          umapFolder
+            .add(
+              this.params,
+              "umapMinDist",
+              [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+            )
+            .name("Min Distance")
+            .onChange(() => {
+              if (this.params.projectionType === "umap") this.createPoints();
+            });
+
+          // t-SNE parameters
+          const tsneFolder = this.gui.addFolder("t-SNE Settings");
+          tsneFolder
+            .add(
+              this.params,
+              "tsnePerplexity",
+              [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+            )
+            .name("Perplexity")
+            .onChange(() => {
+              if (this.params.projectionType === "tsne") this.createPoints();
+            });
+
+          console.log("GUI initialized");
+        }
+
+        setupInteraction() {
+          console.log("Setting up interaction handlers");
+
+          // Mouse move event for hover
+          window.addEventListener("mousemove", (event) => {
+            this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Update tooltip position
+            if (this.tooltip.style.display === "block") {
+              this.tooltip.style.left = event.clientX + 10 + "px";
+              this.tooltip.style.top = event.clientY + 10 + "px";
+            }
+          });
+
+          // Click event for showing full text in sidebar
+          window.addEventListener("click", (event) => {
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            const sphereIntersects = this.raycaster.intersectObjects(
+              this.spheres
+            );
+            const textIntersects = this.raycaster.intersectObjects(
+              this.textGeometries || []
+            );
+
+            let clickedObject = null;
+            let clickedData = null;
+
+            if (sphereIntersects.length > 0) {
+              clickedObject = sphereIntersects[0].object;
+              clickedData = clickedObject.userData.data;
+            } else if (textIntersects.length > 0) {
+              clickedObject = textIntersects[0].object;
+              clickedData = clickedObject.userData.data;
+            }
+
+            if (clickedObject) {
+              console.log("Clicked on object:", clickedData);
+
+              // Show full content in sidebar
+              this.sidebarContent.innerHTML = `
+        <h3>${clickedData.content_type || "Item"}</h3>
+        <p><strong>Thread ID:</strong> ${clickedData.thread_id || "N/A"}</p>
+        <p><strong>Message ID:</strong> ${clickedData.message_id || "N/A"}</p>
+        <p><strong>User ID:</strong> ${clickedData.user_id || "N/A"}</p>
+        <p><strong>Full Text:</strong></p>
+        <pre style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;">${
+          clickedData.embedded_text || "No text available"
+        }</pre>
+        ${
+          clickedData.jump_url
+            ? `<p><a href="${clickedData.jump_url}" target="_blank" style="color: #4fc3f7;">Open in Discord</a></p>`
+            : ""
+        }
+      `;
+              this.sidebar.classList.add("active");
+            }
+          });
+
+          console.log("Interaction handlers set up");
+        }
+
+        async loadData() {
+          console.log("Loading data from", this.params.dataFile);
+          document.getElementById(
+            "info"
+          ).textContent = `Loading data from ${this.params.dataFile}...`;
+
+          try {
+            const response = await fetch(this.params.dataFile);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Parse CSV data
+            const csvText = await response.text();
+            console.log(
+              "CSV data loaded, first 100 chars:",
+              csvText.substring(0, 100)
+            );
+
+            this.data = await d3.csvParse(csvText);
+            console.log("Data parsed successfully:", this.data.length, "items");
+
+            if (this.data.length === 0) {
+              throw new Error("No data points found in CSV");
+            }
+
+            document.getElementById(
+              "info"
+            ).textContent = `Loaded ${this.data.length} points`;
+            console.log("Sample data:", this.data.slice(0, 3)); // Log first few items for debugging
+          } catch (error) {
+            console.error("Error loading data:", error);
+            document.getElementById(
+              "info"
+            ).textContent = `Error loading data: ${error.message}`;
+
+            // Use sample data for testing
+            console.log("Using sample data for testing");
+            this.data = Array(100)
+              .fill()
+              .map((_, i) => ({
+                embedding_index: i,
+                content_type: ["message_and_response", "thread_analysis"][
+                  Math.floor(Math.random() * 2)
+                ],
+                thread_id: Math.floor(Math.random() * 10), // Add random thread_id for testing
+                timestamp: new Date(
+                  Date.now() - Math.random() * 1000000000
+                ).toISOString(), // Add random timestamp
+                embedded_text: `Sample text for item ${i}. This is a placeholder for the actual embedded text that would be here in real data.`,
+                umap_15_0_1_x: Math.random() * 2 - 1,
+                umap_15_0_1_y: Math.random() * 2 - 1,
+                umap_15_0_1_z: Math.random() * 2 - 1,
+                tsne_30_x: Math.random() * 2 - 1,
+                tsne_30_y: Math.random() * 2 - 1,
+                tsne_30_z: Math.random() * 2 - 1,
+                pca_1_value: Math.random() * 2 - 1,
+                pca_2_value: Math.random() * 2 - 1,
+                pca_3_value: Math.random() * 2 - 1,
+              }));
+          }
+        }
+
+        getProjectionCoordinates(point) {
+          // Extract coordinates based on selected projection type
+          if (this.params.projectionType === "umap") {
+            const n = this.params.umapNeighbors;
+            const d = this.params.umapMinDist.toString().replace(".", "_");
+            return [
+              parseFloat(point[`umap_${n}_${d}_x`] || 0),
+              parseFloat(point[`umap_${n}_${d}_y`] || 0),
+              parseFloat(point[`umap_${n}_${d}_z`] || 0),
+            ];
+          } else if (this.params.projectionType === "tsne") {
+            const p = this.params.tsnePerplexity;
+            return [
+              parseFloat(point[`tsne_${p}_x`] || 0),
+              parseFloat(point[`tsne_${p}_y`] || 0),
+              parseFloat(point[`tsne_${p}_z`] || 0),
+            ];
+          } else if (this.params.projectionType === "pca") {
+            // For PCA, we'll use the first 3 components
+            return [
+              parseFloat(point[`pca_1_value`] || 0),
+              parseFloat(point[`pca_2_value`] || 0),
+              parseFloat(point[`pca_3_value`] || 0),
+            ];
+          }
+          return [0, 0, 0];
+        }
+
+        createPoints() {
+          console.log(
+            "Creating 3D visualization with",
+            this.params.projectionType,
+            "projection"
+          );
+
+          // Remove existing objects
+          this.clearVisualization();
+
+          if (!this.data || this.data.length === 0) {
+            console.error("No data available to visualize");
+            return;
+          }
+
+          // Color schemes - fix the undefined items error
+          const contentTypeColorScale = d3
+            .scaleOrdinal()
+            .domain(
+              Array.from(
+                new Set(this.data.map((d) => d.content_type || "unknown"))
+              )
+            )
+            .range(d3.schemeCategory10);
+
+          const threadIdColorScale = d3
+            .scaleOrdinal()
+            .domain(
+              Array.from(
+                new Set(this.data.map((d) => d.thread_id || "no_thread"))
+              )
+            )
+            .range(d3.schemeCategory20 || d3.schemeCategory10); // Fallback to Category10 if Category20 is not available
+
+          // Create objects for each data point
+          this.data.forEach((point, i) => {
+            const coords = this.getProjectionCoordinates(point);
+
+            // Determine color
+            let color;
+            if (this.params.colorBy === "content_type") {
+              color = new THREE.Color(
+                contentTypeColorScale(point.content_type || "unknown")
+              );
+            } else if (this.params.colorBy === "thread_id") {
+              color = new THREE.Color(
+                threadIdColorScale(point.thread_id || "no_thread")
+              );
+            } else {
+              color = new THREE.Color(
+                Math.random(),
+                Math.random(),
+                Math.random()
+              );
+            }
+
+            // Check if this is a tag
+            if (point.content_type === "tag") {
+              // Create text geometry for tags
+              const loader = new THREE.FontLoader();
+              loader.load(
+                "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json",
+                (font) => {
+                  const textGeometry = new THREE.TextGeometry(
+                    point.embedded_text,
+                    {
+                      font: font,
+                      size: this.params.pointSize * 5,
+                      height: 0.05,
+                    }
+                  );
+
+                  const textMaterial = new THREE.MeshStandardMaterial({
+                    color: color,
+                    emissive: color.clone().multiplyScalar(0.5),
+                    emissiveIntensity: this.params.glowIntensity,
+                  });
+
+                  const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                  textGeometry.computeBoundingBox();
+                  textGeometry.center();
+
+                  textMesh.position.set(coords[0], coords[1], coords[2]);
+                  textMesh.userData = {
+                    index: i,
+                    data: point,
+                  };
+
+                  this.scene.add(textMesh);
+                  this.textGeometries.push(textMesh);
+                }
+              );
+            } else {
+              // Create sphere for non-tag items
+              const geometry = new THREE.SphereGeometry(
+                this.params.pointSize,
+                16,
+                16
+              );
+
+              const material = new THREE.MeshStandardMaterial({
+                color: color,
+                metalness: 0.3,
+                roughness: 0.7,
+                emissive: color.clone().multiplyScalar(0.5),
+                emissiveIntensity: this.params.glowIntensity,
+              });
+
+              const sphere = new THREE.Mesh(geometry, material);
+              sphere.position.set(coords[0], coords[1], coords[2]);
+              sphere.userData = {
+                index: i,
+                data: point,
+              };
+
+              this.scene.add(sphere);
+              this.spheres.push(sphere);
+            }
+          });
+
+          console.log(
+            "Created",
+            this.spheres.length,
+            "spheres and",
+            this.textGeometries.length,
+            "text geometries"
+          );
+
+          // Create labels if needed
+          if (this.params.showLabels) {
+            this.createLabels();
+          }
+
+          // Update info text
+          const projectionInfo =
+            this.params.projectionType === "umap"
+              ? `UMAP (n=${this.params.umapNeighbors}, d=${this.params.umapMinDist})`
+              : this.params.projectionType === "tsne"
+              ? `t-SNE (perplexity=${this.params.tsnePerplexity})`
+              : "PCA";
+
+          document.getElementById(
+            "info"
+          ).textContent = `Showing ${this.data.length} points using ${projectionInfo}`;
+        }
+
+        clearVisualization() {
+          // Remove existing spheres
+          if (this.spheres.length > 0) {
+            this.spheres.forEach((sphere) => this.scene.remove(sphere));
+            this.spheres = [];
+          }
+
+          // Remove existing text geometries
+          if (this.textGeometries.length > 0) {
+            this.textGeometries.forEach((text) => this.scene.remove(text));
+            this.textGeometries = [];
+          }
+
+          // Remove existing labels
+          if (this.labels.length > 0) {
+            this.labels.forEach((label) => this.scene.remove(label));
+            this.labels = [];
+          }
+
+          // Remove thread connections
+          if (this.threadConnections.length > 0) {
+            this.threadConnections.forEach((line) => this.scene.remove(line));
+            this.threadConnections = [];
+          }
+        }
+
+        showThreadConnections(threadId, sourceObject) {
+          // Find all objects with the same thread_id
+          const threadObjects = this.spheres.filter(
+            (sphere) => sphere.userData.data.thread_id === threadId
+          );
+
+          // Add text geometries with the same thread_id
+          const threadTextGeoms = this.textGeometries.filter(
+            (text) => text.userData.data.thread_id === threadId
+          );
+
+          const allThreadObjects = [...threadObjects, ...threadTextGeoms];
+
+          if (allThreadObjects.length <= 1) return;
+
+          // Sort by timestamp if available
+          allThreadObjects.sort((a, b) => {
+            const timestampA = a.userData.data.timestamp;
+            const timestampB = b.userData.data.timestamp;
+
+            if (!timestampA || !timestampB) return 0;
+            return new Date(timestampA) - new Date(timestampB);
+          });
+
+          // Create connections between objects
+          for (let i = 0; i < allThreadObjects.length - 1; i++) {
+            const startObj = allThreadObjects[i];
+            const endObj = allThreadObjects[i + 1];
+
+            const startPoint = startObj.position.clone();
+            const endPoint = endObj.position.clone();
+
+            // Create line geometry
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+              startPoint,
+              endPoint,
+            ]);
+
+            // Create line material
+            const material = new THREE.LineBasicMaterial({
+              color: 0xffffff,
+              linewidth: 2,
+            });
+
+            // Create line
+            const line = new THREE.Line(geometry, material);
+            this.scene.add(line);
+            this.threadConnections.push(line);
+
+            // Create arrow at the end point
+            this.createArrow(startPoint, endPoint);
+          }
+        }
+
+        createArrow(startPoint, endPoint) {
+          // Calculate direction vector
+          const direction = endPoint.clone().sub(startPoint).normalize();
+
+          // Create arrow head
+          const arrowHeadLength = 0.1;
+          const arrowHeadWidth = 0.05;
+
+          // Calculate arrow position (slightly before the end point)
+          const arrowPos = endPoint
+            .clone()
+            .sub(direction.clone().multiplyScalar(arrowHeadLength * 2));
+
+          // Create cone geometry for arrow head
+          const geometry = new THREE.ConeGeometry(
+            arrowHeadWidth,
+            arrowHeadLength * 2,
+            8
+          );
+          const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+          const arrowHead = new THREE.Mesh(geometry, material);
+
+          // Position the arrow head
+          arrowHead.position.copy(arrowPos);
+
+          // Orient the arrow head along the direction
+          const axis = new THREE.Vector3(0, 1, 0);
+          arrowHead.quaternion.setFromUnitVectors(axis, direction);
+
+          this.scene.add(arrowHead);
+          this.threadConnections.push(arrowHead);
+        }
+
+        getOriginalEmissiveColor(sphere) {
+          // Get the original color based on the current coloring scheme
+          if (this.params.colorBy === "content_type") {
+            const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+            const color = new THREE.Color(
+              colorScale(sphere.userData.data.content_type || "unknown")
+            );
+            return color.clone().multiplyScalar(0.5);
+          } else {
+            return sphere.material.color.clone().multiplyScalar(0.5);
+          }
+        }
+
+        createNearbyLabel(sphere) {
+          const data = sphere.userData.data;
+          const screenPosition = this.getScreenPosition(sphere.position);
+
+          if (screenPosition) {
+            const label = document.createElement("div");
+            label.className = "nearby-label";
+
+            // Get first and last bits of text
+            const text = data.embedded_text || "";
+            const firstBit = text.substring(0, 30);
+            const lastBit =
+              text.length > 60 ? "..." + text.substring(text.length - 30) : "";
+
+            label.innerHTML = `
+            <strong>${data.content_type || "Item"}</strong>: 
+            ${firstBit}${lastBit}
+        `;
+
+            label.style.left = `${screenPosition.x}px`;
+            label.style.top = `${screenPosition.y}px`;
+            document.body.appendChild(label);
+          }
+        }
+
+        getScreenPosition(position) {
+          // Convert 3D position to screen coordinates
+          const vector = position.clone();
+          vector.project(this.camera);
+
+          const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+          const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+
+          // Check if the point is in front of the camera
+          if (vector.z < 1) {
+            return { x, y };
+          }
+
+          return null;
+        }
+
+        updatePoints() {
+          console.log("Updating sphere size to", this.params.pointSize);
+
+          if (this.spheres.length > 0) {
+            this.spheres.forEach((sphere) => {
+              // Update sphere size
+              sphere.geometry.dispose();
+              sphere.geometry = new THREE.SphereGeometry(
+                this.params.pointSize,
+                16,
+                16
+              );
+            });
+          }
+        }
+
+        updateColors() {
+          console.log("Updating colors based on", this.params.colorBy);
+
+          if (!this.spheres || !this.data) return;
+
+          // Color schemes
+          const contentTypeColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+          const threadIdColorScale = d3.scaleOrdinal(d3.schemeCategory20);
+
+          // Update sphere colors
+          this.spheres.forEach((sphere) => {
+            const point = sphere.userData.data;
+            let color;
+
+            if (this.params.colorBy === "content_type") {
+              color = new THREE.Color(
+                contentTypeColorScale(point.content_type || "unknown")
+              );
+            } else if (this.params.colorBy === "thread_id") {
+              color = new THREE.Color(
+                threadIdColorScale(point.thread_id || "no_thread")
+              );
+            } else {
+              color = new THREE.Color(
+                Math.random(),
+                Math.random(),
+                Math.random()
+              );
+            }
+
+            sphere.material.color = color;
+            sphere.material.emissive = color.clone().multiplyScalar(0.5);
+          });
+
+          // Update text geometry colors
+          this.textGeometries.forEach((text) => {
+            const point = text.userData.data;
+            let color;
+
+            if (this.params.colorBy === "content_type") {
+              color = new THREE.Color(
+                contentTypeColorScale(point.content_type || "unknown")
+              );
+            } else if (this.params.colorBy === "thread_id") {
+              color = new THREE.Color(
+                threadIdColorScale(point.thread_id || "no_thread")
+              );
+            } else {
+              color = new THREE.Color(
+                Math.random(),
+                Math.random(),
+                Math.random()
+              );
+            }
+
+            text.material.color = color;
+            text.material.emissive = color.clone().multiplyScalar(0.5);
+          });
+        }
+        updateGlow() {
+          if (this.spheres.length > 0) {
+            this.spheres.forEach((sphere) => {
+              sphere.material.emissiveIntensity = this.params.glowIntensity;
+            });
+          }
+        }
+
+        createLabels() {
+          console.log("Creating text labels");
+
+          // Remove existing labels if any
+          if (this.labels.length > 0) {
+            this.labels.forEach((label) => this.scene.remove(label));
+            this.labels = [];
+          }
+
+          // Create text sprites for labels
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = 256;
+          canvas.height = 256;
+
+          this.data.forEach((point, i) => {
+            // Use content_type as label if no specific label field
+            const labelText =
+              point.embedded_text?.substring(0, 20) ||
+              point.content_type ||
+              `Item ${i}`;
+
+            // Clear canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw text
+            context.font = "24px Arial";
+            context.fillStyle = "white";
+            context.textAlign = "center";
+            context.fillText(labelText, canvas.width / 2, canvas.height / 2);
+
+            // Create sprite
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+
+            const coords = this.getProjectionCoordinates(point);
+            sprite.position.set(
+              coords[0],
+              coords[1] + this.params.pointSize + 0.05, // Offset slightly above sphere
+              coords[2]
+            );
+
+            sprite.scale.set(this.params.labelSize, this.params.labelSize, 1);
+
+            this.scene.add(sprite);
+            this.labels.push(sprite);
+          });
+
+          console.log("Created", this.labels.length, "text labels");
+        }
+
+        toggleLabels() {
+          console.log("Toggle labels:", this.params.showLabels);
+
+          if (this.params.showLabels) {
+            this.createLabels();
+          } else if (this.labels.length > 0) {
+            this.labels.forEach((label) => this.scene.remove(label));
+            this.labels = [];
+          }
+        }
+
+        updateLabelSize() {
+          console.log("Updating label size to", this.params.labelSize);
+
+          if (this.labels.length > 0) {
+            this.labels.forEach((label) => {
+              label.scale.set(this.params.labelSize, this.params.labelSize, 1);
+            });
+          }
+        }
+
+        onWindowResize() {
+          console.log("Window resized");
+
+          this.camera.aspect = window.innerWidth / window.innerHeight;
+          this.camera.updateProjectionMatrix();
+          this.renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        checkIntersection() {
+          // Skip if no objects to interact with
+          if (
+            this.spheres.length === 0 &&
+            (!this.textGeometries || this.textGeometries.length === 0)
+          ) {
+            return;
+          }
+
+          // Update the picking ray with the camera and mouse position
+          this.raycaster.setFromCamera(this.mouse, this.camera);
+
+          // Calculate objects intersecting the picking ray
+          const sphereIntersects = this.raycaster.intersectObjects(
+            this.spheres
+          );
+          const textIntersects =
+            this.textGeometries && this.textGeometries.length > 0
+              ? this.raycaster.intersectObjects(this.textGeometries)
+              : [];
+
+          // Remove all existing nearby labels
+          document
+            .querySelectorAll(".nearby-label")
+            .forEach((el) => el.remove());
+
+          // Remove existing thread connections
+          if (this.threadConnections && this.threadConnections.length > 0) {
+            this.threadConnections.forEach((line) => this.scene.remove(line));
+            this.threadConnections = [];
+          }
+
+          let intersectedObject = null;
+          let intersectedData = null;
+
+          if (sphereIntersects.length > 0) {
+            intersectedObject = sphereIntersects[0].object;
+            intersectedData = intersectedObject.userData.data;
+          } else if (textIntersects.length > 0) {
+            intersectedObject = textIntersects[0].object;
+            intersectedData = intersectedObject.userData.data;
+          }
+
+          if (intersectedObject) {
+            // Show tooltip with preview
+            this.tooltip.innerHTML = `
+      <strong>${intersectedData.content_type || "Item"}</strong><br>
+      ${
+        intersectedData.embedded_text
+          ? intersectedData.embedded_text.substring(0, 100) +
+            (intersectedData.embedded_text.length > 100 ? "..." : "")
+          : "No text available"
+      }
+    `;
+            this.tooltip.style.display = "block";
+
+            // Position tooltip near mouse
+            const event = window.event || { clientX: 0, clientY: 0 };
+            this.tooltip.style.left = event.clientX + 10 + "px";
+            this.tooltip.style.top = event.clientY + 10 + "px";
+
+            // Show full content in sidebar
+            this.sidebarContent.innerHTML = `
+      <h3>${intersectedData.content_type || "Item"}</h3>
+      <p><strong>Thread ID:</strong> ${intersectedData.thread_id || "N/A"}</p>
+      <p><strong>Message ID:</strong> ${intersectedData.message_id || "N/A"}</p>
+      <p><strong>User ID:</strong> ${intersectedData.user_id || "N/A"}</p>
+      <p><strong>Full Text:</strong></p>
+      <pre style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;">${
+        intersectedData.embedded_text || "No text available"
+      }</pre>
+      ${
+        intersectedData.jump_url
+          ? `<p><a href="${intersectedData.jump_url}" target="_blank" style="color: #4fc3f7;">Open in Discord</a></p>`
+          : ""
+      }
+    `;
+            this.sidebar.classList.add("active");
+
+            // Highlight the object
+            if (this.hoveredSphere !== intersectedObject) {
+              // Reset previous highlight
+              if (this.hoveredSphere) {
+                this.hoveredSphere.material.emissive =
+                  this.getOriginalEmissiveColor(this.hoveredSphere);
+                this.hoveredSphere.material.emissiveIntensity =
+                  this.params.glowIntensity;
+              }
+
+              // Set new highlight
+              intersectedObject.material.emissive = new THREE.Color(0xffffff);
+              intersectedObject.material.emissiveIntensity =
+                this.params.glowIntensity * 2;
+              this.hoveredSphere = intersectedObject;
+            }
+
+            // If the object has a thread_id, show connections to other objects in the same thread
+            if (intersectedData.thread_id) {
+              this.showThreadConnections(
+                intersectedData.thread_id,
+                intersectedObject
+              );
+            }
+
+            // Find nearby objects and show their labels
+            const hoverPosition = intersectedObject.position.clone();
+            this.spheres.forEach((otherSphere) => {
+              if (otherSphere !== intersectedObject) {
+                const distance = otherSphere.position.distanceTo(hoverPosition);
+                if (distance < this.params.nearbyDistance) {
+                  this.createNearbyLabel(otherSphere);
+                }
+              }
+            });
+
+            if (this.textGeometries) {
+              this.textGeometries.forEach((textGeom) => {
+                const distance = textGeom.position.distanceTo(hoverPosition);
+                if (distance < this.params.nearbyDistance) {
+                  this.createNearbyLabel(textGeom);
+                }
+              });
+            }
+          } else {
+            // Hide tooltip when not hovering over an object
+            this.tooltip.style.display = "none";
+
+            // Remove highlight
+            if (this.hoveredSphere) {
+              this.hoveredSphere.material.emissive =
+                this.getOriginalEmissiveColor(this.hoveredSphere);
+              this.hoveredSphere.material.emissiveIntensity =
+                this.params.glowIntensity;
+              this.hoveredSphere = null;
+            }
+          }
+        }
+      }
+
+      // Initialize visualization when ready
+      window.addEventListener("load", () => {
+        console.log("Page loaded, initializing visualization");
+        new EmbeddingVisualizer();
+      });
     </script>
-</body>
+  </body>
 </html>

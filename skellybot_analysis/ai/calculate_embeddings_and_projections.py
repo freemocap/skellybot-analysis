@@ -109,29 +109,32 @@ class EmbeddableItem(BaseModel):
             embedded_text=tag,
             embedding_method=embedding_method
         )
+
     def model_dump_flattened(self) -> dict:
         """Flatten projections for CSV storage"""
         dump = self.model_dump()
-        
+
         # Flatten TSNE
         for perplexity, proj in self.tsne.items():
             dump[f"tsne_{perplexity}_x"] = proj.x
             dump[f"tsne_{perplexity}_y"] = proj.y
             dump[f"tsne_{perplexity}_z"] = proj.z
-            
+
         # Flatten UMAP
         for n_neighbors, dists in self.umap.items():
             for min_dist, proj in dists.items():
-                key = f"umap_{n_neighbors}_{min_dist:.1f}"
+                # Use underscore instead of decimal point for column names
+                min_dist_str = str(min_dist).replace('.', '_')
+                key = f"umap_{n_neighbors}_{min_dist_str}"
                 dump[f"{key}_x"] = proj.x
                 dump[f"{key}_y"] = proj.y
                 dump[f"{key}_z"] = proj.z
-                
+
         # Flatten PCA
         for comp_num, component in self.pca.items():
             dump[f"pca_{comp_num}_value"] = component.value
             dump[f"pca_{comp_num}_var"] = component.variance_explained
-            
+
         return dump
 
 async def calculate_embeddings_and_projections(embeddable_items:list[EmbeddableItem]) -> tuple[list[EmbeddableItem], pd.DataFrame]:
