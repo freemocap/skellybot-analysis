@@ -2,7 +2,7 @@ import logging
 
 import discord
 
-from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
+from skellybot_analysis.df_db.dataframe_handler import DataframeHandler
 from skellybot_analysis.data_models.server_models import ContextPromptModel
 from skellybot_analysis.scrape_server.scrape_thread import get_channel_threads
 from skellybot_analysis.scrape_server.scrape_utils import get_prompts_from_channel

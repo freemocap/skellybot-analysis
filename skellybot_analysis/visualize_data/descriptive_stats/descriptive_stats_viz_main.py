@@ -12,39 +12,48 @@ from skellybot_analysis.utilities.get_most_recent_db_location import get_most_re
 from skellybot_analysis.visualize_data.descriptive_stats.create_cumulative_messages_plot import create_cumulative_message_count_by_user, \
     create_cumulative_word_count_plot
 from skellybot_analysis.visualize_data.descriptive_stats.create_histogram_subplot import create_histogram_subplot
-from skellybot_analysis.visualize_data.descriptive_stats.initialize_figure import initialize_figure
+from plotly.subplots import make_subplots
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 
-def create_embedding_subplot(fig: go.Figure,
-                             tsne2d_df: pd.DataFrame,
-                             subplot_row: int,
-                             subplot_col: int):
-    """Create 3D t-SNE embedding visualization colored by user"""
-
-    fig.add_trace(
-        go.Scatter(
-            x=tsne2d_df['p30_x'],
-            y=tsne2d_df['p30_y'],
-            mode='markers',
-            marker=dict(
-                size=5,
-                color=tsne2d_df['id'],  # Color by entity ID (thread, user, or message)
-            ),
+def initialize_figure(db_name: str):
+    logger.info("Initializing figure")
+    fig = make_subplots(
+        rows=2, cols=7,
+        specs=[[{"colspan": 3}, None,None, {}, {}, {},{}],
+               [{"colspan": 3}, None,None, {"colspan": 2}, None, {"colspan": 2}, None]],
+        subplot_titles=(
+            "Cumulative Message Count by User",
+            "Threads per User",
+            "Messages per User",
+            "Words per User",
+            "Human Messages per Thread",
+            "Cumulative Word Count Bot/Human/Total",
+            "Words per Human Message",
+            "Words per Bot Message",
         ),
-        row=subplot_row, col=subplot_col,
+        vertical_spacing=0.12,
     )
-
-    # Set 3D scene properties
-    fig.update_scenes(
-        xaxis_title='Dimension 1',
-        yaxis_title='Dimension 2',
-        zaxis_title='Dimension 3',
-        row=subplot_row, col=subplot_col
+    fig.update_layout(
+        title={
+            'text': f"Skellybot Descriptive Analysis for {db_name}",
+            'y': 0.98,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': {'size': 24, 'family': 'Arial, sans-serif'}
+        },
+        height=800,
+        # Remove fixed width to allow responsive sizing
+        # width=1800,
+        showlegend=False,
+        margin=dict(l=10, r=10, t=80, b=10),  # Increased top margin to accommodate title
+        font=dict(size=12),
+        autosize=True,  # Enable autosize for responsiveness
     )
-
+    return fig
 
 def create_subplots(fig: go.Figure):
     human_word_color = '#239d1e'
@@ -60,11 +69,7 @@ def create_subplots(fig: go.Figure):
                                       bot_word_color=bot_word_color,
                                       subplot_row=2,
                                       subplot_col=1)
-    # create_embedding_subplot(fig=fig,
-    #                          tsne2d_df=embedding_projections_tsne_2d_df,
-    #                          subplot_row=1,
-    #                          subplot_col=4
-    #                          )
+
 
     # create_threads_per_user_histogram_subplot
     create_histogram_subplot(

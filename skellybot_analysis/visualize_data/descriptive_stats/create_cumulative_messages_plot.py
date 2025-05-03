@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 import pandas as pd
 from plotly import graph_objects as go
@@ -14,6 +15,7 @@ def create_cumulative_message_count_by_user(fig: go.Figure,
     # Add traces for the cumulative message count
     logger.info(
         f"Creating cumulative message count plot for {len(cumulative_counts_df['author_id'].unique())} users (row {subplot_row}, col {subplot_col})")
+    
     for user_id in cumulative_counts_df['author_id'].unique():
         user_data = cumulative_counts_df[cumulative_counts_df['author_id'] == user_id]
         fig.add_trace(
@@ -28,8 +30,10 @@ def create_cumulative_message_count_by_user(fig: go.Figure,
             row=subplot_row, col=subplot_col
         )
 
-    fig.update_yaxes(title_text="Message Count", row=subplot_row, col=subplot_col)
-
+    fig.update_yaxes(title_text="Message Count", row=subplot_row, col=subplot_col,
+                     range=[0, cumulative_counts_df['cumulative_message_count'].max() * 1.05])
+    fig.update_xaxes(title_text="Date", row=subplot_row, col=subplot_col,
+                     range=[cumulative_counts_df['timestamp'].min()-timedelta(days=7), cumulative_counts_df['timestamp'].max()+timedelta(days=7)])
 
 def create_cumulative_word_count_plot(fig: go.Figure,
                                       cumulative_counts_df: pd.DataFrame,
@@ -59,7 +63,7 @@ def create_cumulative_word_count_plot(fig: go.Figure,
             fill='tozeroy',
             fillcolor=human_fill_color,
         ),
-        row=subplot_row, col=subplot_col
+        row=subplot_row, col=subplot_col,
     )
 
     # Add trace for bot word count (stacked on top of human)
@@ -74,7 +78,7 @@ def create_cumulative_word_count_plot(fig: go.Figure,
             fill='tonexty',  # Fill to the previous trace
             fillcolor=bot_fill_color,
         ),
-        row=subplot_row, col=subplot_col
+        row=subplot_row, col=subplot_col,
     )
 
     # Get the midpoint of the time range and the word counts for annotations
@@ -96,7 +100,7 @@ def create_cumulative_word_count_plot(fig: go.Figure,
         font=dict(size=20,
                   weight="bold",
                   color=human_word_color),
-        row=subplot_row, col=subplot_col
+        row=subplot_row, col=subplot_col,
     )
 
     # Add annotation for bot words area
@@ -108,7 +112,7 @@ def create_cumulative_word_count_plot(fig: go.Figure,
         font=dict(size=20,
                   weight="bold",
                   color=bot_word_color),
-        row=subplot_row, col=subplot_col
+        row=subplot_row, col=subplot_col,
     )
 
     # Ensure y-axis starts at 0
@@ -116,11 +120,11 @@ def create_cumulative_word_count_plot(fig: go.Figure,
         title_text="Cumulative Word Count",
         range=[0, latest_data['cumulative_total_word_count'].max() * 1.05],  # Add 5% padding at top
         row=subplot_row,
-        col=subplot_col
+        col=subplot_col,
     )
 
-    fig.update_xaxes(title_text="Date", row=subplot_row, col=subplot_col)
-
+    fig.update_xaxes(title_text="Date", row=subplot_row, col=subplot_col,
+                     range=[cumulative_counts_df['timestamp'].min()-timedelta(days=7), cumulative_counts_df['timestamp'].max()+timedelta(days=7)])
 
 def _create_lighter_color(color: str, alpha: float = 0.5) -> str:
     """Create a lighter/transparent version of a color for fill areas"""

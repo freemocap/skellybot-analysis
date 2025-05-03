@@ -3,8 +3,8 @@ from pathlib import Path
 
 import discord
 
-from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
-from skellybot_analysis.scrape_server.dataframe_augmenters import augment_dataframes
+from skellybot_analysis.df_db.dataframe_handler import DataframeHandler
+from skellybot_analysis.df_db.df_augmentation.dataframe_augmentation import augment_dataframes
 from skellybot_analysis.scrape_server.scrape_server import scrape_server
 from skellybot_analysis.utilities.get_most_recent_db_location import persist_most_recent_db_location
 from skellybot_analysis.utilities.sanitize_filename import sanitize_name

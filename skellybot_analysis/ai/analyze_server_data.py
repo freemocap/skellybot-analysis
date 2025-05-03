@@ -9,7 +9,7 @@ from skellybot_analysis.ai.clients.openai_client.make_openai_json_mode_ai_reques
     make_openai_json_mode_ai_request
 from skellybot_analysis.ai.clients.openai_client.openai_client import MAX_TOKEN_LENGTH, DEFAULT_LLM, OPENAI_CLIENT
 from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
-from skellybot_analysis.scrape_server.dataframe_handler import DataframeHandler
+from skellybot_analysis.df_db.dataframe_handler import DataframeHandler
 from skellybot_analysis.data_models.prompt_models import TextAnalysisPromptModel
 from skellybot_analysis.data_models.server_models import ThreadModel, ThreadId, MessageModel
 

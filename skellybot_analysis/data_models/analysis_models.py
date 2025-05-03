@@ -14,6 +14,8 @@ class AiThreadAnalysisModel(DataframeModel):
     channel_name: str
     thread_id: int
     thread_name: str
+    jump_url: str # url to the thread in the server
+    thread_owner_id: int # the human user who owns the thread (human user with most messages in the thread, b/c no easier way to determine this atm)
     base_text: str
     analysis_prompt: str
     title_slug: str

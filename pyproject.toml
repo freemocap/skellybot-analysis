@@ -11,6 +11,7 @@ dependencies = [
     "discord>=2.3.2",
     "fastapi[standard]>=0.115.5",
     "ffmpeg-python>=0.2.0",
+    "flask-caching>=2.3.1",
     "ipykernel>=6.29.5",
     "jieba>=0.42.1",
     "matplotlib>=3.10.0",

@@ -1,149 +1,181 @@
+import enum
 import logging
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel
 import umap
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import calculate_ollama_embeddings
+from skellybot_analysis.ai.embeddings_stuff.ollama_embedding import DEFAULT_OLLAMA_EMBEDDINGS_MODEL, calculate_ollama_embeddings
 from skellybot_analysis.data_models.analysis_models import AiThreadAnalysisModel
+from skellybot_analysis.data_models.server_models import MessageModel
 
 logger = logging.getLogger(__name__)
 
 RANDOM_SEED = 42
 
+# one row per embedded item
+# all in the same 
+# embeddable items: human+bot messages, thread analyses, tags, user-profile
+# columns: 
+#   - id (index),
+#   - content_type(enum: message_and_response, thread_analysis, tag, user_profile), 
+#   - embedded_text, 
+#   - thread_id (nullable - for messages and thread analyses),
+#   - message_id (nullable, messages only, id of the human message),
+#   - user_id (nullable, for everything but tags)
+#   - embedding method: str
+#   - pca.{component-number}.value, pca.{component-number}.variance, pca.2.value, pca.2.variance, pca.3.value, pca.3.variance (up to 10 components)
+#   - tsne.{perplexity-number}.{dimension-number) (perplexity=5-50 in increments of 5), 
+#   - umap.{n_neighbors-number}.{min_dist-number}.{dimension-number} (n_neighbors=5-50 in increments of 5, min_dist=0.1-0.9 in increments of 0.1)
 
-async def calculate_embeddings_and_projections(human_messages_df: pd.DataFrame,
-                                               thread_analyses: list[AiThreadAnalysisModel]) -> tuple[
-    np.ndarray, dict[str, pd.DataFrame]]:
-    """
-    Calculate embeddings and various dimensionality reduction techniques (t-SNE, UMAP, PCA)
-    for the given messages and thread analyses, with a range of parameters where appropriate.
+class EmbeddableContentType(enum.Enum):
+    MESSAGE_AND_RESPONSE = "message_and_response"
+    THREAD_ANALYSIS = "thread_analysis"
+    TAG = "tag"
+    USER_PROFILE = "user_profile"
+
+PCAComponentNumber = int
+TSNEPerpexityValue = int
+UMAPNeighborsValue = int
+UMAPMinDistValue = float
+
+class PCAComponent(BaseModel):
+    component_number: PCAComponentNumber
+    value: float
+    variance_explained: float
+
+class TSNEProjection(BaseModel):
+    perplexity: TSNEPerpexityValue
+    seed: int
+    x: float
+    y: float
+    z: float
+
+class UMAPProjection(BaseModel):
+    n_neighbors: UMAPNeighborsValue
+    min_dist: UMAPMinDistValue
+    seed: int
+    x: float
+    y: float
+    z: float
+
+
+class EmbeddableItem(BaseModel):
+    embedding_index: int  # Index of the item in the embeddings npy array
+    content_type: str  # Enum: message_and_response, thread_analysis, tag, user_profile
+    embedded_text: str
+    message_id: int | None = None  # for messages only
+    thread_id: int | None = None  # messages and thread analyses
+    user_id: int | None = None  # for everything but tags
+    jump_url: str | None = None  # Jump URL to the relevant thing, if available
+    embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL # Default embedding method
     
-    Returns a tuple containing:
-    1. numpy array of embeddings
-    2. dictionary with separate dataframes for base data, tsne, umap, and pca projections
-    """
-    logger.info(
-        f"Creating embeddings and projections for {len(human_messages_df)} messages and {len(thread_analyses)} thread analyses")
+    pca: dict[PCAComponentNumber, PCAComponent] = {}
+    tsne: dict[TSNEPerpexityValue,TSNEProjection] = {}
+    umap: dict[UMAPNeighborsValue, dict[UMAPMinDistValue, UMAPProjection]] = {}  # List of UMAP 3D projections
 
-    # Create a dictionary mapping IDs to their text content
-    texts_to_embed = {}
-    id_to_type = {}  # Keep track of whether each ID is a message or thread analysis
+    @classmethod
+    def from_message(cls, message: dict, index: int, embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL) -> "EmbeddableItem":
+        return cls(
+            embedding_index=index,
+            content_type=EmbeddableContentType.MESSAGE_AND_RESPONSE.value,
+            embedded_text=message["message_and_response"],
+            message_id=message["message_id"],
+            thread_id=message["thread_id"],
+            user_id=message["author_id"],
+            embedding_method=embedding_method
+        )
+    
+    @classmethod
+    def from_thread_analysis(cls, analysis: AiThreadAnalysisModel, index: int, embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL) -> "EmbeddableItem":
+        return cls(
+            embedding_index=index,
+            content_type=EmbeddableContentType.THREAD_ANALYSIS.value,
+            embedded_text=analysis.analysis_text,
+            thread_id=analysis.thread_id,
+            user_id=analysis.user_id,
+            jump_url=analysis.jump_url,
+            embedding_method=embedding_method
+        )
+    
+    @classmethod
+    def from_tag(cls, tag: str, index: int, embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL) -> "EmbeddableItem":
+        return cls(
+            embedding_index=index,
+            content_type=EmbeddableContentType.TAG.value,
+            embedded_text=tag,
+            embedding_method=embedding_method
+        )
 
-    # Add thread analyses
-    for analysis in thread_analyses:
-        texts_to_embed[analysis.thread_id] = analysis.full_text
-        id_to_type[analysis.thread_id] = 'thread_analysis'
+async def calculate_embeddings_and_projections(embeddable_items:list[EmbeddableItem]) -> list[EmbeddableItem]:
 
-    for _, human_messages_df in human_messages_df.iterrows():
-        texts_to_embed[human_messages_df['message_id']] = str(human_messages_df['message_and_response'])
-        id_to_type[human_messages_df['message_id']] = 'message_and_response'
+    logger.info(f"Creating embeddings and projections for {len(embeddable_items)} items...")
 
-    all_ids = list(texts_to_embed.keys())
-
+    for index, item in enumerate(embeddable_items):
+        if not item.embedding_index == index:
+            raise ValueError(
+                f"Item index {item.embedding_index} does not match expected index {index}.")
+        
+    text_to_embed = [item.embedded_text for item in embeddable_items]
     # Calculate embeddings
     logger.info("Calculating embeddings...")
-    embedding_vectors = await calculate_ollama_embeddings(list(texts_to_embed.values()))
+    embedding_vectors = await calculate_ollama_embeddings(text_to_embed)
     embeddings_npy = np.array(embedding_vectors)
 
-    # Create base dataframe with IDs and embeddings
-    base_df = pd.DataFrame({
-        'id': all_ids,
-        'content_type': [id_to_type[id] for id in all_ids],
-        'text': [texts_to_embed[id] for id in all_ids],
-    })
-
-    # Create separate dataframes for different projection types
-    tsne_2d_df = base_df[['id', 'content_type']].copy()
-    tsne_3d_df = base_df[['id', 'content_type']].copy()
-    umap_2d_df = base_df[['id', 'content_type']].copy()
-    umap_3d_df = base_df[['id', 'content_type']].copy()
-    pca_df = base_df[['id', 'content_type']].copy()
-
-    # 1. Calculate t-SNE projections for different dimensions and perplexity values
+    # 1. Calculate t-SNE projections
     logger.info("Calculating t-SNE projections...")
-    perplexity_values = range(5, 55, 5)
-
-    # 2D t-SNE
-    for perplexity in perplexity_values:
-        logger.info(f"Running 2D t-SNE with perplexity={perplexity}")
-        tsne = TSNE(n_components=2, random_state=RANDOM_SEED, perplexity=perplexity)
-        tsne_result = tsne.fit_transform(embeddings_npy)
-
-        tsne_2d_df[f'p{perplexity}_x'] = tsne_result[:, 0]
-        tsne_2d_df[f'p{perplexity}_y'] = tsne_result[:, 1]
-
-    # 3D t-SNE
-    for perplexity in perplexity_values:
+        
+    for perplexity in np.arange(5, 55, 5).tolist():  # Perplexity values from 5 to 50 in increments of 5
         logger.info(f"Running 3D t-SNE with perplexity={perplexity}")
         tsne = TSNE(n_components=3, random_state=RANDOM_SEED, perplexity=perplexity)
         tsne_result = tsne.fit_transform(embeddings_npy)
+        for item, tsne_result in zip(embeddable_items, tsne_result):
+            item.tsne[perplexity] = TSNEProjection(
+                perplexity=perplexity,
+                seed=RANDOM_SEED,
+                x=tsne_result[0],
+                y=tsne_result[1],
+                z=tsne_result[2]
+            )                
 
-        tsne_3d_df[f'p{perplexity}_x'] = tsne_result[:, 0]
-        tsne_3d_df[f'p{perplexity}_y'] = tsne_result[:, 1]
-        tsne_3d_df[f'p{perplexity}_z'] = tsne_result[:, 2]
-
-    # 2. Calculate UMAP projections with different parameters
+    # 2. Calculate UMAP projections
     logger.info("Calculating UMAP projections...")
-    # UMAP parameters to vary
-    n_neighbors_values = [5, 15, 30, 50]
-    min_dist_values = [0.1, 0.5, 0.8]
+    # UMAP parameters
 
-    # 2D UMAP
-    for n_neighbors in n_neighbors_values:
-        for min_dist in min_dist_values:
-            logger.info(f"Running 2D UMAP with n_neighbors={n_neighbors}, min_dist={min_dist}")
-            reducer = umap.UMAP(n_components=2,
-                                n_neighbors=n_neighbors,
-                                min_dist=min_dist,
-                                random_state=42)
+    for n_neighbors in np.arange(5, 55, 5).tolist():  # n_neighbors values from 5 to 50 in increments of 5
+        for min_dist in np.arange(0.1, 1.0, 0.1).tolist():  # min_dist values from 0.1 to 0.9 in increments of 0.1
+            logger.info(f"Running 3D UMAP with n_neighbors={n_neighbors}, min_dist={min_dist}")    
+    
+    
+            reducer = umap.UMAP(n_components=3, n_neighbors=n_neighbors, min_dist=min_dist, random_state=RANDOM_SEED)
             umap_result = reducer.fit_transform(embeddings_npy)
+            for item, umap_result in zip(embeddable_items, umap_result):
+                item.umap[n_neighbors][min_dist] = UMAPProjection(
+                    n_neighbors=n_neighbors,
+                    min_dist=min_dist,
+                    seed=RANDOM_SEED,
+                    x=umap_result[0],
+                    y=umap_result[1],
+                    z=umap_result[2]
+                )
+    
 
-            umap_2d_df[f'n{n_neighbors}_d{min_dist:.1f}_x'] = umap_result[:, 0]
-            umap_2d_df[f'n{n_neighbors}_d{min_dist:.1f}_y'] = umap_result[:, 1]
-
-    # 3D UMAP
-    for n_neighbors in n_neighbors_values:
-        for min_dist in min_dist_values:
-            logger.info(f"Running 3D UMAP with n_neighbors={n_neighbors}, min_dist={min_dist}")
-            reducer = umap.UMAP(n_components=3,
-                                n_neighbors=n_neighbors,
-                                min_dist=min_dist,
-                                random_state=42)
-            umap_result = reducer.fit_transform(embeddings_npy)
-
-            umap_3d_df[f'n{n_neighbors}_d{min_dist:.1f}_x'] = umap_result[:, 0]
-            umap_3d_df[f'n{n_neighbors}_d{min_dist:.1f}_y'] = umap_result[:, 1]
-            umap_3d_df[f'n{n_neighbors}_d{min_dist:.1f}_z'] = umap_result[:, 2]
-
-    # 3. Calculate PCA projections (no parameter sweep needed)
+    # 3. Calculate PCA projections
     logger.info("Calculating PCA projections...")
-
-
+    
     # 3D PCA
-    pca_3d = PCA(n_components=3, random_state=42)
-    pca_3d_result = pca_3d.fit_transform(embeddings_npy)
-    pca_df['pca_3d_x'] = pca_3d_result[:, 0]
-    pca_df['pca_3d_y'] = pca_3d_result[:, 1]
-    pca_df['pca_3d_z'] = pca_3d_result[:, 2]
+    pca = PCA(n_components=10, random_state=RANDOM_SEED)
+    pca_result = pca.fit_transform(embeddings_npy)
+    for item, pca_result in zip(embeddable_items, pca_result):
+        item.pca[3] = PCAComponent(
+            component_number=3,
+            value=pca_result[0],
+            variance_explained=pca.explained_variance_ratio_[0]
+        )
 
-    # Add variance explained by each PCA component
-    for i, var in enumerate(pca_3d.explained_variance_ratio_):
-        pca_df[f'pca_3d_variance_{i + 1}'] = var
 
-    # Create dictionary of dataframes
-
-    result_dfs = {
-        'embedding_vectors': base_df,
-        'tsne_2d': tsne_2d_df,
-        'tsne_3d': tsne_3d_df,
-        'umap_2d': umap_2d_df,
-        'umap_3d': umap_3d_df,
-        'pca': pca_df
-    }
-
-    logger.info(f"Created separate dataframes for each projection type")
-
-    return embeddings_npy, result_dfs
+    return embeddable_items
+    
