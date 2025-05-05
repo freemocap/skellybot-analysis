@@ -114,10 +114,10 @@
             ).textContent = `Error: ${event.error.message}`;
           });
           this.params = {
-            projectionType: "umap",
+            projectionType: "tsne",
             umapNeighbors: 15,
             umapMinDist: 0.1,
-            tsnePerplexity: 30,
+            tsnePerplexity: 5,
             pointSize: 0.1,
             colorBy: "thread_id",
             showLabels: false,
@@ -219,21 +219,13 @@
           // UMAP parameters
           const umapFolder = this.gui.addFolder("UMAP Settings");
           umapFolder
-            .add(
-              this.params,
-              "umapNeighbors",
-              [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-            )
+            .add(this.params, "umapNeighbors", 5, 50, 5) // Slider with step of 5
             .name("Neighbors")
             .onChange(() => {
               if (this.params.projectionType === "umap") this.createPoints();
             });
           umapFolder
-            .add(
-              this.params,
-              "umapMinDist",
-              [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-            )
+            .add(this.params, "umapMinDist", 0.1, 0.9, 0.1) // Slider with step of 0.1
             .name("Min Distance")
             .onChange(() => {
               if (this.params.projectionType === "umap") this.createPoints();
@@ -242,11 +234,7 @@
           // t-SNE parameters
           const tsneFolder = this.gui.addFolder("t-SNE Settings");
           tsneFolder
-            .add(
-              this.params,
-              "tsnePerplexity",
-              [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-            )
+            .add(this.params, "tsnePerplexity", 5, 50, 5) // Slider with step of 5
             .name("Perplexity")
             .onChange(() => {
               if (this.params.projectionType === "tsne") this.createPoints();
@@ -260,9 +248,9 @@
 
           vizFolder
             .add(this.params, "colorBy", [
-            "thread_id",
-            "user_id",
-            "content_type",
+              "thread_id",
+              "user_id",
+              "content_type",
               "random",
             ])
             .name("Color By")
@@ -340,7 +328,9 @@
         <h3>${clickedData.content_type || "Item"}</h3>
         <p><strong>Thread ID:</strong> ${clickedData.thread_id || "N/A"}</p>
         <p><strong>Message ID:</strong> ${clickedData.message_id || "N/A"}</p>
-        <p><strong>User ID:</strong> ${String(clickedData.user_id).slice(-6) || "N/A"}</p>
+        <p><strong>User ID:</strong> ${
+          String(clickedData.user_id).slice(-6) || "N/A"
+        }</p>
         <p><strong>Full Text:</strong></p>
         <pre style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;">${
           clickedData.embedded_text || "No text available"
@@ -400,7 +390,7 @@
               .fill()
               .map((_, i) => ({
                 embedding_index: i,
-                content_type: ["message_and_response", "thread_analysis"][
+                content_type: ["message_and_response", "thread_analysis", '"tag'][
                   Math.floor(Math.random() * 2)
                 ],
                 thread_id: Math.floor(Math.random() * 10), // Add random thread_id for testing
@@ -486,9 +476,7 @@
           const userIdColorScale = d3
             .scaleOrdinal()
             .domain(
-              Array.from(
-                new Set(this.data.map((d) => d.user_id || "no_user"))
-              )
+              Array.from(new Set(this.data.map((d) => d.user_id || "no_user")))
             )
             .range(d3.schemeCategory10);
 
@@ -526,7 +514,7 @@
                     {
                       font: font,
                       size: this.params.pointSize * 5,
-                      height: .05,
+                      height: 0.05,
                     }
                   );
 
@@ -550,11 +538,11 @@
                   this.textGeometries.push(textMesh);
                 }
               );
-            } else if (point.content_type === "thread_analysis"){
+            } else if (point.content_type === "thread_analysis") {
               // Create sphere for non-tag items
               const geometry = new THREE.TorusKnotGeometry(
-                this.params.pointSize*2,
-                this.params.pointSize*.25,
+                this.params.pointSize * 2,
+                this.params.pointSize * 0.25,
                 16,
                 16
               );
@@ -602,8 +590,6 @@
               this.scene.add(sphere);
               this.spheres.push(sphere);
             }
-
-
           });
 
           console.log(
@@ -839,9 +825,9 @@
                 threadIdColorScale(point.thread_id || "no_thread")
               );
             } else if (this.params.colorBy === "user_id") {
-                color = new THREE.Color(
-                    userIdColorScale(point.user_id || "no_thread")
-                );
+              color = new THREE.Color(
+                userIdColorScale(point.user_id || "no_thread")
+              );
             } else {
               color = new THREE.Color(
                 Math.random(),
@@ -867,11 +853,11 @@
               color = new THREE.Color(
                 threadIdColorScale(point.thread_id || "no_thread")
               );
-            }else if (this.params.colorBy === "user_id") {
-                color = new THREE.Color(
-                    userIdColorScale(point.user_id || "no_user")
-                );
-            }else {
+            } else if (this.params.colorBy === "user_id") {
+              color = new THREE.Color(
+                userIdColorScale(point.user_id || "no_user")
+              );
+            } else {
               color = new THREE.Color(
                 Math.random(),
                 Math.random(),

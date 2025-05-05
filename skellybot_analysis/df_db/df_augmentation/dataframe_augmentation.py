@@ -68,15 +68,26 @@ async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool 
                                                     )
             )
         # Add tags
-        added_tags = set()
+        tags_with_rank =  dict[str,int]= {}
         for analysis in dataframe_handler.thread_analyses.values():
             for tag in analysis.tags:
-                if tag not in added_tags:
-                    embeddable_items.append(
-                        EmbeddableItem.from_tag(tag=tag,
-                                                index=len(embeddable_items))
-                    )
-                    added_tags.add(tag)
+                if tag not in tags_with_rank:
+                    tags_with_rank[tag] = 0
+                tags_with_rank[tag] += 1
+
+        min_rank = 20
+        filtered_tags = {tag: rank for tag, rank in tags_with_rank.items() if rank > min_rank}
+        for tag in filtered_tags.keys():
+            try:
+                embeddable_items.append(
+                    EmbeddableItem.from_tag(tag=tag,
+                                            index=len(embeddable_items))
+                )
+            except Exception as e:
+                logger.error(f"Error creating EmbeddableItem from tag {tag}: {e} - skipping this tag.")
+                continue
+
+
 
         _, embedding_projections_df = await calculate_embeddings_and_projections(
             embeddable_items=embeddable_items,
