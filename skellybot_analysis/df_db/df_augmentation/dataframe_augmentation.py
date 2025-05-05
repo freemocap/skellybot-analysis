@@ -17,6 +17,7 @@ from skellybot_analysis.utilities.get_most_recent_db_location import get_most_re
 
 logger = logging.getLogger(__name__)
 
+MINIMUM_TAG_RANK = 10
 
 async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool = False, skip_embeddings:bool=False) -> None:
 
@@ -75,8 +76,8 @@ async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool 
                     tags_with_rank[tag] = 0
                 tags_with_rank[tag] += 1
 
-        min_rank = 20
-        filtered_tags = {tag: rank for tag, rank in tags_with_rank.items() if rank > min_rank}
+
+        filtered_tags = {tag: rank for tag, rank in tags_with_rank.items() if rank > MINIMUM_TAG_RANK}
         for tag in filtered_tags.keys():
             try:
                 embeddable_items.append(

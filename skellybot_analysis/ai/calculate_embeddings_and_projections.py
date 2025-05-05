@@ -105,7 +105,8 @@ class EmbeddableItem(BaseModel):
     def from_tag(cls, tag: str, index: int, embedding_method: str = DEFAULT_OLLAMA_EMBEDDINGS_MODEL) -> "EmbeddableItem":
         tag_string = tag.replace("#", "").replace("-", " ").replace(",", " ")
         if not tag_string or len(tag_string) < 4:
-            raise ValueError(f"Tag '{tag}' is too short or empty after processing.")
+            if not tag_string == "ai":
+                raise ValueError(f"Tag '{tag_string}' is too short or empty after processing.")
         return cls(
             embedding_index=index,
             content_type=EmbeddableContentType.TAG.value,
