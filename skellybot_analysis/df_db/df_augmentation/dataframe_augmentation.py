@@ -68,7 +68,7 @@ async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool 
                                                     )
             )
         # Add tags
-        tags_with_rank =  dict[str,int]= {}
+        tags_with_rank : dict[str,int]= {}
         for analysis in dataframe_handler.thread_analyses.values():
             for tag in analysis.tags:
                 if tag not in tags_with_rank:

@@ -103,6 +103,9 @@
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
       import { GUI } from "https://cdn.jsdelivr.net/npm/lil-gui@0.18/+esm";
       import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+      import { FontLoader } from "three/addons/loaders/FontLoader.js";
+      import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+
 
       class EmbeddingVisualizer {
         constructor() {
@@ -216,6 +219,15 @@
               this.createPoints();
             });
 
+          // t-SNE parameters
+          const tsneFolder = this.gui.addFolder("t-SNE Settings");
+          tsneFolder
+            .add(this.params, "tsnePerplexity", 5, 50, 5) // Slider with step of 5
+            .name("Perplexity")
+            .onChange(() => {
+              if (this.params.projectionType === "tsne") this.createPoints();
+            });
+
           // UMAP parameters
           const umapFolder = this.gui.addFolder("UMAP Settings");
           umapFolder
@@ -230,16 +242,6 @@
             .onChange(() => {
               if (this.params.projectionType === "umap") this.createPoints();
             });
-
-          // t-SNE parameters
-          const tsneFolder = this.gui.addFolder("t-SNE Settings");
-          tsneFolder
-            .add(this.params, "tsnePerplexity", 5, 50, 5) // Slider with step of 5
-            .name("Perplexity")
-            .onChange(() => {
-              if (this.params.projectionType === "tsne") this.createPoints();
-            });
-
           const vizFolder = this.gui.addFolder("Viz Settings");
           vizFolder
             .add(this.params, "pointSize", 0.01, 0.2)
@@ -390,9 +392,11 @@
               .fill()
               .map((_, i) => ({
                 embedding_index: i,
-                content_type: ["message_and_response", "thread_analysis", '"tag'][
-                  Math.floor(Math.random() * 2)
-                ],
+                content_type: [
+                  "message_and_response",
+                  "thread_analysis",
+                  '"tag',
+                ][Math.floor(Math.random() * 2)],
                 thread_id: Math.floor(Math.random() * 10), // Add random thread_id for testing
                 timestamp: new Date(
                   Date.now() - Math.random() * 1000000000
@@ -454,7 +458,7 @@
             return;
           }
 
-          // Color schemes - fix the undefined items error
+          // Color schemes -
           const contentTypeColorScale = d3
             .scaleOrdinal()
             .domain(
@@ -505,22 +509,24 @@
             // Check if this is a tag
             if (point.content_type === "tag") {
               // Create text geometry for tags
-              const loader = new THREE.FontLoader();
+              const loader = new FontLoader();
+
               loader.load(
                 "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/fonts/helvetiker_regular.typeface.json",
                 (font) => {
-                  const textGeometry = new THREE.TextGeometry(
-                    point.embedded_text,
+                  const textGeometry = new TextGeometry(
+                    point.embedded_text || "No text",
                     {
                       font: font,
-                      size: this.params.pointSize * 5,
-                      height: 0.05,
+                      size: this.params.pointSize*5 ,
+                      depth:  this.params.pointSize *.5,
+                      height: .25,
                     }
                   );
 
                   const textMaterial = new THREE.MeshStandardMaterial({
                     color: color,
-                    emissive: color.clone().multiplyScalar(0.5),
+                    emissive: color.clone().multiplyScalar(.5),
                     emissiveIntensity: this.params.glowIntensity,
                   });
 
