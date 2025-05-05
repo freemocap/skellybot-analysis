@@ -41,7 +41,7 @@ class AiThreadAnalysisModel(DataframeModel):
         return sanitize_name(self.title_slug.lower()) + f"{extension}"
 
     @property
-    def tags(self):
+    def tags(self) -> list[str]:
         tags = self.topic_areas.split(" -> ")
         split_tags = []
         for tag in tags:

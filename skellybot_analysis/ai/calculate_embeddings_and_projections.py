@@ -29,7 +29,7 @@ RANDOM_SEED = 42
 #   - embedding method: str
 #   - pca.{component-number}.value, pca.{component-number}.variance, pca.2.value, pca.2.variance, pca.3.value, pca.3.variance (up to 10 components)
 #   - tsne.{perplexity-number}.{dimension-number) (perplexity=5-50 in increments of 5), 
-#   - umap.{n_neighbors-number}.{min_dist-number}.{dimension-number} (n_neighbors=5-50 in increments of 5, min_dist=0.1-0.9 in increments of 0.1)
+#   - umap.{n_neighbors-number}.{min_dist-number}.{dimension-number} (n_neighbors=5-50 in increments of 5, min_dist=0.1-5.0 in increments of 0.5)
 
 class EmbeddableContentType(enum.Enum):
     MESSAGE_AND_RESPONSE = "message_and_response"
@@ -106,7 +106,7 @@ class EmbeddableItem(BaseModel):
         return cls(
             embedding_index=index,
             content_type=EmbeddableContentType.TAG.value,
-            embedded_text=tag,
+            embedded_text=tag.replace("#", "").replace("-", " "),
             embedding_method=embedding_method
         )
 

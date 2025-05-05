@@ -37,7 +37,7 @@
       #sidebar {
         position: fixed;
         top: 0;
-        right: 0;
+        left: 0;
         width: 350px;
         height: 100%;
         background-color: rgba(0, 0, 0, 0.85);
@@ -114,15 +114,15 @@
             ).textContent = `Error: ${event.error.message}`;
           });
           this.params = {
-            pointSize: 0.1,
-            colorBy: "content_type", // We'll add "thread_id" as an option
-            showLabels: false,
-            labelSize: 0.1,
-            dataFile: "embedding_projections.csv",
             projectionType: "umap",
             umapNeighbors: 15,
             umapMinDist: 0.1,
             tsnePerplexity: 30,
+            pointSize: 0.1,
+            colorBy: "thread_id",
+            showLabels: false,
+            labelSize: 0.1,
+            dataFile: "embedding_projections.csv",
           };
 
           // Initialize UI elements
@@ -139,7 +139,7 @@
           this.raycaster = new THREE.Raycaster();
           this.mouse = new THREE.Vector2();
           this.spheres = [];
-          this.textGeometries = []; // For tag text geometries
+          this.textGeometries = [];
           this.labels = [];
           this.hoveredSphere = null;
           this.threadConnections = []; // Store thread connection lines
@@ -207,45 +207,6 @@
           console.log("Initializing GUI");
 
           this.gui = new GUI();
-          this.gui
-            .add(this.params, "pointSize", 0.01, 0.2)
-            .name("Sphere Size")
-            .onChange(() => this.updatePoints());
-
-          // Add thread_id as a coloring option
-          this.gui
-            .add(this.params, "colorBy", [
-              "content_type",
-              "thread_id",
-              "random",
-            ])
-            .name("Color By")
-            .onChange(() => this.updateColors());
-
-          this.gui
-            .add(this.params, "showLabels")
-            .name("Show Labels")
-            .onChange(() => this.toggleLabels());
-          this.gui
-            .add(this.params, "labelSize", 0.05, 0.3)
-            .name("Label Size")
-            .onChange(() => this.updateLabelSize());
-
-          // Add glow controls
-          this.params.glowIntensity = 0.5;
-          this.params.glowSize = 2;
-          this.params.nearbyDistance = 0.5;
-          this.gui
-            .add(this.params, "glowIntensity", 0, 2)
-            .name("Glow Intensity")
-            .onChange(() => this.updateGlow());
-          this.gui
-            .add(this.params, "glowSize", 1, 5)
-            .name("Glow Size")
-            .onChange(() => this.updateGlow());
-          this.gui
-            .add(this.params, "nearbyDistance", 0.1, 2)
-            .name("Nearby Label Distance");
 
           // Projection type selection
           this.gui
@@ -290,6 +251,47 @@
             .onChange(() => {
               if (this.params.projectionType === "tsne") this.createPoints();
             });
+
+          const vizFolder = this.gui.addFolder("Viz Settings");
+          vizFolder
+            .add(this.params, "pointSize", 0.01, 0.2)
+            .name("Sphere Size")
+            .onChange(() => this.updatePoints());
+
+          vizFolder
+            .add(this.params, "colorBy", [
+            "thread_id",
+            "user_id",
+            "content_type",
+              "random",
+            ])
+            .name("Color By")
+            .onChange(() => this.updateColors());
+
+          vizFolder
+            .add(this.params, "showLabels")
+            .name("Show Labels")
+            .onChange(() => this.toggleLabels());
+          vizFolder
+            .add(this.params, "labelSize", 0.05, 0.3)
+            .name("Label Size")
+            .onChange(() => this.updateLabelSize());
+
+          // Add glow controls
+          this.params.glowIntensity = 0.5;
+          this.params.glowSize = 2;
+          this.params.nearbyDistance = 0.5;
+          vizFolder
+            .add(this.params, "glowIntensity", 0, 2)
+            .name("Glow Intensity")
+            .onChange(() => this.updateGlow());
+          vizFolder
+            .add(this.params, "glowSize", 1, 5)
+            .name("Glow Size")
+            .onChange(() => this.updateGlow());
+          vizFolder
+            .add(this.params, "nearbyDistance", 0.1, 2)
+            .name("Nearby Label Distance");
 
           console.log("GUI initialized");
         }
@@ -338,7 +340,7 @@
         <h3>${clickedData.content_type || "Item"}</h3>
         <p><strong>Thread ID:</strong> ${clickedData.thread_id || "N/A"}</p>
         <p><strong>Message ID:</strong> ${clickedData.message_id || "N/A"}</p>
-        <p><strong>User ID:</strong> ${clickedData.user_id || "N/A"}</p>
+        <p><strong>User ID:</strong> ${String(clickedData.user_id).slice(-6) || "N/A"}</p>
         <p><strong>Full Text:</strong></p>
         <pre style="white-space: pre-wrap; max-height: 70vh; overflow-y: auto;">${
           clickedData.embedded_text || "No text available"
@@ -479,7 +481,16 @@
                 new Set(this.data.map((d) => d.thread_id || "no_thread"))
               )
             )
-            .range(d3.schemeCategory20 || d3.schemeCategory10); // Fallback to Category10 if Category20 is not available
+            .range(d3.schemeCategory10);
+
+          const userIdColorScale = d3
+            .scaleOrdinal()
+            .domain(
+              Array.from(
+                new Set(this.data.map((d) => d.user_id || "no_user"))
+              )
+            )
+            .range(d3.schemeCategory10);
 
           // Create objects for each data point
           this.data.forEach((point, i) => {
@@ -515,7 +526,7 @@
                     {
                       font: font,
                       size: this.params.pointSize * 5,
-                      height: 0.05,
+                      height: .05,
                     }
                   );
 
@@ -539,6 +550,32 @@
                   this.textGeometries.push(textMesh);
                 }
               );
+            } else if (point.content_type === "thread_analysis"){
+              // Create sphere for non-tag items
+              const geometry = new THREE.TorusKnotGeometry(
+                this.params.pointSize*2,
+                this.params.pointSize*.25,
+                16,
+                16
+              );
+
+              const material = new THREE.MeshStandardMaterial({
+                color: color,
+                metalness: 0.3,
+                roughness: 0.7,
+                emissive: color.clone().multiplyScalar(0.5),
+                emissiveIntensity: this.params.glowIntensity,
+              });
+
+              const sphere = new THREE.Mesh(geometry, material);
+              sphere.position.set(coords[0], coords[1], coords[2]);
+              sphere.userData = {
+                index: i,
+                data: point,
+              };
+
+              this.scene.add(sphere);
+              this.spheres.push(sphere);
             } else {
               // Create sphere for non-tag items
               const geometry = new THREE.SphereGeometry(
@@ -565,6 +602,8 @@
               this.scene.add(sphere);
               this.spheres.push(sphere);
             }
+
+
           });
 
           console.log(
@@ -734,7 +773,7 @@
               text.length > 60 ? "..." + text.substring(text.length - 30) : "";
 
             label.innerHTML = `
-            <strong>${data.content_type || "Item"}</strong>: 
+            <strong>${data.content_type || "Item"}</strong>:
             ${firstBit}${lastBit}
         `;
 
@@ -783,7 +822,8 @@
 
           // Color schemes
           const contentTypeColorScale = d3.scaleOrdinal(d3.schemeCategory10);
-          const threadIdColorScale = d3.scaleOrdinal(d3.schemeCategory20);
+          const threadIdColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+          const userIdColorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
           // Update sphere colors
           this.spheres.forEach((sphere) => {
@@ -798,6 +838,10 @@
               color = new THREE.Color(
                 threadIdColorScale(point.thread_id || "no_thread")
               );
+            } else if (this.params.colorBy === "user_id") {
+                color = new THREE.Color(
+                    userIdColorScale(point.user_id || "no_thread")
+                );
             } else {
               color = new THREE.Color(
                 Math.random(),
@@ -823,7 +867,11 @@
               color = new THREE.Color(
                 threadIdColorScale(point.thread_id || "no_thread")
               );
-            } else {
+            }else if (this.params.colorBy === "user_id") {
+                color = new THREE.Color(
+                    userIdColorScale(point.user_id || "no_user")
+                );
+            }else {
               color = new THREE.Color(
                 Math.random(),
                 Math.random(),

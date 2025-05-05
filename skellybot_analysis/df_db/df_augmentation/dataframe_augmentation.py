@@ -61,12 +61,23 @@ async def augment_dataframes(dataframe_handler: DataframeHandler, skip_ai: bool 
                                                       index=len(embeddable_items))
             )
         # Add thread analyses
-        for _, analysis in enumerate(dataframe_handler.thread_analyses.values()):
+        for analysis in dataframe_handler.thread_analyses.values():
             embeddable_items.append(
                 EmbeddableItem.from_thread_analysis(analysis=analysis,
                                                     index=len(embeddable_items)
                                                     )
             )
+        # Add tags
+        added_tags = set()
+        for analysis in dataframe_handler.thread_analyses.values():
+            for tag in analysis.tags:
+                if tag not in added_tags:
+                    embeddable_items.append(
+                        EmbeddableItem.from_tag(tag=tag,
+                                                index=len(embeddable_items))
+                    )
+                    added_tags.add(tag)
+
         _, embedding_projections_df = await calculate_embeddings_and_projections(
             embeddable_items=embeddable_items,
         )
