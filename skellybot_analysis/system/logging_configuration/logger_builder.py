@@ -20,7 +20,7 @@ class LogLevels(Enum):
     INFO = logging.INFO  # 20 # General information about the program
     SUCCESS = logging.INFO + 2  # 22 # OMG, something worked!
     API = logging.INFO + 5  # 25 # API calls/responses
-    WARNING = logging.WARNING  # 30 # Something unexpected happened, but it's necessarily an error
+    WARNING = logging.WARNING  # 30 # Something unexpected happened, but it's not necessarily an error
     ERROR = logging.ERROR  # 40 # Something went wrong!
 
 

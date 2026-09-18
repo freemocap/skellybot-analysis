@@ -171,7 +171,7 @@ class ThreadModel(DataframeModel):
 
         for message in messages:
             if message.bot_message:
-                # TODO - incorporate the 'merging bot messages and removing the 'continued from' text from teh df augmenter to this biz
+                # TODO - incorporate the 'merging bot messages and removing the 'continued from' text from the df augmenter to this biz
                 full_text+= f"BOT:\n\n{message.content}" # ignore bot attachments for now
             else:
                 full_text+= f"HUMAN:\n\n"

@@ -67,7 +67,7 @@ async def get_category_prompts(server_prompt: str,
                                text_channels: list[discord.TextChannel]) -> dict[int, str]:
     category_prompt_messages: dict[int, str] = {}
     for potential_category in text_channels:
-        # discord's "everything is a channel" philosophy is ¯\_(ツ)_/¯
+        # Discord's "everything is a channel" philosophy is ¯\_(ツ)_/¯
         if isinstance(potential_category, discord.CategoryChannel):
             category_prompt_messages[potential_category.id] = ""
 
