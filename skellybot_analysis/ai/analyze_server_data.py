@@ -98,7 +98,7 @@ async def analyze_thread(thread: ThreadModel,
                 llm_model=DEFAULT_LLM
             )
 
-            logger.info(f"AI analysis completed for Thread {thread.thread_id} ({thread.jump_url}) \n\n- tile: {result.title_slug}, summary: {result.extremely_short_summary}")
+            logger.info(f"AI analysis completed for Thread {thread.thread_id} ({thread.jump_url}) \n\n- title: {result.title_slug}, summary: {result.extremely_short_summary}")
 
             return thread.thread_id, AiThreadAnalysisModel(
                 server_id=thread.server_id,
